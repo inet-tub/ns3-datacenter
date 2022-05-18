@@ -1,0 +1,25 @@
+== Needed tools ==
+
+You need to install python, with development headers, and a C/C++ compiler.
+
+
+== Project style / goals / development guidelines ==
+
+Code style rules:
+
+    * Should generate clean C or C++ code
+        - Near what a human programmer would write;
+    * Do not depend on C++ language features except when wrapping C++ APIs
+        - It should be possible to generate pure C modules for wrapping pure C libraries;
+    * No C++ templates allowed (except if wrapping them)
+    * Macros should be used rarely, and should be small if used at all
+        - Shift the complexity into Python side, keep the C/C++ simple (even if large);
+    * Generated code should not require any external library
+        - Whenever possible, do not create functions, expand the needed code from the Python code generator instead;
+
+== Submitting patches ==
+
+1. First, make sure all unit tests pass: waf clean && waf check
+2. Report the feature/bug in launchpad: https://bugs.launchpad.net/pybindgen/+filebug
+3. Attach a patch or branch to the bug report
+

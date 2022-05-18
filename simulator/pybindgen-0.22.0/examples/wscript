@@ -1,0 +1,19 @@
+## -*- python -*-
+
+def options(opt):
+    pass#opt.tool_options('boost')
+
+def build(bld):
+    bld.recurse('a b c d e f g h')
+    bld.recurse('callback')
+    #bld.recurse('buffer') # doesn't work on python3
+    if bld.env['ENABLE_BOOST_SHARED_PTR']:
+        bld.recurse('boost_shared_ptr')
+    bld.recurse('import_from_module')
+
+    if bld.env["ENABLE_CXX11"]:
+    	bld.recurse('std_shared_ptr')
+
+def configure(conf):
+	if conf.check_compilation_flag('-std=c++11'):
+		conf.env["ENABLE_CXX11"] = True

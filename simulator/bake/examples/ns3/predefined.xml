@@ -1,0 +1,9 @@
+<configuration>
+<predefined name="minimal">
+  <enable name="ns-3-dev"/>
+  <disable name="pybindgen"/>
+  <disable name="nsc"/>
+  <disable name="click-1.8.0"/>
+  <disable name="openflow-ns3"/>
+</predefined>
+</configuration>

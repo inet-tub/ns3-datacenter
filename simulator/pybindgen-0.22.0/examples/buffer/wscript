@@ -1,0 +1,20 @@
+## -*- python -*-
+
+def build(bld):
+
+    gen = bld(
+        features='command',
+        source='modulegen.py',
+        target='cmodule.cc',
+        command='${PYTHON} ${SRC[0]} > ${TGT[0]}')
+
+    if bld.env['CXX']:
+        obj = bld(features=['cxx', 'cxxshlib', 'pyext'])
+        obj.source = [
+            'c.cc',
+            'cmodule.cc'
+            ]
+        obj.target = 'c'
+        obj.install_path = None # do not install
+        obj.includes = '.'
+

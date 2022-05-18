@@ -1,0 +1,139 @@
+## -*- python -*-
+#import Action
+#import Object
+#import Params
+#from waflib import Task
+
+import sys
+import os.path
+import os
+import subprocess
+
+# uncomment to enable profiling information
+# epydoc uses the profile data to generate call graphs
+#os.environ["PYBINDGEN_ENABLE_PROFILING"] = ""
+
+
+if 0:
+    DEPRECATION_ERRORS = '-Werror::DeprecationWarning' # deprecations become errors
+else:
+    DEPRECATION_ERRORS = '-Wdefault::DeprecationWarning' # normal python behaviour
+
+
+def build(bld):
+    env = bld.env
+
+    env['TOP_SRCDIR'] = bld.srcnode.abspath()
+
+    if 0:
+        gen = bld(
+            features='command',
+            source='test-generation.py',
+            target='test.cc',
+            command='${PYTHON} ${SRC[0]} ${TOP_SRCDIR} > ${TGT[0]}')
+
+        if env['CXX']:
+            obj = bld(features='cxx pyext')
+            obj.source = 'test.cc'
+            if env['CXX_NAME'] == 'gcc':
+                obj.env.append_value('CXXFLAGS', ['-Werror', '-Wno-unused'])
+
+    # manual code generation using simple pybindgen API calls
+    bindgen = bld(
+        features='command',
+        source='foomodulegen.py',
+        target='foomodule.cc',
+        command='${PYTHON} %s ${SRC[0]} ${TOP_SRCDIR} > ${TGT[0]}' % (DEPRECATION_ERRORS,))
+
+    if env['CXX']:
+        obj = bld(features='cxx cxxshlib pyext')
+        obj.source = [
+            'foo.cc',
+            'foomodule.cc'
+            ]
+        obj.target = 'foo'
+        obj.install_path = None
+        obj.env.append_value("INCLUDES", '.')
+
+    ## automatic code scanning using gccxml
+    if env['ENABLE_PYGCCXML']:
+        ### Same thing, but using gccxml autoscanning
+
+        bld(
+            features='command',
+            source='foomodulegen-auto.py foo.h',
+            target='foomodule2.cc foomodulegen_generated.py',
+            command='${PYTHON} %s ${SRC[0]} ${SRC[1]} ${cpp_path_repr} ${TGT[1]} ${PYGCCXML_MODE} > ${TGT[0]}' % (DEPRECATION_ERRORS,),
+            variables=dict(cpp_path_repr=repr(bindgen.env['INCLUDES']+bindgen.env['INCLUDES_PYEXT'])))
+
+        obj = bld(features='cxx cxxshlib pyext')
+        obj.source = [
+            'foo.cc',
+            'foomodule2.cc'
+            ]
+        obj.target = 'foo2'
+        obj.install_path = None
+        obj.env.append_value("INCLUDES", '.')
+
+        ### Now using the generated python script
+
+        bld(
+            features='command',
+            source='foomodulegen3.py foomodulegen_generated.py',
+            target='foomodule3.cc',
+            command='${PYTHON} %s ${SRC[0]} ${TGT[0]} > ${TGT[0]}' % (DEPRECATION_ERRORS,))
+
+        ## yes, this global manipulation of PYTHONPATH is kind of evil :-/
+        ## TODO: add WAF command-output support for customising command OS environment
+        os.environ["PYTHONPATH"] = os.pathsep.join([os.environ.get("PYTHONPATH", ''), bindgen.path.get_bld().abspath()])
+
+        obj = bld(features='cxx cxxshlib pyext')
+        obj.source = [
+            'foo.cc',
+            'foomodule3.cc'
+            ]
+        obj.target = 'foo3'
+        obj.install_path = None # do not install
+        obj.env.append_value("INCLUDES", '.')
+
+        ## ---
+
+        bld(
+            features='command',
+            source='foomodulegen-auto-split.py foo.h',
+            target='foomodulegen_split.py foomodulegen_module1.py foomodulegen_module2.py',
+            command='${PYTHON} %s ${SRC[0]} ${SRC[1]} ${cpp_path_repr} ${TGT[0]} ${TGT[1]} ${TGT[2]} ${PYGCCXML_MODE}' % (DEPRECATION_ERRORS,),
+            variables=dict(cpp_path_repr=repr(bindgen.env['INCLUDES']+bindgen.env['INCLUDES_PYEXT'])))
+
+        bld(
+            features='command',
+            source=[
+                'foomodulegen4.py',
+                'foomodulegen_split.py',
+                'foomodulegen_module1.py',
+                'foomodulegen_module2.py',
+                ],
+            target=[
+                'foomodule4.cc',
+                'foomodule4.h',
+                'foomodulegen_module1.cc',
+                'foomodulegen_module2.cc',
+                ],
+            command='${PYTHON} %s ${SRC[0]} ${TGT[0]}' % (DEPRECATION_ERRORS,))
+
+        obj = bld(features='cxx cxxshlib pyext')
+        obj.source = [
+            'foo.cc',
+            'foomodule4.cc',
+            'foomodulegen_module1.cc',
+            'foomodulegen_module2.cc',
+            ]
+        obj.target = 'foo4'
+        obj.install_path = None # do not install
+        obj.env.append_value("INCLUDES", '.')
+
+    ## pure C tests
+    bld.recurse('c-hello')
+
+    ## boost tests
+    bld.recurse('boost')

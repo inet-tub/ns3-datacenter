@@ -1,0 +1,179 @@
+<configuration>
+  <modules>
+
+    <module name="click-1.8.0">
+      <source type="archive">
+	<attribute name="url" value="http://read.cs.ucla.edu/click/click-1.8.0.tar.gz"/>
+      </source>
+      <build type="autotools" objdir="yes">
+	<attribute name="extra_configure_options" value="--enable-userlevel --disable-linuxmodule --enable-nsclick --enable-wifi"/>
+      </build>
+    </module>
+
+    <module name="openflow-ns3">
+      <source type="mercurial">
+	<attribute name="url" value="http://code.nsnam.org/bhurd/openflow"/>
+      </source>
+      <build type="waf" objdir="yes"/>
+    </module>
+
+    <module name="gccxml-ns3">
+      <source type="cvs">
+	<attribute name="root" value=":pserver:anoncvs:@www.gccxml.org:/cvsroot/GCC_XML"/>
+	<attribute name="module" value="gccxml"/>
+	<attribute name="date" value="2009-09-21"/>
+      </source>
+      <build type="cmake" objdir="yes">
+      </build>
+    </module>
+
+    <module name="pygccxml">
+      <source type="archive">
+	<attribute name="url" value="http://mesh.dl.sourceforge.net/project/pygccxml/pygccxml/pygccxml-1.0/pygccxml-1.0.0.zip"/>
+      </source>
+      <build type="python" objdir="yes">
+      </build>
+      <depends_on name="gccxml"/>
+    </module>
+
+    <module name="pybindgen">
+      <source type="bazaar">
+	<attribute name="url" value="https://launchpad.net/pybindgen"/>
+	<attribute name="revision" value="revno:779"/>
+      </source>
+      <build type="waf" objdir="yes">
+	<attribute name="extra_build_options" value="--generate-version"/>
+      </build>
+      <depends_on name="pygccxml" optional="True"/>
+    </module>
+
+    <module name="nsc">
+      <source type="mercurial">
+	<attribute name="url" value="https://secure.wand.net.nz/mercurial/nsc"/>
+      </source>
+      <!-- problem: scons has no generic command-line support for builddir and installdir -->
+      <build type="inline"  classname="NscModuleBuild">
+	<code>class NscModuleBuild(InlineModuleBuild):
+    def __init__(self):
+        InlineModuleBuild.__init__(self)
+    def build(self, env, jobs):
+        env.run(['python', os.path.join(env.srcdir, 'scons.py'), 
+                 '-j', str(jobs), '--prefix=' + env.installdir, 'install'],
+                directory=env.srcdir)
+    def clean(self, env):
+        env.run(['python', os.path.join(env.srcdir, 'scons.py'), '-c'],
+                directory=env.srcdir)
+    def check_version(self, env):
+        return True</code>
+      </build>
+    </module>
+    
+    <module name="iproute2">
+      <source type="archive">
+	<attribute name="url" value="http://devresources.linuxfoundation.org/dev/iproute2/download/iproute2-2.6.33.tar.bz2"/>
+      </source>
+      <build type="none"/>
+    </module>
+
+    <module name="ns-3-linux">
+      <source type="mercurial">
+	<!--      <attribute name="url" value="http://code.nsnam.org/mathieu/ns-3-linux"/> -->
+	<attribute name="url" value="file:///home/mathieu/code/bake/examples/ns3/old-source/ns-3-linux"/>
+	<child type="git" name="net-next-2.6">
+	  <!--	<attribute name="url" value="file:///home/mathieu/code/ns-3-linux/net-next-2.6"/> -->
+	  <attribute name="url" value="file:///home/mathieu/code/bake/examples/ns3/old-source/net-next-2.6"/>
+	  <attribute name="revision" value="fed66381d65a35198639f564365e61a7f256bf79"/>
+	</child>
+      </source>
+      <depends_on name="iproute2"/>
+      <build type="none"/>
+    </module>
+
+    <module name="gdb-cvs">
+      <source type="cvs">
+	<attribute name="root" value=":pserver:anoncvs:anoncvs@sourceware.org:/cvs/src"/>
+	<attribute name="module" value="gdb"/>
+	<attribute name="checkout_directory" value="src"/>
+      </source>
+      <build type="autotools" objdir="yes">
+      </build>
+    </module>
+    
+
+    <module name="ns-3-dev">
+      <source type="mercurial">
+	<attribute name="url" value="http://code.nsnam.org/ns-3-dev"/>
+      </source>
+      <depends_on name="nsc" optional="True"/>
+      <depends_on name="pybindgen" optional="True"/>
+      <depends_on name="click" optional="True"/>
+      <depends_on name="openflow" optional="True"/>
+      <build type="waf" objdir="yes">
+	<attribute name="extra_configure_options" value="--with-nsc=$INSTALLDIR --with-nsclick=$INSTALLDIR --with-openflow=$INSTALLDIR"/>
+      </build>
+    </module>
+
+    <module name="readversiondef">
+      <source type="mercurial">
+	<attribute name="url" value="http://code.nsnam.org/mathieu/readversiondef"/>
+      </source>
+      <build type="inline" classname="ElfLoaderModuleBuild" objdir="yes">
+	<code>class ElfLoaderModuleBuild(InlineModuleBuild):
+    def __init__(self):
+        InlineModuleBuild.__init__(self)
+    def build(self, env, jobs):
+        env.run(['make', '-f', os.path.join(env.srcdir, 'Makefile'), 'install',
+	        'PREFIX=%s' % env.installdir],
+                directory=env.objdir)
+    def clean(self, env):
+        env.run(['make', '-f', os.path.join(os.pardir, 'Makefile')],
+                directory=env.objdir)
+    def check_version(self, env):
+        return env.check_program('make')</code>
+      </build>
+    </module>
+
+    <module name="elf-loader">
+      <source type="mercurial">
+	<attribute name="url" value="http://code.nsnam.org/mathieu/elf-loader"/>
+      </source>
+      <depends_on name="readversiondef"/>
+      <build type="inline" classname="ElfLoaderModuleBuild" objdir="yes">
+	<code>class ElfLoaderModuleBuild(InlineModuleBuild):
+    def __init__(self):
+        InlineModuleBuild.__init__(self)
+    def build(self, env, jobs):
+        env.run(['make', '-f', os.path.join(env.srcdir, 'Makefile'), 'install',
+	        'PREFIX=%s' % env.installdir],
+                directory=env.objdir)
+    def clean(self, env):
+        env.run(['make', '-f', os.path.join(os.pardir, 'Makefile')],
+                directory=env.objdir)
+    def check_version(self, env):
+        return env.check_program('make')</code>
+      </build>
+    </module>
+
+    <module name="ns-3-dce">
+      <source type="mercurial">
+	<attribute name="url" value="http://code.nsnam.org/mathieu/ns-3-dce"/>
+      </source>
+      <depends_on name="elf-loader" optional="True"/>
+      <depends_on name="readversiondef"/>
+      <depends_on name="ns-3-dev"/>
+      <depends_on name="ns-3-linux" optional="True"/>
+      <depends_on name="gdb" optional="True"/>
+      <build type="waf" objdir="yes"/>
+    </module>
+  </modules>
+  <predefined name="dce">
+    <enable name="ns-3-dce"/>
+    <disable name="pybindgen"/>
+    <disable name="nsc"/>
+    <disable name="click"/>
+    <disable name="openflow"/>
+    <disable name="gdb"/>
+    <set name="CFLAGS" value="-g" module="nsc"/>
+    <set name="CXXFLAGS" value="-g"/>
+  </predefined>
+</configuration>

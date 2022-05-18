@@ -1,0 +1,40 @@
+## -*- python -*-
+#from waflib import Task
+
+import sys
+import os.path
+import os
+import subprocess
+
+# uncomment to enable profiling information
+# epydoc uses the profile data to generate call graphs
+#os.environ["PYBINDGEN_ENABLE_PROFILING"] = ""
+
+if 0:
+    DEPRECATION_ERRORS = '-Werror::DeprecationWarning' # deprecations become errors
+else:
+    DEPRECATION_ERRORS = '-Wdefault::DeprecationWarning' # normal python behaviour
+
+
+def build(bld):
+    env = bld.env
+
+    env['TOP_SRCDIR'] = bld.srcnode.abspath()
+
+    bindgen = bld(
+        features='command',
+        source='barmodulegen.py',
+        target='barmodule.cc',
+        command='${PYTHON} %s ${SRC[0]} ${TOP_SRCDIR} > ${TGT[0]}' % (DEPRECATION_ERRORS,))
+
+    if env['CXX'] and env['ENABLE_BOOST_SHARED_PTR'] == True:
+        obj = bld(features='cxx cxxshlib pyext')
+        obj.source = [
+            'bar.cc',
+            'barmodule.cc'
+            ]
+        obj.target = 'bar'
+        obj.install_path = None
+        obj.env.append_value("INCLUDES", '.')
+
+

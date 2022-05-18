@@ -1,0 +1,23 @@
+## -*- python -*-
+
+def build(bld):
+
+    gen = bld(
+        features='command',
+        source='modulegen.py',
+        target='spmodule.cc',
+        command='${PYTHON} ${SRC[0]} > ${TGT[0]}')
+
+    if bld.env['CXX']:
+        # TODO() ADD -std=c++11 flag so that <memory>
+        # contains std::shared_ptr
+        obj = bld(features=['cxx', 'cxxshlib', 'pyext'])
+        obj.env.append_value("CXXFLAGS", "-std=c++11")
+        obj.source = [
+            'sp.cc',
+            'spmodule.cc'
+            ]
+        obj.target = 'sp'
+        obj.install_path = None # do not install
+        obj.includes = '.'
+

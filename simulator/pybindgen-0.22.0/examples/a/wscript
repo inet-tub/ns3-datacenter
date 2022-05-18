@@ -1,0 +1,60 @@
+## -*- python -*-
+
+def build(bld):
+    ## manual code generation using simple pybindgen API calls
+    gen = bld(
+        features='command',
+        source='modulegen.py',
+        target='amodule.cc',
+        command='${PYTHON} ${SRC[0]} > ${TGT[0]}')
+
+    if bld.env['CXX']:
+        obj = bld(features=['cxx', 'cxxshlib', 'pyext'])
+        obj.source = [
+            'a.cc',
+            'amodule.cc'
+            ]
+        obj.target = 'a'
+        obj.install_path = None # do not install
+        obj.includes = '.'
+
+
+    if bld.env['ENABLE_PYGCCXML']:
+        ## gccxml direct generation method
+        bld(
+            features='command',
+            source='module-autogen.py a.h',
+            target='a1module.cc',
+            command='${PYTHON} ${SRC[0]} ${SRC[1]} > ${TGT[0]}')
+
+        obj = bld(features=['cxx', 'cxxshlib', 'pyext'])
+        obj.source = [
+            'a.cc',
+            'a1module.cc'
+            ]
+        obj.target = 'a1'
+        obj.install_path = None # do not install
+        obj.includes = '.'
+
+
+        ## gccxml indirect generation method
+        bld(
+            features='command',
+            source='module-autoscan.py a.h',
+            target='a2modulegen.py',
+            command='${PYTHON} ${SRC[0]} ${SRC[1]} > ${TGT[0]}')
+
+        bld(
+            features='command',
+            source='a2modulegen.py',
+            target='a2module.cc',
+            command='${PYTHON} ${SRC[0]} > ${TGT[0]}')
+
+        obj = bld(features=['cxx', 'cxxshlib', 'pyext'])
+        obj.source = [
+            'a.cc',
+            'a2module.cc'
+            ]
+        obj.target = 'a2'
+        obj.install_path = None # do not install
+        obj.includes = '.'

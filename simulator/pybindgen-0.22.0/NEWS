@@ -1,0 +1,247 @@
+=== pybindgen 0.16 ===
+
+ - Add API to allow importing classes and enumerations from external modules
+ - Add new destructor_visibility CppClass option
+ - Add setting to disable usage of the internal GCC abi to check rtti stuff (for Mac OS X GCC)
+ - pybindgen.settings.deprecated_virtuals default value changed to False
+ - Bug fixes.
+
+=== pybindgen 0.15 ===
+
+ - Bug fixes
+
+=== pybindgen 0.14 ===
+
+    - Multiple inheritance support
+
+    - Virtual methods can now be overridden with Method instead of _Method
+
+    - Add annotation support for instance attributes
+
+    - Benchmarks (vs Boost.Python, SWIG, and SIP)
+
+    - New types supported: int16_t& and std::string* parameter types
+
+    - Non-virtual protected methods are now also wrapped
+    
+    - Wrap enum pointer params
+
+Note: this release marks the beginning of a transition to a minor change
+in the API of the generated bindings.
+
+Prior to PyBindGen version 0.14, the code generated to handle C++
+virtual methods required Python user code to define a _foo method in
+order to implement the virtual method foo.  Since 0.14, PyBindGen
+changed so that virtual method foo is implemented in Python by
+defining a method foo, i.e. no underscore prefix is needed anymore.
+Setting pybindgen.settings.deprecated_virtuals to True will force the
+old virtual method behaviour.  But this is really deprecated; newer
+code should set pybindgen.settings.deprecated_virtuals to False.
+
+In PyBindGen 0.14, if the option
+pybindgen.settings.deprecated_virtuals is not set, PyBindGen emits a
+warning and assumes the value of True in order to preserve backward
+compatibility.  In PyBindGen 0.15, the default value of this option
+will change to False, and in 0.16 the support for deprecated virtuals
+will be removed.
+
+This change was made to make the user code interface more intuitive,
+and to align it with other Python bindings tools such as SIP,
+Boost.Python, and SWIG.
+
+
+=== pybindgen 0.13 ===
+
+    - Lots of small bug fixes
+
+    - Custodian/ward-style memory management works better now
+
+    - Add 'reference_existing_object' and 'return_interal_reference'
+      options for pointer/reference return values
+
+    - New Sphinx based documentation
+
+
+=== pybindgen 0.12 ===
+
+    - Now we can catch C++ exceptions and translate them into Python
+
+    - New API to add container iteration powers to wrapped C++ classes
+
+    - Unary minus operator support (J. Michael Owen)
+
+    - CppMethod: is_pure_virtual=True should imply is_virtual=True
+
+    - More polish for numeric operators with non-class right operand
+
+    - Virtual methods regressions fixed
+
+    - gccxmlparser: don't try to wrap private/protected operators
+
+    - MSVC compilation fix
+
+    - unsigned long type handlers (J. Michael Owen)
+
+    - tp_len/__len__ works now with overloaded methods (J. Michael Owen)
+
+    - Add foreign_cpp_namespace option to Function wrappers
+
+    - Misc. cleanup and bug fixes
+
+
+=== pybindgen 0.11 ===
+    - Generate code that supports GCC's -fvisibility=hidden
+
+    - Add rudimentary support for std::map containers
+
+    - Some inplace numeric operators now supported (J. Michael Owen)
+
+    - Partial sequence protocol support: __len__, __getitem__,
+      and __setitem__ (J. Michael Owen)
+
+    - Partially support pointer-to-container parameters
+
+    - Call traceback.extract_stack() less often (faster on win32)
+
+    - No need for GIL locking in attribute setters (thanks Stuart Stock)
+
+    - Allow wrapping enum given list of (name, value) pairs
+
+    - New foreign_cpp_namespace option, for wrapping classes outside
+      our module's C++ namespace
+
+    - Add a docstring parameter to CppMethod constructor (Robin Gilks)
+      Also add a docstring parameter for CppClass
+
+    - Better support for typedefs
+
+    - Implement support for enum reference parameters
+
+    - Add support for size_t "by-value" type
+
+=== pybindgen 0.10 ===
+
+    - New null_ok, default_value options for pointer-to-class parameters;
+
+    - Thread safety fixes;
+
+    - Map C++ operator() into Python's tp_call (__call__);
+
+    - Initial support for std containers (except mapping containers);
+
+    - Generate __copy__ methods for classes with copy contructor;
+
+    - Add 'wrapper registry' optional feature (off by default): allows
+      C++ instances returned by pointer to be consistently wrapped
+      always by the same Python wrapper, so that the 'is' operator can
+      be used for identity testing;
+
+    - New C type expression parser, is_const not longer needed for
+      parameter types, just put const in the type string as
+      appropriate;
+
+    - Sort the declarations returned by (py)gccxml.  If generating
+      python script files from gccxml scanning, now the output file
+      becomes more stable and less prone to move declarations up and
+      down with different people scanning and the output file is under
+      version control;
+
+    - Map binary comparison operators (< <= == >= >) from C++ to Python;
+
+    - Map some binary numeric operators (+ - * /) from C++ to Python;
+
+    - Allow installation of pybindgen even if no C/C++ compiler is detected;
+
+    - Fix compatibility with older Python versions (tested with 2.3, 2.4, and 2.5)
+
+
+=== pybindgen 0.9 ===
+    - Fix GCC 4.2 compilation warnings;
+    - Works with some GCCXML 0.9/cvs snapshots (tested with 2008-04-20),
+      in addition to stable 0.7;
+    - Support for overloaded virtual methods;
+    - Add 'ignore' annotation support, allowing to ignore functions
+      and methods;
+    - Generally work hard to make sure the generated code at least
+      always compiles, even if we have to disable generation of
+      certain wrappers;
+    - Add support for protected methods and constructors;
+    - Preliminary support for templated classes/methods/functions;
+    - Add more type conversions, such as uint64_t and uint16_t;
+    - Support implicit conversions also for pass-by-reference parameters;
+    - Add supported for nested (i.e. defined inside a class) enums and classes;
+    - Add support for adding manually written custom method or function wrappers;
+    - Split the gccxmlparser.ModuleParser.parse() method into several
+      smaller methods, to allow greater customization and flexibility;
+    - Add support for customising C++ class instance creation code;
+    - Much improved support for wrapping pure C code;
+    - Support std::ostream << myobject mapped as str(myobject) (Mathieu Lacage)
+    - Support default values in parameters;
+    - More intuitive API (thanks Mathieu Lacage for feedback)
+    - Support generation of a Python pybindgen script from scanned API;
+    - Support splitting of generated python script and/or C/C++ module into several files;
+    - Lots of small bug fixes, and other features I probably forgot;
+    - New tutorial (thanks Mathieu Lacage), and API docs.
+
+
+=== pybindgen 0.8 ===
+    - Support C++ instance attributes through getter/setter methods
+    - Support functions as methods of C++ classes
+    - Support the PyObject* type
+    - Support unsigned int, C strings (char*) (from Mark Lee)
+    - Add basic support for enum types
+    - New experimental automatic module generator based on C/C++
+      header file scanner and annotations in comments, using pygccxml
+    - Some bug fixes
+
+
+=== pybindgen 0.7 ===
+	- Automatic C++ pointer-to-class return type narrowing
+	- Optionally allow subclassing in Python of certain C++ classes 
+	- Add support for overriding C++ virtual methods in Python
+	- Add support for C++ namespaces
+	- Add support for C++ implicit conversions
+	- Add support for a "custodian and ward" memory management model
+	- Assorted bug fixes
+
+
+=== pybindgen 0.6 ===
+	- Supports function/method/constructor overloading
+        - Supports automatic type narrowing on C++ class pointer return values
+
+
+=== pybindgen 0.5 ===
+	- Support C++ class instance/static attribute setters (only
+          getters supported before).
+
+
+=== pybindgen 0.4 ===
+        - Support reference counted C++ classes
+        - Generated code compiles with Python >= 2.3
+          (though Python >= 2.4 required for pybindgen itself)
+        - Memory leak fixes
+        - Add support for type transformations (for smart pointers)
+        - New option to prefix global declarations with a name
+        - Fix compilation warnings
+        - Add support for read-only access to C++ class attributes
+          (both instance and static attributes supported)
+        - Win32 build fixes
+        - Other bug fixes
+
+
+=== pybindgen 0.3 ===
+        - Supports methods and functions with parameters of a class
+type (for classes being wrapped).  Pass by pointer, value, or ref
+supported, with in/out/inout directions, and transfer of ownership, as
+well as value/pointer class return type.  Reference counted classes
+not yet supported.
+
+
+=== pybindgen 0.2 ===
+        - Supports wrapping classes, but not yet functions/methods
+with class parameters;
+
+
+=== pybindgen 0.1 ===
+        - Supports basic types, modules, and functions;
+

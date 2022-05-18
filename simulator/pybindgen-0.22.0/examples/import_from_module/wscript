@@ -1,0 +1,38 @@
+## -*- python -*-
+
+def build(bld):
+
+	# ---- Module A ----
+
+    gen = bld(
+        features='command',
+        source='amodulegen.py',
+        target='amodule.cc',
+        command='${PYTHON} ${SRC[0]} > ${TGT[0]}')
+
+    if bld.env['CXX']:
+        obj = bld(features=['cxx', 'cxxshlib', 'pyext'])
+        obj.source = [
+            'amodule.cc'
+            ]
+        obj.target = 'a'
+        obj.install_path = None # do not install
+        obj.includes = '.'
+
+	# ---- Module B ----
+
+    gen = bld(
+        features='command',
+        source='bmodulegen.py',
+        target='bmodule.cc',
+        command='${PYTHON} ${SRC[0]} > ${TGT[0]}')
+
+    if bld.env['CXX']:
+        obj = bld(features=['cxx', 'cxxshlib', 'pyext'])
+        obj.source = [
+            'bmodule.cc'
+            ]
+        obj.target = 'b'
+        obj.install_path = None # do not install
+        obj.includes = '.'
+

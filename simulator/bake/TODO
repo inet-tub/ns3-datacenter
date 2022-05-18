@@ -1,0 +1,17 @@
+* check build and source tool versions from bakeconf.xml
+* compressed 'bake' binary
+* add <patch> xml node in source node.
+* export env vars that need to be modified in shell from build objects
+* find a way for users to specify an env var for build
+* find a way to deal with per-module options that are not build-tool-dependent
+* change $INSTALLDIR to ${PREFIX} in xml
+* make <installed value=""> tags work when mving the directory.
+* check that module names do not contain reserved characters for paths.
+
+* missing commands:
+  - diff in ModuleSource
+  - reset in ModuleSource
+  - clean in ModuleSource
+  - query modules, deps, etc.
+
+

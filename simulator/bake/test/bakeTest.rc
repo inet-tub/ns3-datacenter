@@ -1,0 +1,12 @@
+<configuration>
+  <predefined name="my-ns3">
+    <enable name="ns-3-dev"/>
+    <disable name="nsc"/>
+    <disable name="net_anim"/>
+    <disable name="pybindgen"/>
+    <disable name="click"/>
+    <disable name="openflow-ns3"/>
+    <append name="configure_arguments" value=" --enable-modules=core,network,wifi"/>
+  </predefined>
+</configuration>
+

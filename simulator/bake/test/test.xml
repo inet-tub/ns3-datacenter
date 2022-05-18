@@ -1,0 +1,227 @@
+<configuration>
+  <modules>
+
+    <module name="dce-ns3">
+      <source type="mercurial">
+	<attribute name="url" value="http://code.nsnam.org/furbani/ns-3-dce"/>
+ 	<attribute name="module_directory" value="dce"/>
+      </source>
+       <depends_on name="readversiondef" optional="False"/>
+       <depends_on name="ns-3-dev-dce" optional="False"/>
+      <build type="waf" objdir="build">
+	<attribute name="configure_arguments" value="configure --prefix=`pwd`/../build --verbose"/>
+	<attribute name="post_installation" value="BASEDCE=$SRCDIR;DCE_PATH=$BASEDCE/build/bin_dce:$BASEDCE/build/bin;DCE_ROOT=$BASEDCE/build;LD_LIBRARY_PATH=$OBJDIR/../build/lib:`pwd`/build/bin:$SRCDIR/../ns-3-dev-dce/build;$OBJDIR/../build/bin/ns3test-dce --verbose"/>
+      </build>
+    </module>
+
+    <module name="dce-linux">
+      <source type="mercurial">
+	<attribute name="url" value="http://code.nsnam.org/furbani/ns-3-dce"/>
+ 	<attribute name="module_directory" value="dce"/>
+     </source>
+       <depends_on name="readversiondef" optional="False"/>
+       <depends_on name="ns-3-dev-dce" optional="False"/>
+       <depends_on name="iproute" optional="False"/>
+
+       <build type="waf" objdir="yes" sourcedir="dce">
+	<attribute name="configure_arguments" value="configure --prefix=`pwd`/../build --enable-kernel-stack=`pwd`/../ns-3-linux --verbose"/>
+	<attribute name="post_installation" value="BASEDCE=$SRCDIR;DCE_PATH=$BASEDCE/build/bin_dce:$BASEDCE/build/bin;DCE_ROOT=$BASEDCE/build;LD_LIBRARY_PATH=$OBJDIR/../build/lib:`pwd`/build/bin:$SRCDIR/../ns-3-dev-dce/build;$OBJDIR/../build/bin/ns3test-dce --verbose"/>
+        <attribute name="v_PATH" value="$OBJDIR/../../readversiondef;`pwd`;`pwd`/../build/bin" />
+        <attribute name="v_LD_LIBRARY" value="$OBJDIR/..;`pwd`;`pwd`/../ns-3-dev-dce/build" />
+        <attribute name="v_PKG_CONFIG" value="`pwd`/../ns-3-dev-dce/build/lib/pkgconfig;$OBJDIR/../../ns-3-dev-dce/build/lib/pkgconfig" />
+      </build>
+    </module>
+
+    <module name="iproute">
+      <source type="archive">
+	<attribute name="url" value="http://www.linuxgrill.com/anonymous/iproute2/NEW-OSDL/iproute2-2.6.38.tar.bz2"/>
+      </source>
+      <build type="make" objdir="yes">
+	<attribute name="pre_installation" value="$SRCDIR/configure"/>
+	<attribute name="LDFLAGS" value="-pie"/>
+	<attribute name="ignore_predefined_flags" value="True"/>
+	<attribute name="make_arguments" value="CCOPTS='-fpic -D_GNU_SOURCE -O0 -U_FORTIFY_SOURCE'"/>
+      </build>
+    </module>
+
+    <module name="readversiondef">
+      <source type="mercurial">
+	<attribute name="url" value="http://code.nsnam.org/mathieu/readversiondef"/>
+      </source>
+      <build type="make" objdir="yes">
+	<attribute name="make_arguments" value="install PREFIX=`pwd`/../build"/>
+      </build>
+    </module>
+     
+    <module name="ns-3-dev-dce">
+      <source type="mercurial">
+	<attribute name="url" value="http://code.nsnam.org/ns-3-dev"/>
+	<attribute name="revision" value="49dadc40be43"/>
+      </source>
+      <build type="waf" objdir="yes">
+	<attribute name="patch" value="$SRCDIR/../dce/utils/packet-socket-upgrade-exp.patch;$SRCDIR/../dce/utils/remove-default-simulator-asserts.patch;$SRCDIR/../dce/utils/NS3-shutdown.patch"/>
+	<attribute name="configure_arguments" value="configure --prefix=`pwd`/../build --enable-tests"/>
+      </build>
+    </module>
+
+    <module name="git-kern">
+      <source type="git">
+	<attribute name="url" value="git://git.kernel.org/pub/scm/linux/kernel/git/davem/net-next.git"/>
+	<attribute name="revision" value="fed66381d65a35198639f564365e61a7f256bf79"/>
+      </source>
+      <build type="none" objdir="no">
+      </build>
+    </module>
+
+    <module name="ns-3-linux" built_once="true">
+      <source type="mercurial">
+	<attribute name="url" value="http://code.nsnam.org/furbani/ns-3-linux"/>
+      </source>
+      <depends_on name="git-kern" optional="False"/>
+      <build type="make" objdir="no">
+	<attribute name="pre_installation" value="ln -s ../git-kern net-next-2.6; sed 's/$(PWD)/`pwd`/' Makefile >a; mv a Makefile; make unpatch; make setup ;make defconfig; make config; sed s/CONFIG_PACKET=m/CONFIG_PACKET=y/ config >c2 ; mv c2 config"/>
+      </build>
+    </module>
+
+    <module name="click">
+      <source type="git">
+	<attribute name="url" value="git://read.cs.ucla.edu/git/click"/>
+	<attribute name="revision" value="724412626833df5c13384be5cce4da52c601371f"/>
+
+      </source>
+      <build type="autotools" objdir="yes">
+	<attribute name="configure_arguments" value="../configure --enable-userlevel --disable-linuxmodule --enable-nsclick --enable-wifi"/>
+      </build>
+    </module>
+
+    <module name="openflow-ns3">
+      <source type="mercurial">
+	<attribute name="url" value="http://code.nsnam.org/jpelkey3/openflow"/>
+      </source>
+      <build type="waf" objdir="yes">
+	<attribute name="configure_arguments" value="configure --prefix=$INSTALLDIR"/>
+      </build>
+    </module>
+
+    <module name="gccxml-ns3">
+      <source type="cvs">
+	<attribute name="root" value=":pserver:anoncvs:@www.gccxml.org:/cvsroot/GCC_XML"/>
+	<attribute name="module" value="gccxml"/>
+	<attribute name="date" value="2009-09-21"/>
+      </source>
+      <build type="cmake" objdir="yes">
+      </build>
+    </module>
+
+    <module name="pygccxml">
+      <source type="archive">
+	<attribute name="url" value="http://downloads.sourceforge.net/project/pygccxml/pygccxml/pygccxml-1.0/pygccxml-1.0.0.zip"/>
+      </source>
+      <build type="python" objdir="yes">
+      </build>
+      <depends_on name="gccxml-ns3" optional="True"/>
+    </module>
+
+    <module name="pybindgen">
+      <source type="bazaar">
+	<attribute name="url" value="https://launchpad.net/pybindgen"/>
+	<attribute name="revision" value="revno:809"/>
+      </source>
+      <build type="waf" objdir="yes">
+	<attribute name="configure_arguments" value="configure"/>
+	<attribute name="build_arguments" value="--generate-version"/>
+      </build>
+      <depends_on name="pygccxml" optional="True"/>
+    </module>
+
+
+    <module name="nsc">
+      <source type="mercurial">
+	<attribute name="url" value="https://secure.wand.net.nz/mercurial/nsc"/>
+      </source>
+      <!-- problem: scons has no generic command-line support for builddir and installdir -->
+      <build type="inline"  classname="NscModuleBuild">
+	<attribute name="supported_os" value="linux;linux2"/>
+	<code>class NscModuleBuild(InlineModuleBuild):
+    def __init__(self):
+        InlineModuleBuild.__init__(self)
+    def build(self, env, jobs):
+
+        env.run(['python', os.path.join(env.srcdir, 'scons.py'), 
+                 '-j', str(jobs), 'prefix=' + env.installdir, 'install'],
+                directory=env.srcdir)
+    def clean(self, env):
+        env.run(['python', os.path.join(env.srcdir, 'scons.py'), '-c'],
+                directory=env.srcdir)
+    def check_version(self, env):
+        return True</code>
+      </build>
+    </module>
+    
+
+    <module name="qt4">
+      <source type="system_dependency">
+	<attribute name="dependency_test" value="(qmake or qmake-qt4)"/>
+	<attribute name="try_to_install" value="True"/>
+	<attribute name="name_yum" value="qt4-devel"/>
+	<attribute name="name_apt-get" value="qt4-dev-tools"/>
+	<attribute name="more_information" value="Didn't find QT 4, download and install it from http://qt.nokia.com/downloads/"/>
+      </source>
+      <build type="none" objdir="no">
+      </build>
+    </module>
+
+    <module name="elf-loader">
+      <source type="mercurial">
+	<attribute name="url" value="http://code.nsnam.org/mathieu/elf-loader"/>
+      </source>
+      <build type="make" objdir="no">
+	<attribute name="pre_installation" value="cd $SRCDIR;qmake NetAnim.pro or cd $SRCDIR;qmake-qt4 NetAnim.pro or cd $SRCDIR;qmake -spec macx-g++ NetAnim.pro"/>
+      </build>
+      <depends_on name="qt4" optional="False"/>
+    </module>
+
+    <module name="net_anim">
+      <source type="mercurial">
+	<attribute name="url" value="http://code.nsnam.org/netanim"/>
+      </source>
+      <build type="make" objdir="no">
+	<attribute name="patch" value="$SRCDIR/../dce/utils/elf-loader-r633.patch"/>
+	<attribute name="configure_arguments" value="vdl-config.h"/>
+	<attribute name="post_installation" value="cp $OBJDIR/ldso $OBJDIR/libvdl.so  ../build/lib"/>
+      </build>
+
+
+      <build type="make" objdir="no">
+	<attribute name="pre_installation" value="cd $SRCDIR;qmake NetAnim.pro or cd $SRCDIR;qmake-qt4 NetAnim.pro or cd $SRCDIR;qmake -spec macx-g++ NetAnim.pro"/>
+      </build>
+      <depends_on name="qt4" optional="False"/>
+    </module>
+
+  <module name="ns-3">
+      <source type="mercurial">
+	<attribute name="url" value="http://code.nsnam.org/ns-3-dev"/>
+      </source>
+      <depends_on name="net_anim" optional="True"/>
+      <depends_on name="nsc" optional="True"/>
+      <depends_on name="pybindgen" optional="True"/>
+      <depends_on name="click" optional="True"/>
+      <depends_on name="openflow-ns3" optional="True"/>
+      <build type="waf" objdir="yes">
+	<attribute name="configure_arguments" value="configure --prefix=$INSTALLDIR --enable-examples --enable-tests --with-nsclick=$INSTALLDIR --with-pybindgen=$SRCDIR/pybindgen --with-openflow=$SRCDIR/openflow-ns3 --with-nsc=$SRCDIR/nsc"/>
+      </build>
+  </module>
+
+  </modules>
+
+  <predefined name="dbg">
+    <append name="CFLAGS" value="-g"/>
+    <append name="CXXFLAGS" value="-g"/>
+  </predefined>
+  <predefined name="opt">
+    <configuration objdir="opt"/>
+<!--   <append name="configure_arguments" value=" -d optimized"/> -->
+    <append name="CFLAGS" value="-O3"/>
+    <append name="CXXFLAGS" value="-O3"/>
+  </predefined>
+</configuration>

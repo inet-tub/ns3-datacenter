@@ -1,0 +1,24 @@
+<RCC>
+    <qresource prefix="/resources" >
+        <file>animator_fileopen.svg</file>
+        <file>animator_grid.svg</file>
+        <file>animator_mouseposition.png</file>
+        <file>animator_nodeid.svg</file>
+        <file>animator_nodesysid.svg</file>
+        <file>animator_packetstats.svg</file>
+        <file>animator_pause.svg</file>
+        <file>animator_play.svg</file>
+        <file>animator_reload.svg</file>
+        <file>animator_showpackets.svg</file>
+        <file>animator_step.svg</file>
+        <file>animator_wirelesscircles.svg</file>
+        <file>animator_zoomin.svg</file>
+        <file>animator_zoomout.svg</file>
+        <file>battery_icon_0.png</file>
+        <file>battery_icon_1.png</file>
+        <file>battery_icon_2.png</file>
+        <file>battery_icon_3.png</file>
+        <file>battery_icon_4.png</file>
+        <file>netanim-logo.png</file>
+    </qresource>
+</RCC>

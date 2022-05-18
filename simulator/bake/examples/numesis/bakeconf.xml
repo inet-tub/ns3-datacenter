@@ -1,0 +1,75 @@
+<modules>
+  <module name="dtk" version="HEAD">
+    <source type="git">
+     <attribute name="url" value="git://dtk.inria.fr/dtk/dtk.git"/>
+     <attribute name="revision" value="refs/remotes/origin/master"/>
+<!--     <attribute name="revision" value="b741f29"/> -->
+    </source>
+    <build type="cmake" version="2.8" objdir="any">
+      <attribute name="extra_targets" value="doc"/>
+      <attribute name="extra_cmake_options" value="-DBUILD_TESTING=OFF -DBUILD_WRAPPERS=OFF"/>
+    </build>
+    <depends_on name="mpi"/>
+  </module>
+
+  <module name="mpi">
+    <source type="archive">
+      <attribute name="url" value="http://www.open-mpi.org/software/ompi/v1.4/downloads/openmpi-1.4.3.tar.bz2"/>
+    </source>
+    <build type="autotools" objdir="any">
+      <attribute name="extra_configure_options" value="--with-pic"/>
+    </build>
+  </module>
+
+  <module name="vtk">
+    <source type="git">
+      <attribute name="url" value="git://vtk.org/VTK.git"/>
+    </source>
+    <build type="cmake" objdir="any">
+      <attribute name="extra_cmake_options" value="-DBUILD_EXAMPLES=OFF -DBUILD_SHARED_LIBS=ON -DBUILD_TESTING=OFF -DCMAKE_BUILD_TYPE=release -DVTK_USE_QT=ON -DVTK_USE_PARALLEL=ON -DVTK_USE_QTVTK_QTOPENGL=ON -DVTK_USE_MPI=ON"/>
+      <addlibpath location="$INSTALLDIR/lib/vtk-5.9"/>
+    </build>
+    <depends_on name="mpi"/>
+  </module>
+
+  <module name="numesis">
+    <source type="git">
+      <attribute name="url" value="git@dtk.inria.fr:num3sis/num3sis.git"/>
+      <attribute name="revision" value="refs/remotes/origin/composer"/>
+    </source>
+    <build type="cmake" objdir="any">
+      <attribute name="extra_cmake_options" value="-DBUILD_DOCUMENTATION=ON -DBUILD_EXAMPLES=ON -DBUILD_SHARED_LIBS=ON -DBUILD_TOOLS=ON"/>
+    </build>
+    <depends_on name="dtk"/>
+    <depends_on name="vtk"/>
+    <depends_on name="mpi"/>
+  </module>
+
+  <module name="numesis-plugins">
+    <source type="git">
+      <attribute name="url" value="git@dtk.inria.fr:num3sis/num3sis-plugins.git"/>
+    </source>
+    <build type="cmake" objdir="any">
+      <attribute name="extra_cmake_options" value="-DBUILD_DOCUMENTATION=ON -DBUILD_SHARED_LIBS=ON"/>
+    </build>
+    <depends_on name="numesis"/>
+  </module>
+
+  <module name="numesis-scripts">
+    <source type="git">
+      <attribute name="url" value="git@dtk.inria.fr:num3sis/num3sis-scripts.git"/>
+    </source>
+    <build type="none"/>
+    <depends_on name="numesis"/>
+  </module>
+
+  <module name="numesis-plugins-private">
+    <source type="git">
+      <attribute name="url" value="git@dtk.inria.fr:num3sis/num3sis-plugins-private.git"/>
+    </source>
+    <build type="cmake" objdir="any">
+      <attribute name="extra_cmake_options" value="-DBUILD_DOCUMENTATION=ON -DBUILD_SHARED_LIBS=ON"/>
+    </build>
+    <depends_on name="numesis"/>
+  </module>
+</modules>

@@ -1,0 +1,8 @@
+include wutils.py waf waf.bat wscript
+recursive-include tests *.py wscript *.cc *.c *.h
+recursive-include examples *.py wscript *.cc *.h
+recursive-include include *.h
+recursive-include waf-tools *.py
+recursive-include benchmarks *.py wscript *.i *.sip *.h *.cc
+recursive-include pybindgen *.py wscript
+include README.rst

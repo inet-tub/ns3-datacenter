@@ -1,0 +1,71 @@
+
+		NetAnim RELEASE NOTES
+
+This file contains NetAnim release notes (most recent releases first).  
+
+Please refer the page http://www.nsnam.org/wiki/index.php/NetAnim for detailed instructions
+
+Contributors
+============
+John Abraham <john.abraham.in@gmail.com>
+Eugene Kalishenko <ydginster@gmail.com> (Open Source and Linux Laboratory http://dev.osll.ru/)
+Emanuel Eichhammer (For QCustomPlot www.qcustomplot.com. Included in this package with GPLv2 with special permission from the author)
+George F Riley (Original Concept for packet animation)
+Dmitrii Shakshin <d.shakshin@gmail.com> (Open Source and Linux Laboratory http://dev.osll.ru/)
+Makhtar Diouf <makhtar.diouf@gmail.com>
+
+Wiki
+====
+http://www.nsnam.org/wiki/NetAnim
+
+Please use the following to download using mercurial:
+hg clone http://code.nsnam.org/netanim
+
+Release 3.108
+=============
+
+Changelog
+---------
+1. Bug 2370 - Fails to build from source with GCC 6
+2. Initial support for Ipv6
+3. Fixes ambiguous operator << overload on g++ 7
+
+
+Release 3.107
+=============
+
+Changelog
+---------
+1. Fixes an issue where nodes with images get incorrectly centered with the description missing
+2. Fixes an issue where CSMA packets were not being completely animated
+3. Fixes incorrect RGB assignment on node's colors, when property browser is used for editing
+4. Fixes an issue where node colors change if cliked
+
+
+Release 3.106
+=============
+
+Changelog
+---------
+1. Adds support for Qt 5 with gcc. Tested upto Qt 5.4
+2. Nodes which are images(pixmaps) are positioned with their centers aligned with the node's 
+   x, y co-ordinate. Prior to this change, the node's x, y co-ordinate was aligned with the pixmap's
+   top-left corner.
+3. Enhancements to the early detection of invalid trace files.
+
+Availability
+------------
+Please use the following to download using mercurial:
+hg clone http://code.nsnam.org/netanim
+
+Supported Qt versions
+---------------------
+- Qt 4.7.x to Qt 4.8.0
+- Qt 5.4 (with gcc only)
+
+Supported platforms
+-------------------
+- Fedora Core 15 
+- Ubuntu 12.10
+- OS X Mountain Lion (with Qt 4.x only)
+
