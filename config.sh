@@ -11,5 +11,3 @@ export DCSIM=$DCREPO/simulator
 
 #path to ns3
 export NS3DC=$DCSIM/ns-3.35
-
-alias ns3-dc="$NS3DC/ns3"

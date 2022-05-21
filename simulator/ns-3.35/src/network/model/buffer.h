@@ -611,6 +611,10 @@ private:
    */
   uint32_t CopyData (uint8_t *buffer, uint32_t size) const;
 
+  /* Modification */
+  uint8_t* GetBuffer() const;
+  /* Modification */
+
   /**
    * \brief Copy constructor
    * \param o the buffer to copy

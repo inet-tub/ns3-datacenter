@@ -9,10 +9,10 @@
 **Configure ns3:**
 
 ```bash
-CXXFLAGS=-w ns3-dc configure --build-profile=optimized --disable-example --disable-tests --disable-python
+cd $NS3DC; CXXFLAGS=-w ./waf configure --build-profile=optimized --disable-example --disable-tests --disable-python
 ```
 **Build and run ns3:**
 
 ```bash
-ns3-dc
+cd $NS3DC; ./waf
 ```

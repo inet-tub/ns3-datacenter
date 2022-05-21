@@ -209,6 +209,32 @@ public:
 
   uint32_t               m_lastAckedSackedBytes {0}; //!< The number of bytes acked and sacked as indicated by the current ACK received. This is similar to acked_sacked variable in Linux
 
+  /*Modification*/
+  DataRate CCRate;
+
+// Parameters to set for Hpcc or Wien
+  DataRate maxCCRate;
+  DataRate minCCRate;
+  DataRate CCAddInc;
+  DataRate CCAddIncHigh;
+  uint32_t m_miThresh; // for hpcc or wien
+  bool m_fast_react;
+  bool m_sampleFeedback;
+  bool m_multipleRate;
+  double m_targetUtil;
+  Time CCInitRtt;
+  bool useHpcc;
+  bool useTimely;
+  bool m_useSS;
+  bool useThetaPower;
+  bool usePower;
+
+  uint64_t m_tmly_TLow;
+  uint64_t m_tmly_THigh;
+  double m_tmly_alpha;
+  double m_tmly_beta;
+  /*Modification*/
+
   /**
    * \brief Get cwnd in segments rather than bytes
    *
@@ -233,6 +259,10 @@ public:
    * Callback to send an empty packet
    */
   Callback <void, uint8_t> m_sendEmptyPacketCallback;
+
+  /*Modification*/
+  Callback <void, Ptr<TcpSocketState>,DataRate,DataRate,Time,bool> m_setCCRateCallback;
+  /*Modification*/
 };
 
 namespace TracedValueCallback {

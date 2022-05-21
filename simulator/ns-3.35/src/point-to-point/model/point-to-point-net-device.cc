@@ -218,6 +218,10 @@ PointToPointNetDevice::DoDispose ()
   NetDevice::DoDispose ();
 }
 
+DataRate PointToPointNetDevice::GetDataRate(){
+  return m_bps;
+}
+
 void
 PointToPointNetDevice::SetDataRate (DataRate bps)
 {

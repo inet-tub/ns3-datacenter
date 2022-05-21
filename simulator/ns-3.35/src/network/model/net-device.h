@@ -29,6 +29,7 @@
 #include "address.h"
 #include "ns3/ipv4-address.h"
 #include "ns3/ipv6-address.h"
+#include "ns3/custom-header.h"
 
 namespace ns3 {
 
@@ -233,6 +234,11 @@ public:
    * \return value of m_isPointToPoint flag
    */
   virtual bool IsPointToPoint (void) const = 0;
+
+  /* Modification */
+  virtual bool IsQbb(void) const;
+  virtual bool SwitchSend (uint32_t qIndex, Ptr<Packet> packet, CustomHeader &ch);
+  /* Modification */
   /**
    * \param packet packet sent from above down to Network Device
    * \param dest mac address of the destination (already resolved)

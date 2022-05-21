@@ -549,6 +549,8 @@ int main (int argc, char *argv[])
   Simulator::Schedule (flowStartupWindow + convergenceTime, &CheckT2QueueSize, queueDiscs2.Get (0));
   Simulator::Stop (stopTime + TimeStep (1));
 
+  //AsciiTraceHelper ascii;
+  //pointToPointT.EnableAsciiAll (ascii.CreateFileStream ("eval.tr"));
   Simulator::Run ();
 
   rxS1R1Throughput.close ();

@@ -1007,6 +1007,10 @@ protected:
   virtual void ProcessAck (const SequenceNumber32 &ackNumber, bool scoreboardUpdated,
                            uint32_t currentDelivered, const SequenceNumber32 &oldHeadSequence);
 
+  /* Modification */
+  virtual void SetCCRate(Ptr<TcpSocketState> tcb, DataRate rate, DataRate prevRate, Time baseRtt, bool useWindow);
+  /* Modification */
+
   /**
    * \brief Recv of a data, put into buffer, call L7 to get it if necessary
    * \param packet the packet
@@ -1342,6 +1346,15 @@ protected:
 
   // Pacing related variable
   Timer m_pacingTimer {Timer::CANCEL_ON_DESTROY}; //!< Pacing Event
+
+  /* Modification */
+  Timer CC_pacingTimer {Timer::CANCEL_ON_DESTROY};
+  uint32_t lastTimedPacketSize;
+  uint32_t flowId=0;
+  uint32_t mypriority=0;
+  uint32_t rtt_bytes;
+  mutable uint32_t totalByteswithTag=0;
+  /* Modification */
 
   // Parameters related to Explicit Congestion Notification
   TracedValue<SequenceNumber32> m_ecnEchoSeq {0};      //!< Sequence number of the last received ECN Echo

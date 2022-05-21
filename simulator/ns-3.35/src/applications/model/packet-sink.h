@@ -182,6 +182,14 @@ private:
   TypeId          m_tid;          //!< Protocol TypeId
 
   bool            m_enableSeqTsSizeHeader {false}; //!< Enable or disable the export of SeqTsSize header 
+  /* Modification */
+  uint64_t        TotalQueryBytes;
+  Time            m_recvAt;
+  uint32_t        priority;
+  uint32_t        flowId;
+  uint32_t        m_priorCustom;
+  uint32_t        sender_priority;
+  /* Modification */
 
   /// Traced Callback: received packets, source address.
   TracedCallback<Ptr<const Packet>, const Address &> m_rxTrace;
@@ -189,6 +197,10 @@ private:
   TracedCallback<Ptr<const Packet>, const Address &, const Address &> m_rxTraceWithAddresses;
   /// Callbacks for tracing the packet Rx events, includes source, destination addresses, and headers
   TracedCallback<Ptr<const Packet>, const Address &, const Address &, const SeqTsSizeHeader&> m_rxTraceWithSeqTsSize;
+
+  /* Modification */
+  TracedCallback<double, double,bool,uint32_t> m_flowFinishTrace;
+  /* Modification */
 };
 
 } // namespace ns3

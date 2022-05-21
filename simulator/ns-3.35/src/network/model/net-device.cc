@@ -41,4 +41,13 @@ NetDevice::~NetDevice ()
   NS_LOG_FUNCTION (this);
 }
 
+bool NetDevice::IsQbb(void) const {
+  return false;
+}
+
+bool NetDevice::SwitchSend (uint32_t qIndex, Ptr<Packet> packet, CustomHeader &ch){
+  printf("NetDevice::SwitchSend not implemented\n");
+  return false;
+}
+
 } // namespace ns3

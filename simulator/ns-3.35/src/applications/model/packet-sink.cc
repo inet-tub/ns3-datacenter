@@ -35,6 +35,10 @@
 #include "ns3/ipv4-packet-info-tag.h"
 #include "ns3/ipv6-packet-info-tag.h"
 
+/* Modification */
+#include "ns3/uinteger.h"
+/* Modification */
+
 namespace ns3 {
 
 NS_LOG_COMPONENT_DEFINE ("PacketSink");
@@ -63,6 +67,27 @@ PacketSink::GetTypeId (void)
                    BooleanValue (false),
                    MakeBooleanAccessor (&PacketSink::m_enableSeqTsSizeHeader),
                    MakeBooleanChecker ())
+    /* Modification */
+    .AddAttribute ("TotalQueryBytes","Query Bytes after which application closes",UintegerValue (0),
+          MakeUintegerAccessor (&PacketSink::TotalQueryBytes),
+          MakeUintegerChecker<uint64_t> ())
+
+    .AddAttribute ("recvAt", "recvAtTime", TimeValue (Seconds (0.0)),
+          MakeTimeAccessor (&PacketSink::m_recvAt),
+          MakeTimeChecker ())
+
+    .AddAttribute  ("priority","priority of all sockets created by this sink", UintegerValue(0),
+            MakeUintegerAccessor(&PacketSink::priority), MakeUintegerChecker<uint32_t>())
+
+    .AddAttribute ("priorityCustom","priority of sent packets",UintegerValue (1),
+                  MakeUintegerAccessor (&PacketSink::m_priorCustom),
+                  MakeUintegerChecker<uint8_t> ())
+
+    .AddAttribute  ("flowId","flowId mainly intended for ack packets. This will be passed to tcp socket base", UintegerValue(2),
+                        MakeUintegerAccessor(&PacketSink::flowId), MakeUintegerChecker<uint32_t>())
+    .AddAttribute  ("senderPriority","senderPriority. This is just to get FCT with corresponding priority in the stats", UintegerValue(2),
+                        MakeUintegerAccessor(&PacketSink::sender_priority), MakeUintegerChecker<uint32_t>())
+    /* Modification */
     .AddTraceSource ("Rx",
                      "A packet has been received",
                      MakeTraceSourceAccessor (&PacketSink::m_rxTrace),
@@ -129,11 +154,19 @@ void PacketSink::StartApplication ()    // Called at time specified by Start
   if (!m_socket)
     {
       m_socket = Socket::CreateSocket (GetNode (), m_tid);
+      /* Modification */
+      m_socket->SetPriority(priority);
+      m_socket->SetAttribute("flowId",UintegerValue(flowId));
+      m_socket->SetAttribute("mypriority",UintegerValue(m_priorCustom));
+      /* Modification */
       if (m_socket->Bind (m_local) == -1)
         {
           NS_FATAL_ERROR ("Failed to bind socket");
         }
       m_socket->Listen ();
+      /* Modification */
+      m_socket->SetPriority(priority);
+      /* Modification */
       m_socket->ShutdownSend ();
       if (addressUtils::IsMulticast (m_local))
         {
@@ -245,6 +278,20 @@ void PacketSink::HandleRead (Ptr<Socket> socket)
               PacketReceived (packet, from, localAddress);
             }
         }
+      /* Modification */
+      if(TotalQueryBytes){
+        if(m_totalRx >= TotalQueryBytes){
+          double totalSize = m_totalRx + ((m_totalRx-1)/(1400.0)+1)*(64); // TODO: Add header sizes more precisely.
+          if (m_recvAt.GetSeconds()!=0){
+            m_flowFinishTrace(totalSize, m_recvAt.GetNanoSeconds(),true,sender_priority);
+          }
+          else{
+            m_flowFinishTrace(totalSize, m_startTime.GetNanoSeconds(),false,sender_priority);
+          }
+          StopApplication();
+        }
+      }
+      /* Modification */
     }
 }
 

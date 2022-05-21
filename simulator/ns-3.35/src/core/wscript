@@ -240,6 +240,7 @@ def build(bld):
         'helper/csv-reader.cc',
         'model/length.cc',
         'model/trickle-timer.cc',
+        'model/random-variable.cc',
         ]
 
     if (bld.env['ENABLE_EXAMPLES']):
@@ -378,6 +379,7 @@ def build(bld):
         'helper/csv-reader.h',
         'model/length.h',
         'model/trickle-timer.h',
+        'model/random-variable.h',
         ]
 
     if (bld.env['ENABLE_EXAMPLES']):

@@ -28,6 +28,32 @@ TcpSocketState::GetTypeId (void)
     .SetParent<Object> ()
     .SetGroupName ("Internet")
     .AddConstructor <TcpSocketState> ()
+
+      /*Modification*/
+    //////////////////////////////////////////////// For PowerTCP (called as Tcp wien in the code), HPCC ////////////////////////////////////////////////////////////////////////////////////////////////
+    .AddAttribute("initCCRate"," initial rate that will be used by Tcp wien", DataRateValue(DataRate("1Gbps")), MakeDataRateAccessor (&TcpSocketState::CCRate),MakeDataRateChecker())
+    .AddAttribute("minCCRate"," minimum rate that will be used by Tcp wien for each flow", DataRateValue(DataRate("100Mbps")), MakeDataRateAccessor (&TcpSocketState::minCCRate),MakeDataRateChecker())
+    .AddAttribute("maxCCRate"," maximum rate that will be used by Tcp wien for each flow", DataRateValue(DataRate("10Gbps")), MakeDataRateAccessor (&TcpSocketState::maxCCRate),MakeDataRateChecker())
+    .AddAttribute("AI"," additive increase Tcp wien", DataRateValue(DataRate("50Mbps")), MakeDataRateAccessor (&TcpSocketState::CCAddInc),MakeDataRateChecker())
+    .AddAttribute("HighAI"," high additive increase used by Timely", DataRateValue(DataRate("150Mbps")), MakeDataRateAccessor (&TcpSocketState::CCAddIncHigh),MakeDataRateChecker())
+    .AddAttribute ("mThreshHpcc", "threshold for the use for the use of MI in HPCC", UintegerValue (5), MakeUintegerAccessor (&TcpSocketState::m_miThresh), MakeUintegerChecker<uint32_t> ())
+    .AddAttribute ("fastReactHpcc", "fast react enable/disable for HPCC", BooleanValue (true), MakeBooleanAccessor (&TcpSocketState::m_fast_react), MakeBooleanChecker ())
+    .AddAttribute ("sampleFeedbackHpcc", "sample feedback for HPCC", BooleanValue (false), MakeBooleanAccessor (&TcpSocketState::m_sampleFeedback), MakeBooleanChecker ())
+    .AddAttribute ("useHpcc", "enable HPCC", BooleanValue (false), MakeBooleanAccessor (&TcpSocketState::useHpcc), MakeBooleanChecker ())
+    .AddAttribute ("useTimely", "enable Timely", BooleanValue (false), MakeBooleanAccessor (&TcpSocketState::useTimely), MakeBooleanChecker ())
+    .AddAttribute ("useThetaPowerTcp", "enable ThetaPowerTcp", BooleanValue (false), MakeBooleanAccessor (&TcpSocketState::useThetaPower), MakeBooleanChecker ())
+    .AddAttribute ("usePowerTcp", "enable ThetaPowerTcp", BooleanValue (false), MakeBooleanAccessor (&TcpSocketState::usePower), MakeBooleanChecker ())
+    .AddAttribute ("multipleRateHpcc", "whether to consider aggregate of all hops or each hop in HPCC", BooleanValue (false), MakeBooleanAccessor (&TcpSocketState::m_multipleRate), MakeBooleanChecker ())
+    .AddAttribute ("targetUtil", "target utilization for TCP Wien and HPCC", DoubleValue (0.95), MakeDoubleAccessor (&TcpSocketState::m_targetUtil), MakeDoubleChecker<double> ())
+    .AddAttribute ("baseRtt", "baseRtt in the topology", TimeValue (MicroSeconds (60)), MakeTimeAccessor (&TcpSocketState::CCInitRtt), MakeTimeChecker ())
+    .AddAttribute ("m_useSS", "use slowstart or not", BooleanValue (true), MakeBooleanAccessor (&TcpSocketState::m_useSS), MakeBooleanChecker ())
+    .AddAttribute ("TimelyAlpha", "timely alpha", DoubleValue (0.875), MakeDoubleAccessor (&TcpSocketState::m_tmly_alpha), MakeDoubleChecker<double> ())
+    .AddAttribute ("TimelyBeta", "timely beta", DoubleValue (0.8), MakeDoubleAccessor (&TcpSocketState::m_tmly_beta), MakeDoubleChecker<double> ())
+    .AddAttribute ("TimelyThigh", "high threshold for timely in NANOSECONDS", UintegerValue (500000), MakeUintegerAccessor (&TcpSocketState::m_tmly_THigh), MakeUintegerChecker<uint64_t> ())
+    .AddAttribute ("TimelyTlow", "low threshold for timely in NANOSECONDS", UintegerValue (200000), MakeUintegerAccessor (&TcpSocketState::m_tmly_TLow), MakeUintegerChecker<uint64_t> ())
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    /*Modification*/
+
     .AddAttribute ("EnablePacing", "Enable Pacing",
                    BooleanValue (false),
                    MakeBooleanAccessor (&TcpSocketState::m_pacing),

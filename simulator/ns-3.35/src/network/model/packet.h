@@ -758,7 +758,10 @@ public:
    */
   typedef void (* SinrTracedCallback)
     (Ptr<const Packet> packet, double sinr);
-    
+
+  /* Modification */
+  uint8_t* GetBuffer() const;
+  /* Modification */
   
 private:
   /**

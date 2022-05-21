@@ -27,6 +27,9 @@
 #include "ns3/callback.h"
 #include "ns3/ptr.h"
 #include "ns3/net-device.h"
+/* Modification */
+#include "ns3/custom-header.h"
+/* Modification */
 
 namespace ns3 {
 
@@ -129,6 +132,7 @@ public:
    * \param index the index of the requested Application
    * \returns the requested Application.
    */
+  void DeleteApplication (Ptr<Application> application);
   Ptr<Application> GetApplication (uint32_t index) const;
 
   /**
@@ -209,6 +213,14 @@ public:
    */
   static bool ChecksumEnabled (void);
 
+  /* Modification */
+  //yibo
+  uint32_t GetNodeType();
+  
+  // vamsi
+  void SetNodeType(uint32_t type){m_node_type=type;}
+  /* Modification */
+
 
 protected:
   /**
@@ -218,7 +230,12 @@ protected:
    */
   virtual void DoDispose (void);
   virtual void DoInitialize (void);
-private:
+
+/* Modification */
+  //yibo
+	uint32_t m_node_type;
+// private:
+/* Modification */
 
   /**
    * \brief Notifies all the DeviceAdditionListener about the new device added.
@@ -288,6 +305,12 @@ private:
   std::vector<Ptr<Application> > m_applications; //!< Applications associated to this node
   ProtocolHandlerList m_handlers; //!< Protocol handlers in the node
   DeviceAdditionListenerList m_deviceAdditionListeners; //!< Device addition listeners in the node
+/* Modification */
+  // Yuliang
+public:
+  virtual bool SwitchReceiveFromDevice(Ptr<NetDevice> device, Ptr<Packet> packet, CustomHeader &ch);
+  virtual void SwitchNotifyDequeue(uint32_t ifIndex, uint32_t qIndex, Ptr<Packet> p);
+/* Modification */
 };
 
 } // namespace ns3

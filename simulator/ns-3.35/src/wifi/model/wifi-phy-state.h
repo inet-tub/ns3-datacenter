@@ -71,7 +71,7 @@ inline std::ostream& operator<< (std::ostream& os, WifiPhyState state)
 {
   switch (state)
     {
-    case IDLE:
+    case WifiPhyState::IDLE:
       return (os << "IDLE");
     case CCA_BUSY:
       return (os << "CCA_BUSY");

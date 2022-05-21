@@ -229,6 +229,9 @@ public:
    */   
   bool operator != (const DataRate& rhs) const;
 
+  DataRate& operator /=(const double& c);
+//  DataRate& operator +=(const DataRate& r);
+
   /**
    * \brief Calculate transmission time
    *
@@ -246,6 +249,8 @@ public:
    * \return The transmission time for the number of bits specified
    */
   Time CalculateBitsTxTime (uint32_t bits) const;
+
+  double CalculateTxTime (uint32_t bytes){return CalculateBytesTxTime(bytes).GetSeconds();}
 
   /**
    * Get the underlying bitrate
@@ -269,7 +274,7 @@ private:
    * \param [in,out] v The location to put the value, in bits/sec.
    * \return true if parsing was successful.
    */
-  static bool DoParse (const std::string s, uint64_t *v);
+//  static bool DoParse (const std::string s, uint64_t *v);
 
   // Uses DoParse
   friend std::istream &operator >> (std::istream &is, DataRate &rate);
@@ -296,26 +301,25 @@ std::ostream &operator << (std::ostream &os, const DataRate &rate);
 std::istream &operator >> (std::istream &is, DataRate &rate);
 
 ATTRIBUTE_HELPER_HEADER (DataRate);
-
-
-/**
- * \brief Multiply datarate by a time value
- *
- * Calculates the number of bits that have been transmitted over a period of time
- * \param lhs rate
- * \param rhs time
- * \return the number of bits over the period of time
- */
-double operator* (const DataRate& lhs, const Time& rhs);
 /**
  * \brief Multiply time value by a data rate
  *
  * Calculates the number of bits that have been transmitted over a period of time
- * \param lhs time
- * \param rhs rate
- * \return the number of bits over the period of time
+/**
+ * \param lhs
+ * \param rhs
+ * \return Bits transmitted in rhs seconds at lhs b/s
  */
+double operator* (const DataRate& lhs, const Time& rhs);
 double operator* (const Time& lhs, const DataRate& rhs);
+
+DataRate operator*(const double& c, const DataRate& d);
+DataRate operator*(const DataRate& d, const double& c);
+
+DataRate operator/(const DataRate& d, const double& c);
+double operator/(const DataRate& lhs, const DataRate& rhs);
+
+//DataRate operator+(const DataRate& lhs, const DataRate& rhs);
 
 namespace TracedValueCallback {
 

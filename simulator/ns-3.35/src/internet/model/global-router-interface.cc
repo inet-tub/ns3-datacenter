@@ -1050,12 +1050,16 @@ GlobalRouter::ProcessPointToPointLink (Ptr<NetDevice> ndLocal, GlobalRoutingLSA 
   //
   Ptr<Node> nodeLocal = ndLocal->GetNode ();
 
+  std::cout << "1" << std::endl;
+
   Ptr<Ipv4> ipv4Local = nodeLocal->GetObject<Ipv4> ();
   NS_ABORT_MSG_UNLESS (ipv4Local, "GlobalRouter::ProcessPointToPointLink (): GetObject for <Ipv4> interface failed");
+std::cout << "2" << std::endl;
 
   uint32_t interfaceLocal = ipv4Local->GetNInterfaces () + 1;
   bool rc = FindInterfaceForDevice (nodeLocal, ndLocal, interfaceLocal);
   NS_ABORT_MSG_IF (rc == false, "GlobalRouter::ProcessPointToPointLink (): No interface index associated with device");
+std::cout << "3" << std::endl;
 
   if (ipv4Local->GetNAddresses (interfaceLocal) > 1)
     {
@@ -1064,19 +1068,22 @@ GlobalRouter::ProcessPointToPointLink (Ptr<NetDevice> ndLocal, GlobalRoutingLSA 
   Ipv4Address addrLocal = ipv4Local->GetAddress (interfaceLocal, 0).GetLocal ();
   NS_LOG_LOGIC ("Working with local address " << addrLocal);
   uint16_t metricLocal = ipv4Local->GetMetric (interfaceLocal);
-
+std::cout << "4" << std::endl;
   //
   // Now, we're going to walk over to the remote net device on the other end of 
   // the point-to-point channel we know we have.  This is where our adjacent 
   // router (to use OSPF lingo) is running.
   //
   Ptr<Channel> ch = ndLocal->GetChannel ();
+  if (ch==NULL){
+  std::cout << "ch is NULL" << std::endl;
+}
 
   //
   // Get the net device on the other side of the point-to-point channel.
   //
   Ptr<NetDevice> ndRemote = GetAdjacent (ndLocal, ch);
-
+std::cout << "5" << std::endl;
   //
   // The adjacent net device is aggregated to a node.  We need to ask that net 
   // device for its node, then ask that node for its Ipv4 interface.  Note a
@@ -1084,11 +1091,18 @@ GlobalRouter::ProcessPointToPointLink (Ptr<NetDevice> ndLocal, GlobalRoutingLSA 
   // internet stacks; and an assumption that point-to-point links are incompatible 
   // with bridging.
   //
+if (ndRemote==NULL){
+  std::cout << "ndRemote is NULL" << std::endl;
+}
   Ptr<Node> nodeRemote = ndRemote->GetNode ();
+  std::cout << "51" << std::endl;
   Ptr<Ipv4> ipv4Remote = nodeRemote->GetObject<Ipv4> ();
+  std::cout << "52" << std::endl;
+
   NS_ABORT_MSG_UNLESS (ipv4Remote, 
                        "GlobalRouter::ProcessPointToPointLink(): GetObject for remote <Ipv4> failed");
 
+std::cout << "6" << std::endl;
   //
   // Further note the requirement that nodes on either side of a point-to-point 
   // link must participate in global routing and therefore have a GlobalRouter
@@ -1125,7 +1139,7 @@ GlobalRouter::ProcessPointToPointLink (Ptr<NetDevice> ndLocal, GlobalRoutingLSA 
   Ipv4Address addrRemote = ipv4Remote->GetAddress (interfaceRemote, 0).GetLocal ();
   Ipv4Mask maskRemote = ipv4Remote->GetAddress (interfaceRemote, 0).GetMask ();
   NS_LOG_LOGIC ("Working with remote address " << addrRemote);
-
+std::cout << "7" << std::endl;
   //
   // Now we can fill out the link records for this link.  There are always two
   // link records; the first is a point-to-point record describing the link and
@@ -1145,7 +1159,7 @@ GlobalRouter::ProcessPointToPointLink (Ptr<NetDevice> ndLocal, GlobalRoutingLSA 
       pLSA->AddLinkRecord (plr);
       plr = 0;
     }
-
+std::cout << "8" << std::endl;
   // Regardless of state of peer, add a type 3 link (RFC 2328: 12.4.1.1)
   plr = new GlobalRoutingLinkRecord;
   NS_ABORT_MSG_IF (plr == 0, "GlobalRouter::ProcessPointToPointLink(): Can't alloc link record");
@@ -1155,6 +1169,7 @@ GlobalRouter::ProcessPointToPointLink (Ptr<NetDevice> ndLocal, GlobalRoutingLSA 
   plr->SetMetric (metricLocal);
   pLSA->AddLinkRecord (plr);
   plr = 0;
+  std::cout << "9" << std::endl;
 }
 
 void
@@ -1702,6 +1717,12 @@ GlobalRouter::GetAdjacent (Ptr<NetDevice> nd, Ptr<Channel> ch) const
 //
   Ptr<NetDevice> nd1 = ch->GetDevice (0);
   Ptr<NetDevice> nd2 = ch->GetDevice (1);
+
+  std::cout<<"Device num:"<<ch->GetNDevices ()<<"\n";
+  if (nd1 == NULL)
+    std::cout << "nd1 is NULL" << std::endl;
+  if (nd2 == NULL)
+    std::cout << "nd2 is NULL" << std::endl;
 //
 // One of the endpoints is going to be "us" -- that is the net device attached
 // to the node on which we're running -- i.e., "nd".  The other endpoint (the

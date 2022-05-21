@@ -94,6 +94,8 @@ public:
    */
   void SetDataRate (DataRate bps);
 
+  DataRate GetDataRate();
+
   /**
    * Set the interframe gap used to separate packets.  The interframe gap
    * defines the minimum space required between packets sent by this device.
@@ -219,12 +221,16 @@ private:
    */
   PointToPointNetDevice (const PointToPointNetDevice &o);
 
+/* Modification */
+//private:
+protected:
+/* Modification */
   /**
    * \brief Dispose of the object
    */
   virtual void DoDispose (void);
 
-private:
+//private:
 
   /**
    * \returns the address of the remote device connected to this device

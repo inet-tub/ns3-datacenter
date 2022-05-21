@@ -72,6 +72,13 @@ def build(bld):
         'helper/trace-helper.cc',
         'helper/delay-jitter-estimation.cc',
         'helper/simple-net-device-helper.cc',
+        'utils/custom-priority-tag.cc',
+        'utils/feedback-tag.cc',
+        'utils/unsched-tag.cc',
+        'utils/broadcom-egress-queue.cc',
+        'utils/custom-header.cc',
+        'utils/int-header.cc',
+        'utils/seq-ts-header.cc',
         ]
 
     network_test = bld.create_ns3_module_test_library('network')
@@ -173,6 +180,13 @@ def build(bld):
         'helper/trace-helper.h',
         'helper/delay-jitter-estimation.h',
         'helper/simple-net-device-helper.h',
+        'utils/custom-priority-tag.h',
+        'utils/feedback-tag.h',
+        'utils/unsched-tag.h',
+        'utils/broadcom-egress-queue.h',
+        'utils/custom-header.h',
+        'utils/int-header.h',
+        'utils/seq-ts-header.h',
         ]
 
     if (bld.env['ENABLE_EXAMPLES']):

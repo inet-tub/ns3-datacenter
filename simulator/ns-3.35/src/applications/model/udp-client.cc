@@ -29,7 +29,7 @@
 #include "ns3/packet.h"
 #include "ns3/uinteger.h"
 #include "udp-client.h"
-#include "seq-ts-header.h"
+#include "ns3/seq-ts-header.h"
 #include <cstdlib>
 #include <cstdio>
 

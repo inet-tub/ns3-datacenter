@@ -23,15 +23,9 @@
 #include "ns3/fatal-error.h"
 #include "ns3/log.h"
 
-namespace ns3 {
-
-NS_LOG_COMPONENT_DEFINE ("DataRate");
-
-ATTRIBUTE_HELPER_CPP (DataRate);
-
 /* static */
 bool
-DataRate::DoParse (const std::string s, uint64_t *v)
+DoParse (const std::string s, uint64_t *v)
 {
   NS_LOG_FUNCTION (s << v);
   std::string::size_type n = s.find_first_not_of ("0123456789.");
@@ -183,7 +177,11 @@ DataRate::DoParse (const std::string s, uint64_t *v)
   iss >> *v;
   return true;
 }
+namespace ns3 {
 
+NS_LOG_COMPONENT_DEFINE ("DataRate");
+
+ATTRIBUTE_HELPER_CPP (DataRate);
 DataRate::DataRate ()
   : m_bps (0)
 {
@@ -312,7 +310,7 @@ std::istream &operator >> (std::istream &is, DataRate &rate)
   std::string value;
   is >> value;
   uint64_t v;
-  bool ok = DataRate::DoParse (value, &v);
+  bool ok = DoParse (value, &v);
   if (!ok)
     {
       is.setstate (std::ios_base::failbit);
@@ -320,6 +318,18 @@ std::istream &operator >> (std::istream &is, DataRate &rate)
   rate = DataRate (v);
   return is;
 }
+
+DataRate& DataRate::operator/=(const double& c)
+{
+  m_bps /= c;
+  return *this;
+};
+
+//DataRate& DataRate::operator+=(const DataRate& r)
+//{
+//  m_bps += r.m_bps;
+//  return *this;
+//};
 
 double operator* (const DataRate& lhs, const Time& rhs)
 {
@@ -330,5 +340,30 @@ double operator* (const Time& lhs, const DataRate& rhs)
 {
   return lhs.GetSeconds ()*rhs.GetBitRate ();
 }
+
+DataRate operator*(const double& c, const DataRate& d)
+{
+  return DataRate(d.GetBitRate()*c);
+};
+
+DataRate operator*(const DataRate& d, const double& c)
+{
+  return DataRate(d.GetBitRate()*c);
+};
+
+DataRate operator/(const DataRate& d, const double& c)
+{
+  return DataRate(d.GetBitRate()/c);
+};
+
+double operator/(const DataRate& lhs, const DataRate& rhs)
+{
+  return double(lhs.GetBitRate())/rhs.GetBitRate();
+};
+
+//DataRate operator+(const DataRate& lhs, const DataRate& rhs)
+//{
+//  return DataRate(lhs.GetBitRate()+rhs.GetBitRate());
+//};
 
 } // namespace ns3

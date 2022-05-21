@@ -63,6 +63,13 @@
 #include <math.h>
 #include <algorithm>
 
+/* Modification */
+#include "ns3/custom-priority-tag.h"
+#include "ns3/flow-id-tag.h"
+#include "ns3/feedback-tag.h"
+#include "ns3/unsched-tag.h"
+/* Modification */
+
 namespace ns3 {
 
 NS_LOG_COMPONENT_DEFINE ("TcpSocketBase");
@@ -153,6 +160,14 @@ TcpSocketBase::GetTypeId (void)
                    MakeEnumChecker (TcpSocketState::Off, "Off",
                                     TcpSocketState::On, "On",
                                     TcpSocketState::AcceptOnly, "AcceptOnly"))
+    /* Modification */
+    .AddAttribute  ("flowId","flowId mainly intended for ack packets. This will be passed to tcp socket base", UintegerValue(0),
+            MakeUintegerAccessor(&TcpSocketBase::flowId), MakeUintegerChecker<uint32_t>())
+    .AddAttribute  ("mypriority","mypriority tag", UintegerValue(0),
+            MakeUintegerAccessor(&TcpSocketBase::mypriority), MakeUintegerChecker<uint32_t>())
+    .AddAttribute  ("RTTBytes","RTT bytes is the bandwidth-delay product. A tag is attached for the first RTTBytes", UintegerValue(15000),
+            MakeUintegerAccessor(&TcpSocketBase::rtt_bytes), MakeUintegerChecker<uint32_t>())
+    /* Modification */
     .AddTraceSource ("RTO",
                      "Retransmission timeout",
                      MakeTraceSourceAccessor (&TcpSocketBase::m_rto),
@@ -260,6 +275,11 @@ TcpSocketBase::TcpSocketBase (void)
 
   m_tcb->m_pacingRate = m_tcb->m_maxPacingRate;
   m_pacingTimer.SetFunction (&TcpSocketBase::NotifyPacingPerformed, this);
+
+  /* Modification */
+  CC_pacingTimer.SetFunction(&TcpSocketBase::NotifyPacingPerformed, this);
+  m_tcb->m_setCCRateCallback = MakeCallback (&TcpSocketBase::SetCCRate,this);
+  /* Modification */
 
   m_tcb->m_sendEmptyPacketCallback = MakeCallback (&TcpSocketBase::SendEmptyPacket, this);
 
@@ -381,6 +401,13 @@ TcpSocketBase::TcpSocketBase (const TcpSocketBase& sock)
   m_tcb->m_pacingRate = m_tcb->m_maxPacingRate;
   m_pacingTimer.SetFunction (&TcpSocketBase::NotifyPacingPerformed, this);
 
+  /* Modification */
+  CC_pacingTimer.SetFunction(&TcpSocketBase::NotifyPacingPerformed, this);
+  if (m_tcb->m_setCCRateCallback.IsNull()){
+    m_tcb->m_setCCRateCallback = MakeCallback (&TcpSocketBase::SetCCRate,this);
+  }
+  /* Modification */
+
   if (sock.m_congestionControl)
     {
       m_congestionControl = sock.m_congestionControl->Fork ();
@@ -468,6 +495,42 @@ TcpSocketBase::~TcpSocketBase (void)
   m_tcp = 0;
   CancelAllTimers ();
 }
+
+/* Modification */
+void
+TcpSocketBase::SetCCRate(Ptr<TcpSocketState> tcb, DataRate rate, DataRate prevRate, Time baseRtt, bool useWindow){
+
+  tcb->CCRate = DataRate(std::max(rate.GetBitRate(), tcb->minCCRate.GetBitRate()));
+
+  if(useWindow){
+    tcb->m_cWnd = (std::max((tcb->CCRate.GetBitRate()*baseRtt.GetSeconds())/(8),double(tcb->m_segmentSize)));
+  }
+  else{
+   tcb->m_cWnd = UINT32_MAX-1e3; // only rate control.
+  }
+  // tcb->m_cWnd = static_cast<uint32_t> (tcb->wienRate.GetBitRate()*baseRtt.GetSeconds()/(8));
+  // tcb->m_cWnd =  (tcb->wienRate.GetBitRate()*baseRtt.GetSeconds()/(8));
+  // std::cout << "cwnd " << tcb->m_cWnd << " time " << Simulator::Now().GetSeconds() << " double " << baseRtt.GetDouble() << " secs " << baseRtt.GetSeconds() << " rate "<< rate.GetBitRate() << " minWienRate " << tcb->minWienRate.GetBitRate()<< std::endl;
+  
+  if (CC_pacingTimer.IsRunning()){
+
+    Time left = CC_pacingTimer.GetDelayLeft();
+
+    Time prevRateTime = prevRate.CalculateBytesTxTime(lastTimedPacketSize);
+
+    CC_pacingTimer.Cancel();
+
+    Time toSend = tcb->CCRate.CalculateBytesTxTime(lastTimedPacketSize);
+
+    if ( (toSend+left-prevRateTime).GetDouble() > 0 )
+      CC_pacingTimer.Schedule(toSend+left-prevRateTime);
+    else
+      CC_pacingTimer.Schedule(left);
+    }
+    else
+     CC_pacingTimer.Schedule(Seconds(0)); 
+}
+/* Modification */
 
 /* Associate a node with this TCP socket */
 void
@@ -1853,6 +1916,12 @@ TcpSocketBase::ReceivedAck (Ptr<Packet> packet, const TcpHeader& tcpHeader)
   // RFC 6675 Section 5: 2nd, 3rd paragraph and point (A), (B) implementation
   // are inside the function ProcessAck
   ProcessAck (ackNumber, (bytesSacked > 0), currentDelivered, oldHeadSequence);
+  /* Modification */
+  uint8_t fl = tcpHeader.GetFlags();
+  if (m_congestionControl->getDcEnabled() &&  (TcpHeader::ACK==(tcpHeader.GetFlags () & TcpHeader::ACK)) && packet->GetSize()==0){
+    m_congestionControl->ProcessDcAck(packet,tcpHeader,m_tcb);
+  }
+  /* Modification */
   m_tcb->m_isRetransDataAcked = false;
 
   if (m_congestionControl->HasCongControl ())
@@ -2686,6 +2755,11 @@ TcpSocketBase::SendEmptyPacket (uint8_t flags)
       ++s;
     }
 
+  /* Modification */
+  if( ( flags == TcpHeader::ACK ) && m_congestionControl->getDcEnabled())
+    p->AddPacketTag(m_congestionControl->getReceivedFb());
+  /* Modification */
+
   AddSocketTags (p);
 
   header.SetFlags (flags);
@@ -3030,6 +3104,42 @@ TcpSocketBase::AddSocketTags (const Ptr<Packet> &p) const
       priorityTag.SetPriority (priority);
       p->ReplacePacketTag (priorityTag);
     }
+
+  /* Modification */
+  bool found;
+  uint32_t flowIda = 0;
+  FlowIdTag tag;
+  found = p->PeekPacketTag (tag);
+  if(found){flowIda=tag.GetFlowId();}
+
+  // if there is no flow id tag already, attach one now
+  if(!flowIda){
+    FlowIdTag fd;
+    fd.SetFlowId(flowId);
+    p->ReplacePacketTag(fd);
+  }
+  
+  MyPriorityTag a;
+  if (p->GetSize() > 70) // considering that less than 70 bytes are all control packets like syn ack etc.  TODO
+    a.SetPriority(mypriority);
+  else
+    a.SetPriority(0);
+//       std::cout << uint32_t(priority) << std::endl;
+  p->ReplacePacketTag(a);
+
+  // Initializing feedback tag (intended as a header or as part of options)
+  if (m_congestionControl->getDcEnabled()){
+    // no need to initialize values here.
+    FeedbackTag fb;
+    p->PeekPacketTag(fb);
+    p->AddPacketTag(fb);
+  }
+  if (totalByteswithTag < rtt_bytes){
+    UnSchedTag unschedtag;
+    unschedtag.SetValue(1);
+    p->ReplacePacketTag(unschedtag);
+  }
+  /* Modification */
 }
 
 /* Extract at most maxSize bytes from the TxBuffer at sequence seq, add the
@@ -3072,7 +3182,16 @@ TcpSocketBase::SendDataPacket (SequenceNumber32 seq, uint32_t maxSize, bool with
     {
       NS_LOG_INFO ("Pacing is disabled");
     }
-
+  
+  /* Modification */
+  if (m_congestionControl->getDcEnabled()){
+    if (CC_pacingTimer.IsExpired()){
+      CC_pacingTimer.Schedule(m_tcb->CCRate.CalculateBytesTxTime(sz));
+      lastTimedPacketSize = sz;
+    }
+  }
+  /* Modification */
+  
   if (withAck)
     {
       m_delAckEvent.Cancel ();
@@ -3089,6 +3208,16 @@ TcpSocketBase::SendDataPacket (SequenceNumber32 seq, uint32_t maxSize, bool with
     }
 
   AddSocketTags (p);
+
+  /* Modification */
+  /*add packet timestamp, used by timely and theta-powertcp*/
+  FeedbackTag fb;
+  bool foundFb = p->PeekPacketTag(fb);
+  if(foundFb){
+    fb.setPktTimestamp(Simulator::Now().GetNanoSeconds());
+    p->ReplacePacketTag(fb);
+  }
+  /* Modification */
 
   if (m_closeOnEmpty && (remainingData == 0))
     {
@@ -3166,6 +3295,9 @@ TcpSocketBase::SendDataPacket (SequenceNumber32 seq, uint32_t maxSize, bool with
     }
   // Update highTxMark
   m_tcb->m_highTxMark = std::max (seq + sz, m_tcb->m_highTxMark.Get ());
+  /* Modification */
+  totalByteswithTag += sz;
+  /* Modification */
   return sz;
 }
 
@@ -3236,6 +3368,16 @@ TcpSocketBase::SendPendingData (bool withAck)
           NS_LOG_INFO ("FIN_WAIT and OPEN state; no data to transmit");
           break;
         }
+      
+      /* Modification */
+        if (m_congestionControl->getDcEnabled()){
+
+          if (CC_pacingTimer.IsRunning()){
+            break;
+          }
+        }
+      /* Modification */
+      
       // (C.1) The scoreboard MUST be queried via NextSeg () for the
       //       sequence number range of the next segment to transmit (if
       //       any), and the given segment sent.  If NextSeg () returns
@@ -3325,6 +3467,15 @@ TcpSocketBase::SendPendingData (bool withAck)
                   break;
                 }
             }
+            /* Modification */
+            if (m_congestionControl->getDcEnabled()){
+              if (CC_pacingTimer.IsExpired()){
+                CC_pacingTimer.Schedule(m_tcb->CCRate.CalculateBytesTxTime(sz));
+                lastTimedPacketSize = sz;
+                break;
+              }
+            }
+            /* Modification */
         }
 
       // (C.4) The estimate of the amount of data outstanding in the
@@ -3435,6 +3586,14 @@ TcpSocketBase::ReceivedData (Ptr<Packet> p, const TcpHeader& tcpHeader)
   NS_LOG_FUNCTION (this << tcpHeader);
   NS_LOG_DEBUG ("Data segment, seq=" << tcpHeader.GetSequenceNumber () <<
                 " pkt size=" << p->GetSize () );
+
+  /* Modification */
+  if(m_congestionControl->getDcEnabled()){
+    FeedbackTag fb;
+    p->PeekPacketTag(fb);
+    m_congestionControl->setReceivedFb(fb);
+  }
+  /* Modification */
 
   // Put into Rx buffer
   SequenceNumber32 expectedSeq = m_tcb->m_rxBuffer->NextRxSequence ();
@@ -3736,6 +3895,10 @@ TcpSocketBase::ReTxTimeout ()
 
   m_pacingTimer.Cancel ();
 
+  /* Modification */
+  CC_pacingTimer.Cancel();
+  /* Modification */
+
   NS_LOG_DEBUG ("RTO. Reset cwnd to " <<  m_tcb->m_cWnd << ", ssthresh to " <<
                 m_tcb->m_ssThresh << ", restart from seqnum " <<
                 m_txBuffer->HeadSequence () << " doubled rto to " <<
@@ -3890,6 +4053,9 @@ TcpSocketBase::CancelAllTimers ()
   m_timewaitEvent.Cancel ();
   m_sendPendingDataEvent.Cancel ();
   m_pacingTimer.Cancel ();
+  /* Modification */
+  CC_pacingTimer.Cancel();
+  /* Modification */
 }
 
 /* Move TCP to Time_Wait state and schedule a transition to Closed state */

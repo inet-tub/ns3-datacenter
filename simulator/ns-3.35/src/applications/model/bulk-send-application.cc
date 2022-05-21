@@ -32,6 +32,11 @@
 #include "ns3/boolean.h"
 #include "bulk-send-application.h"
 
+/* Modification */
+#include "ns3/flow-id-tag.h"
+#include "ns3/custom-priority-tag.h"
+/* Modification */
+
 namespace ns3 {
 
 NS_LOG_COMPONENT_DEFINE ("BulkSendApplication");
@@ -75,6 +80,26 @@ BulkSendApplication::GetTypeId (void)
                    BooleanValue (false),
                    MakeBooleanAccessor (&BulkSendApplication::m_enableSeqTsSizeHeader),
                    MakeBooleanChecker ())
+    /* Modification */
+    .AddAttribute ("FlowId", "Flow id Once these bytes are sent", UintegerValue (5),
+                         MakeUintegerAccessor (&BulkSendApplication::m_flowId),
+                         MakeUintegerChecker<uint64_t> ())
+    .AddAttribute ("InitialCwnd", "InitialCwnd", UintegerValue (10),
+                  MakeUintegerAccessor (&BulkSendApplication::InitialCwnd),
+                  MakeUintegerChecker<uint32_t> ())
+
+    .AddAttribute ("sendAt", "sendAtTime", TimeValue (Seconds (0.0)),
+                  MakeTimeAccessor (&BulkSendApplication::m_sendAt),
+                  MakeTimeChecker ())
+    .AddAttribute ("priorityCustom","priority of sent packets",UintegerValue (1),
+                  MakeUintegerAccessor (&BulkSendApplication::m_priorCustom),
+                  MakeUintegerChecker<uint8_t> ())
+    .AddAttribute ("priorityClassifier","priority of sent packets in the buffer",UintegerValue (1),
+                  MakeUintegerAccessor (&BulkSendApplication::m_priorClassifier),
+                  MakeUintegerChecker<uint8_t> ())
+    .AddAttribute  ("priority","priority of all sockets created by this sink", UintegerValue(0),
+                    MakeUintegerAccessor(&BulkSendApplication::priority), MakeUintegerChecker<uint32_t>())
+    /* Modification */
     .AddTraceSource ("Tx", "A new packet is sent",
                      MakeTraceSourceAccessor (&BulkSendApplication::m_txTrace),
                      "ns3::Packet::TracedCallback")
@@ -93,6 +118,9 @@ BulkSendApplication::BulkSendApplication ()
     m_unsentPacket (0)
 {
   NS_LOG_FUNCTION (this);
+  /*Modification*/
+  delay=false;
+  /*Modification*/
 }
 
 BulkSendApplication::~BulkSendApplication ()
@@ -137,6 +165,13 @@ void BulkSendApplication::StartApplication (void) // Called at time specified by
       m_socket = Socket::CreateSocket (GetNode (), m_tid);
       int ret = -1;
 
+      /* Modification */
+      m_socket->SetAttribute("InitialCwnd",UintegerValue(InitialCwnd));
+      m_socket->SetAttribute("flowId",UintegerValue(m_flowId));
+      m_socket->SetAttribute("mypriority",UintegerValue(m_priorCustom));
+      m_socket->SetPriority(priority);
+      /* Modification */
+
       // Fatal error if socket type is not NS3_SOCK_STREAM or NS3_SOCK_SEQPACKET
       if (m_socket->GetSocketType () != Socket::NS3_SOCK_STREAM &&
           m_socket->GetSocketType () != Socket::NS3_SOCK_SEQPACKET)
@@ -171,6 +206,9 @@ void BulkSendApplication::StartApplication (void) // Called at time specified by
         }
 
       m_socket->Connect (m_peer);
+      /* Modification */
+      m_socket->SetPriority(priority);
+      /* Modification */
       m_socket->ShutdownRecv ();
       m_socket->SetConnectCallback (
         MakeCallback (&BulkSendApplication::ConnectionSucceeded, this),
@@ -200,6 +238,13 @@ void BulkSendApplication::StopApplication (void) // Called at time specified by 
     }
 }
 
+/* Modification */
+void BulkSendApplication::SendQuery(const Address &from, const Address &to){
+  delay=false;
+  if(m_connected)
+  SendData(from, to);
+}
+/* Modification */
 
 // Private helpers
 
@@ -209,6 +254,16 @@ void BulkSendApplication::SendData (const Address &from, const Address &to)
 
   while (m_maxBytes == 0 || m_totBytes < m_maxBytes)
     { // Time to send more
+
+      /* Modification */
+      // start sending at the specified time, not now.
+      if(m_sendAt>Simulator::Now()){
+        delay=true;
+        Simulator::Schedule(m_sendAt-Simulator::Now(), &BulkSendApplication::SendQuery,this,from,to);
+      }
+      if(delay)
+        break;
+      /* Modification */
 
       // uint64_t to allow the comparison later.
       // the result is in a uint32_t range anyway, because
@@ -243,6 +298,19 @@ void BulkSendApplication::SendData (const Address &from, const Address &to)
         {
           packet = Create<Packet> (toSend);
         }
+
+      /* Modification */
+
+      // Flow ID Tag
+      FlowIdTag flowid(m_flowId);
+      packet->AddPacketTag(flowid);
+
+      // Custom priority tag
+      MyPriorityTag a;
+      a.SetPriority(m_priorCustom);
+      packet->AddPacketTag(a);
+
+      /* Modification */
 
       int actual = m_socket->Send (packet);
       if ((unsigned) actual == toSend)

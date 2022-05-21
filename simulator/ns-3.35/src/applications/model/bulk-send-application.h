@@ -113,6 +113,10 @@ private:
   virtual void StartApplication (void);    // Called at time specified by Start
   virtual void StopApplication (void);     // Called at time specified by Stop
 
+  /* Modification */
+  void SendQuery(const Address &from, const Address &to);
+  /* Modification */
+
   /**
    * \brief Send data until the L4 transmission buffer is full.
    * \param from From address
@@ -131,6 +135,16 @@ private:
   uint32_t        m_seq {0};      //!< Sequence
   Ptr<Packet>     m_unsentPacket; //!< Variable to cache unsent packet
   bool            m_enableSeqTsSizeHeader {false}; //!< Enable or disable the SeqTsSizeHeader
+
+  /* Modification */
+  uint32_t        m_flowId;
+  uint8_t         m_priorCustom;
+  uint8_t         m_priorClassifier;
+  uint32_t        InitialCwnd;
+  Time            m_sendAt;
+  bool            delay;
+  uint32_t        priority;
+  /* Modification */
 
   /// Traced Callback: sent packets
   TracedCallback<Ptr<const Packet> > m_txTrace;

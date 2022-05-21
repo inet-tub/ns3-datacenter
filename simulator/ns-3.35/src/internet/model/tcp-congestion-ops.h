@@ -21,6 +21,10 @@
 
 #include "tcp-rate-ops.h"
 #include "tcp-socket-state.h"
+/* Modification */
+#include "ns3/feedback-tag.h"
+#include "ns3/timer.h"
+/* Modification */
 
 namespace ns3 {
 
@@ -202,6 +206,30 @@ public:
    * \return a pointer of the copied object
    */
   virtual Ptr<TcpCongestionOps> Fork () = 0;
+  
+  /* Modification */
+  struct rateSeqPair{
+      DataRate rate;
+      uint32_t seq;
+      uint32_t unAck;
+    };
+  virtual void ProcessDcAck(Ptr<Packet> packet, const TcpHeader& tcpHeader, Ptr<TcpSocketState> tcb){};
+  virtual void setDc(){isDc=true;}
+  virtual bool getDcEnabled(){return isDc;}
+  std::vector<rateSeqPair> rates;
+  virtual void setCurrentRate(double rate){currentRate = rate;}
+  virtual void pushRate(uint32_t sequence, DataRate rate, uint32_t unAcked){rateSeqPair a; a.rate=rate; a.seq=sequence; a.unAck = unAcked; rates.push_back(a);}
+  virtual FeedbackTag getReceivedFb(){return receivedFb;}
+  virtual void setReceivedFb(FeedbackTag fb){receivedFb = fb;}
+  virtual double getCurrentRate(){return currentRate;}
+  Timer CC_pacingTimer {Timer::CANCEL_ON_DESTROY};
+
+private:
+  bool isDc=false;
+  double currentRate=DataRate("10Gbps").GetBitRate();
+  std::vector<uint32_t> sentSeq;
+  FeedbackTag receivedFb;
+  /* Modification */
 };
 
 /**
