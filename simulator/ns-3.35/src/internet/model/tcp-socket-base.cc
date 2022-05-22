@@ -1091,6 +1091,7 @@ TcpSocketBase::DoConnect (void)
   if (m_state == CLOSED || m_state == LISTEN || m_state == SYN_SENT || m_state == LAST_ACK || m_state == CLOSE_WAIT)
     { // send a SYN packet and change state into SYN_SENT
       // send a SYN packet with ECE and CWR flags set if sender is ECN capable
+      // std::cout << "sending syn packet at " << Simulator::Now () << std::endl;
       if (m_tcb->m_useEcn == TcpSocketState::On)
         {
           SendEmptyPacket (TcpHeader::SYN | TcpHeader::ECE | TcpHeader::CWR);

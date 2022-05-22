@@ -202,6 +202,7 @@ PointToPointNetDevice::ProcessHeader (Ptr<Packet> p, uint16_t& param)
   NS_LOG_FUNCTION (this << p << param);
   PppHeader ppp;
   p->RemoveHeader (ppp);
+  // std::cout << "p2p prot " << ppp.GetProtocol () << std::endl;
   param = PppToEther (ppp.GetProtocol ());
   return true;
 }

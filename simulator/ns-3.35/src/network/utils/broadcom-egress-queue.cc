@@ -74,7 +74,7 @@ namespace ns3 {
 			NS_LOG_FUNCTION(this << p);
 			// std::cout << "maxsizeBE " << uint32_t(m_queues[qIndex]->GetMaxSize().GetValue()) << " m_maxBytes " << uint32_t(m_maxBytes) << " double " << m_maxBytes << std::endl;
 			// NS_ABORT_MSG("debug");
-
+			// std::cout << "debug: enqueue size " << m_bytesInQueueTotal << std::endl;
 			if (m_bytesInQueueTotal + p->GetSize() < m_maxBytes)  //infinite queue
 			{
 				if(!m_queues[qIndex]->Enqueue(p)) {

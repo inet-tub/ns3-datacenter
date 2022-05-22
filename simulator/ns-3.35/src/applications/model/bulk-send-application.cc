@@ -251,7 +251,7 @@ void BulkSendApplication::SendQuery(const Address &from, const Address &to){
 void BulkSendApplication::SendData (const Address &from, const Address &to)
 {
   NS_LOG_FUNCTION (this);
-
+//  std::cout << "starting app at " << Simulator::Now () << std::endl;
   while (m_maxBytes == 0 || m_totBytes < m_maxBytes)
     { // Time to send more
 
@@ -261,8 +261,10 @@ void BulkSendApplication::SendData (const Address &from, const Address &to)
         delay=true;
         Simulator::Schedule(m_sendAt-Simulator::Now(), &BulkSendApplication::SendQuery,this,from,to);
       }
-      if(delay)
-        break;
+      if(delay){
+//         std::cout << "debug: bulksend break" << std::endl;
+          break;
+      }
       /* Modification */
 
       // uint64_t to allow the comparison later.
@@ -276,6 +278,7 @@ void BulkSendApplication::SendData (const Address &from, const Address &to)
         }
 
       NS_LOG_LOGIC ("sending packet at " << Simulator::Now ());
+      // std::cout << "sending packet at " << Simulator::Now () << std::endl;
 
       Ptr<Packet> packet;
       if (m_unsentPacket)
@@ -345,7 +348,9 @@ void BulkSendApplication::SendData (const Address &from, const Address &to)
         {
           NS_FATAL_ERROR ("Unexpected return value from m_socket->Send ()");
         }
+//      std::cout << "numSentBulkSend " << m_totBytes << std::endl;
     }
+//  std::cout << "numSentBulkSend " << m_totBytes << std::endl;
   // Check if time to close (all sent)
   if (m_totBytes == m_maxBytes && m_connected)
     {

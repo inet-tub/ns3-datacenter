@@ -287,6 +287,7 @@ void PacketSink::HandleRead (Ptr<Socket> socket)
           }
           else{
             m_flowFinishTrace(totalSize, m_startTime.GetNanoSeconds(),false,sender_priority);
+            std::cout << "Flow finished. FCT = " << Simulator::Now().GetSeconds()-m_startTime.GetSeconds() << " seconds" << std::endl;
           }
           StopApplication();
         }

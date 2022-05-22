@@ -40,6 +40,7 @@ class RdmaEgressQueue : public Object{
 public:
 	static const uint32_t qCnt = 8;
 	static uint32_t ack_q_idx;
+	static uint32_t tcpip_q_idx;
 	int m_qlast;
 	uint32_t m_rrlast;
 	Ptr<DropTailQueue<Packet>> m_ackQ; // highest priority queue
@@ -105,6 +106,9 @@ public:
    */
   virtual bool Send(Ptr<Packet> packet, const Address &dest, uint16_t protocolNumber);
   virtual bool SwitchSend (uint32_t qIndex, Ptr<Packet> packet, CustomHeader &ch);
+  Address GetRemote (void) const;
+  virtual void SetReceiveCallback (NetDevice::ReceiveCallback cb);
+
 
   DataRate GetDataRate();
 
@@ -185,6 +189,12 @@ protected:
 
   /// Resume a paused queue and call DequeueAndTransmit()
   virtual void Resume(unsigned qIndex);
+
+  bool ProcessHeader (Ptr<Packet> p, uint16_t& param);
+
+    static uint16_t PppToEther (uint16_t proto);
+
+    static uint16_t EtherToPpp (uint16_t proto);
 
   /**
    * The queues for each priority class.

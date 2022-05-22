@@ -47,6 +47,7 @@
 #include "ns3/seq-ts-header.h"
 #include "ns3/pointer.h"
 #include "ns3/custom-header.h"
+#include "ns3/rdma-tag.h"
 
 #include <iostream>
 
@@ -55,6 +56,7 @@ NS_LOG_COMPONENT_DEFINE("QbbNetDevice");
 namespace ns3 {
 
 uint32_t RdmaEgressQueue::ack_q_idx = 3;
+uint32_t RdmaEgressQueue::tcpip_q_idx = 1;
 // RdmaEgressQueue
 TypeId RdmaEgressQueue::GetTypeId (void)
 {
@@ -76,14 +78,12 @@ RdmaEgressQueue::RdmaEgressQueue() {
 }
 
 Ptr<Packet> RdmaEgressQueue::DequeueQindex(int qIndex) {
+	
+	NS_ASSERT_MSG(qIndex!=-2,"qIndex -2 appeared in DequeueQindex. This is not intended. Aborting!");
 	if (qIndex == -1) { // high prio
 		Ptr<Packet> p = m_ackQ->Dequeue();
 		m_qlast = -1;
 		m_traceRdmaDequeue(p, 0);
-		return p;
-	}
-	else if (qIndex == -2){
-		Ptr<Packet> p = qb_dev->GetQueue()->DequeueRR(dummy_paused);
 		return p;
 	}
 	if (qIndex >= 0) { // qp
@@ -140,7 +140,7 @@ int RdmaEgressQueue::GetNextQindex(bool paused[]) {
 			}
 		}
 		else{
-			if (qb_dev->GetQueue()->GetNBytes(0)){
+			if (qb_dev->GetQueue()->GetNBytes(tcpip_q_idx)){
 				res = -2;
 				return res;
 			}
@@ -323,6 +323,7 @@ QbbNetDevice::TransmitComplete(void)
 void
 QbbNetDevice::DequeueAndTransmit(void)
 {
+	// std::cout << "dequeue " << std::endl;
 	NS_LOG_FUNCTION(this);
 	if (!m_linkUp) return; // if link is down, return
 	if (m_txMachineState == BUSY) return;	// Quit if channel busy
@@ -340,7 +341,7 @@ QbbNetDevice::DequeueAndTransmit(void)
 				return;
 			}
 			else if (qIndex == -2){
-				Ptr<Packet> p = m_queue->DequeueRR (dummy_paused);
+				Ptr<Packet> p = m_queue->DequeueRR (m_paused);
 				if (p == 0)
 				{
 				  NS_LOG_LOGIC ("No pending packets in device queue after tx complete");
@@ -359,7 +360,7 @@ QbbNetDevice::DequeueAndTransmit(void)
 			// a qp dequeue a packet
 			Ptr<RdmaQueuePair> lastQp = m_rdmaEQ->GetQp(qIndex);
 			p = m_rdmaEQ->DequeueQindex(qIndex);
-			if (p==NULL)
+			// if (p==NULL)
 			// std::cout << "p is null" << std::endl;
 
 			// transmit
@@ -439,9 +440,55 @@ QbbNetDevice::Resume(unsigned qIndex)
 }
 
 void
+QbbNetDevice::SetReceiveCallback (NetDevice::ReceiveCallback cb)
+{
+  m_rxCallback = cb;
+}
+
+bool
+QbbNetDevice::ProcessHeader (Ptr<Packet> p, uint16_t& param)
+{
+  NS_LOG_FUNCTION (this << p << param);
+  PppHeader ppp;
+  p->RemoveHeader (ppp);
+  // std::cout << "p2p prot " << uint32_t(ppp.GetProtocol ()) << std::endl;
+  param = PppToEther (ppp.GetProtocol ());
+  return true;
+}
+
+uint16_t
+QbbNetDevice::PppToEther (uint16_t proto)
+{
+  NS_LOG_FUNCTION_NOARGS();
+  switch(proto)
+    {
+    case 0x0021: return 0x0800;   //IPv4
+    case 0x0057: return 0x86DD;   //IPv6
+    default:
+      NS_ASSERT_MSG (false, "PPP Protocol number not defined!");
+      std::cout << "PPP Protocol number not defined!" << std::endl;
+    }
+  return 0;
+}
+
+uint16_t
+QbbNetDevice::EtherToPpp (uint16_t proto)
+{
+  NS_LOG_FUNCTION_NOARGS();
+  switch(proto)
+    {
+    case 0x0800: return 0x0021;   //IPv4
+    case 0x86DD: return 0x0057;   //IPv6
+    default: NS_ASSERT_MSG (false, "PPP Protocol number not defined!");
+    }
+  return 0;
+}
+
+void
 QbbNetDevice::Receive(Ptr<Packet> packet)
 {
-	NS_LOG_FUNCTION(this << packet);
+// std::cout << "receive" << std::endl;
+  NS_LOG_FUNCTION(this << packet);
 	if (!m_linkUp) {
 		m_traceDrop(packet, 0);
 		return;
@@ -460,8 +507,8 @@ QbbNetDevice::Receive(Ptr<Packet> packet)
 	m_macRxTrace(packet);
 
 //	RdmaTag rt; // This tag indicates that the packet is NOT rdma stack rather came from
-//	bool found = p->PeekPacketTag(RdmaTag);
-
+//	bool found = p->PeekPacketTag(rt);
+//
 //	if (!found){
 		CustomHeader ch(CustomHeader::L2_Header | CustomHeader::L3_Header | CustomHeader::L4_Header);
 		ch.getInt = 1; // parse INT header
@@ -481,53 +528,141 @@ QbbNetDevice::Receive(Ptr<Packet> packet)
 				packet->AddPacketTag(FlowIdTag(m_ifIndex));
 				m_node->SwitchReceiveFromDevice(this, packet, ch);
 			} else { // NIC
-				// send to RdmaHw
-				int ret = m_rdmaReceiveCb(packet, ch);
+			    int ret;
+			    Ptr<Packet> cp = packet->Copy();
+			    PppHeader ph; cp->RemoveHeader(ph);
+			    Ipv4Header ih;
+			    cp->RemoveHeader(ih);
+			  if (ih.GetProtocol()==0x06){
+			           m_snifferTrace (packet);
+			           m_promiscSnifferTrace (packet);
+			           m_phyRxEndTrace (packet);
+
+			           //
+			           // Trace sinks will expect complete packets, not packets without some of the
+			           // headers.
+			           //
+			           Ptr<Packet> originalPacket = packet->Copy ();
+
+			           //
+			           // Strip off the point-to-point protocol header and forward this packet
+			           // up the protocol stack.  Since this is a simple point-to-point link,
+			           // there is no difference in what the promisc callback sees and what the
+			           // normal receive callback sees.
+			           //
+			           uint16_t prot=0;
+			           ProcessHeader (packet, prot);
+
+			           if (!m_promiscCallback.IsNull ())
+			             {
+			               m_macPromiscRxTrace (originalPacket);
+			               m_promiscCallback (this, packet, prot, GetRemote (), GetAddress (), NetDevice::PACKET_HOST);
+			             }
+			           m_macRxTrace (originalPacket);
+			           m_rxCallback (this, packet, prot, GetRemote ());
+			  }
+			  else{
+			      // send to RdmaHw
+			      ret = m_rdmaReceiveCb(packet, ch);
+			  }
 				// TODO we may based on the ret do something
 			}
 		}
 //	}
 //	else{
 //	  //
-//      // Hit the trace hooks.  All of these hooks are in the same place in this
-//      // device because it is so simple, but this is not usually the case in
-//      // more complicated devices.
-//      //
-//      m_snifferTrace (packet);
-//      m_promiscSnifferTrace (packet);
-//      m_phyRxEndTrace (packet);
+//     // Hit the trace hooks.  All of these hooks are in the same place in this
+//     // device because it is so simple, but this is not usually the case in
+//     // more complicated devices.
+//     //
+//     m_snifferTrace (packet);
+//     m_promiscSnifferTrace (packet);
+//     m_phyRxEndTrace (packet);
 //
-//      //
-//      // Trace sinks will expect complete packets, not packets without some of the
-//      // headers.
-//      //
-//      Ptr<Packet> originalPacket = packet->Copy ();
+//     //
+//     // Trace sinks will expect complete packets, not packets without some of the
+//     // headers.
+//     //
+//     Ptr<Packet> originalPacket = packet->Copy ();
 //
-//      //
-//      // Strip off the point-to-point protocol header and forward this packet
-//      // up the protocol stack.  Since this is a simple point-to-point link,
-//      // there is no difference in what the promisc callback sees and what the
-//      // normal receive callback sees.
-//      //
-//      ProcessHeader (packet, protocol);
+//     //
+//     // Strip off the point-to-point protocol header and forward this packet
+//     // up the protocol stack.  Since this is a simple point-to-point link,
+//     // there is no difference in what the promisc callback sees and what the
+//     // normal receive callback sees.
+//     //
+//     ProcessHeader (packet, protocol);
 //
-//      if (!m_promiscCallback.IsNull ())
-//        {
-//          m_macPromiscRxTrace (originalPacket);
-//          m_promiscCallback (this, packet, protocol, GetRemote (), GetAddress (), NetDevice::PACKET_HOST);
-//        }
+//     if (!m_promiscCallback.IsNull ())
+//       {
+//         m_macPromiscRxTrace (originalPacket);
+//         m_promiscCallback (this, packet, protocol, GetRemote (), GetAddress (), NetDevice::PACKET_HOST);
+//       }
 //
-//      m_macRxTrace (originalPacket);
-//      m_rxCallback (this, packet, protocol, GetRemote ());
+//     m_macRxTrace (originalPacket);
+//     m_rxCallback (this, packet, protocol, GetRemote ());
 //	}
 
 	return;
 }
 
+Address
+QbbNetDevice::GetRemote (void) const
+{
+  NS_LOG_FUNCTION (this);
+  NS_ASSERT (m_channel->GetNDevices () == 2);
+  for (std::size_t i = 0; i < m_channel->GetNDevices (); ++i)
+    {
+      Ptr<NetDevice> tmp = m_channel->GetDevice (i);
+      if (tmp != this)
+        {
+          return tmp->GetAddress ();
+        }
+    }
+  NS_ASSERT (false);
+  // quiet compiler.
+  return Address ();
+}
+
 bool QbbNetDevice::Send(Ptr<Packet> packet, const Address &dest, uint16_t protocolNumber)
 {
-	NS_ASSERT_MSG(false, "QbbNetDevice::Send not implemented yet\n");
-	return false;
+//	NS_ASSERT_MSG(false, "QbbNetDevice::Send not implemented yet\n");
+//	std::cout << "Debug: LOL QbbNetDevice::Send not implemented yet\n" << std::endl;
+//	return false;
+//  m_macTxTrace(packet);
+//  m_traceEnqueue(packet, m_rdmaEQ->tcpip_q_idx);
+//  m_queue->Enqueue(packet, m_rdmaEQ->tcpip_q_idx);
+//  DequeueAndTransmit();
+//  return true;
+
+  NS_LOG_FUNCTION (this << packet << dest << protocolNumber);
+   NS_LOG_LOGIC ("p=" << packet << ", dest=" << &dest);
+   NS_LOG_LOGIC ("UID is " << packet->GetUid ());
+
+   //
+   // If IsLinkUp() is false it means there is no channel to send any packet
+   // over so we just hit the drop trace on the packet and return an error.
+   //
+   if (IsLinkUp () == false)
+     {
+       m_macTxDropTrace (packet);
+       return false;
+     }
+
+   //
+   // Stick a point to point protocol header on the packet in preparation for
+   // shoving it out the door.
+   //
+   AddHeader (packet, protocolNumber);
+
+   m_macTxTrace (packet);
+
+   //
+   // We should enqueue and dequeue the packet to hit the tracing hooks.
+   //
+   m_queue->Enqueue (packet, m_rdmaEQ->tcpip_q_idx);
+   DequeueAndTransmit();
+   return true;
 }
 
 bool QbbNetDevice::SwitchSend (uint32_t qIndex, Ptr<Packet> packet, CustomHeader &ch) {

@@ -12,6 +12,8 @@
 #include "ns3/int-header.h"
 #include "ns3/simulator.h"
 #include <cmath>
+#include "ns3/tcp-header.h"
+#include "ns3/udp-header.h"
 
 namespace ns3 {
 
@@ -67,33 +69,71 @@ SwitchNode::SwitchNode(){
 }
 
 int SwitchNode::GetOutDev(Ptr<const Packet> p, CustomHeader &ch){
-	// look up entries
-	auto entry = m_rtTable.find(ch.dip);
+  // look up entries
+  Ptr<Packet> cp = p->Copy();
 
-	// no matching entry
-	if (entry == m_rtTable.end())
-		return -1;
+  PppHeader ph; cp->RemoveHeader(ph);
+  Ipv4Header ih; cp->RemoveHeader(ih);
+  auto entry = m_rtTable.find(ih.GetDestination().Get());
 
-	// entry found
-	auto &nexthops = entry->second;
+  // no matching entry
+  if (entry == m_rtTable.end())
+    return -1;
 
-	// pick one next hop based on hash
-	union {
-		uint8_t u8[4+4+2+2];
-		uint32_t u32[3];
-	} buf;
-	buf.u32[0] = ch.sip;
-	buf.u32[1] = ch.dip;
-	if (ch.l3Prot == 0x6)
-		buf.u32[2] = ch.tcp.sport | ((uint32_t)ch.tcp.dport << 16);
-	else if (ch.l3Prot == 0x11)
-		buf.u32[2] = ch.udp.sport | ((uint32_t)ch.udp.dport << 16);
-	else if (ch.l3Prot == 0xFC || ch.l3Prot == 0xFD)
-		buf.u32[2] = ch.ack.sport | ((uint32_t)ch.ack.dport << 16);
+  // entry found
+  auto &nexthops = entry->second;
 
-	uint32_t idx = EcmpHash(buf.u8, 12, m_ecmpSeed) % nexthops.size();
-	return nexthops[idx];
+  // pick one next hop based on hash
+  union {
+    uint8_t u8[4+4+2+2];
+    uint32_t u32[3];
+  } buf;
+  buf.u32[0] = ih.GetSource().Get();
+  buf.u32[1] = ih.GetDestination().Get();
+  if (ih.GetProtocol() == 0x6){
+      TcpHeader th; cp->PeekHeader(th);
+      buf.u32[2] = th.GetSourcePort() | ((uint32_t)th.GetDestinationPort() << 16);
+  }
+  else if (ch.l3Prot == 0x11){
+    buf.u32[2] = ch.udp.sport | ((uint32_t)ch.udp.dport << 16);
+  }
+  else if (ch.l3Prot == 0xFC || ch.l3Prot == 0xFD)
+    buf.u32[2] = ch.ack.sport | ((uint32_t)ch.ack.dport << 16);
+
+  uint32_t idx = EcmpHash(buf.u8, 12, m_ecmpSeed) % nexthops.size();
+  return nexthops[idx];
 }
+
+//int SwitchNode::GetOutDev(Ptr<const Packet> p, CustomHeader &ch){
+//	// look up entries
+//	auto entry = m_rtTable.find(ch.dip);
+//
+//	// no matching entry
+//	if (entry == m_rtTable.end()){
+//		std::cout << "entry not found. ch.dip " << ch.dip << std::endl;
+//	    return -1;
+//	}
+//
+//	// entry found
+//	auto &nexthops = entry->second;
+//
+//	// pick one next hop based on hash
+//	union {
+//		uint8_t u8[4+4+2+2];
+//		uint32_t u32[3];
+//	} buf;
+//	buf.u32[0] = ch.sip;
+//	buf.u32[1] = ch.dip;
+//	if (ch.l3Prot == 0x6)
+//		buf.u32[2] = ch.tcp.sport | ((uint32_t)ch.tcp.dport << 16);
+//	else if (ch.l3Prot == 0x11)
+//		buf.u32[2] = ch.udp.sport | ((uint32_t)ch.udp.dport << 16);
+//	else if (ch.l3Prot == 0xFC || ch.l3Prot == 0xFD)
+//		buf.u32[2] = ch.ack.sport | ((uint32_t)ch.ack.dport << 16);
+//
+//	uint32_t idx = EcmpHash(buf.u8, 12, m_ecmpSeed) % nexthops.size();
+//	return nexthops[idx];
+//}
 
 void SwitchNode::CheckAndSendPfc(uint32_t inDev, uint32_t qIndex){
 	Ptr<QbbNetDevice> device = DynamicCast<QbbNetDevice>(m_devices[inDev]);
@@ -111,7 +151,7 @@ void SwitchNode::CheckAndSendResume(uint32_t inDev, uint32_t qIndex){
 }
 
 void SwitchNode::SendToDev(Ptr<Packet>p, CustomHeader &ch){
-	int idx = GetOutDev(p, ch);
+	int idx = GetOutDev(p, ch); if (idx<0) std::cout << "outdev not found! Dropped. " << std::endl;
 	if (idx >= 0){
 		NS_ASSERT_MSG(m_devices[idx]->IsLinkUp(), "The routing table look up should return link that is up");
 
@@ -196,7 +236,7 @@ void SwitchNode::ClearTable(){
 
 // This function can only be called in switch mode
 bool SwitchNode::SwitchReceiveFromDevice(Ptr<NetDevice> device, Ptr<Packet> packet, CustomHeader &ch){
-	SendToDev(packet, ch);
+  SendToDev(packet, ch);
 	return true;
 }
 

@@ -588,6 +588,7 @@ TcpL4Protocol::SendPacketV4 (Ptr<Packet> packet, const TcpHeader &outgoing,
       Ptr<Ipv4Route> route;
       if (ipv4->GetRoutingProtocol () != 0)
         {
+          // std::cout << "looking for route " << std::endl;
           route = ipv4->GetRoutingProtocol ()->RouteOutput (packet, header, oif, errno_);
         }
       else
@@ -666,7 +667,6 @@ TcpL4Protocol::SendPacket (Ptr<Packet> pkt, const TcpHeader &outgoing,
   if (Ipv4Address::IsMatchingType (saddr))
     {
       NS_ASSERT (Ipv4Address::IsMatchingType (daddr));
-
       SendPacketV4 (pkt, outgoing, Ipv4Address::ConvertFrom (saddr),
                     Ipv4Address::ConvertFrom (daddr), oif);
 
@@ -685,7 +685,6 @@ TcpL4Protocol::SendPacket (Ptr<Packet> pkt, const TcpHeader &outgoing,
     {
       InetSocketAddress s = InetSocketAddress::ConvertFrom (saddr);
       InetSocketAddress d = InetSocketAddress::ConvertFrom (daddr);
-
       SendPacketV4 (pkt, outgoing, s.GetIpv4 (), d.GetIpv4 (), oif);
 
       return;
