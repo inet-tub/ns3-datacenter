@@ -2,7 +2,7 @@
 #include "ns3/packet.h"
 #include "ns3/ipv4-header.h"
 #include "ns3/pause-header.h"
-#include "ns3/flow-id-tag.h"
+#include "ns3/interface-tag.h"
 #include "ns3/boolean.h"
 #include "ns3/uinteger.h"
 #include "ns3/double.h"
@@ -14,6 +14,7 @@
 #include <cmath>
 #include "ns3/tcp-header.h"
 #include "ns3/udp-header.h"
+#include "ns3/custom-priority-tag.h"
 
 namespace ns3 {
 
@@ -151,22 +152,30 @@ void SwitchNode::CheckAndSendResume(uint32_t inDev, uint32_t qIndex){
 }
 
 void SwitchNode::SendToDev(Ptr<Packet>p, CustomHeader &ch){
-	int idx = GetOutDev(p, ch); if (idx<0) std::cout << "outdev not found! Dropped. " << std::endl;
+	int idx = GetOutDev(p, ch);
 	if (idx >= 0){
 		NS_ASSERT_MSG(m_devices[idx]->IsLinkUp(), "The routing table look up should return link that is up");
 
 		// determine the qIndex
 		uint32_t qIndex;
+		MyPriorityTag priotag;
+		bool found = p->PeekPacketTag(priotag);
+
 		if (ch.l3Prot == 0xFF || ch.l3Prot == 0xFE || (m_ackHighPrio && (ch.l3Prot == 0xFD || ch.l3Prot == 0xFC))){  //QCN or PFC or NACK, go highest priority
 			qIndex = 0;
-		}else{
-			qIndex = (ch.l3Prot == 0x06 ? 1 : ch.udp.pg); // if TCP, put to queue 1
+		}
+		else if (found){
+		    qIndex = priotag.GetPriority();
+		    std::cout << "using queue " << qIndex << std::endl;
+		}
+		else{
+			qIndex = (ch.l3Prot == 0x06 ? 1 : ch.udp.pg); // if the stack did not attach MyPriorityTag, put to queue 1.
 		}
 
 		// admission control
-		FlowIdTag t;
+		InterfaceTag t;
 		p->PeekPacketTag(t);
-		uint32_t inDev = t.GetFlowId();
+		uint32_t inDev = t.GetPortId();
 		if (qIndex != 0){ //not highest priority
 			if (m_mmu->CheckIngressAdmission(inDev, qIndex, p->GetSize()) && m_mmu->CheckEgressAdmission(idx, qIndex, p->GetSize())){			// Admission control
 				m_mmu->UpdateIngressAdmission(inDev, qIndex, p->GetSize());
@@ -178,8 +187,9 @@ void SwitchNode::SendToDev(Ptr<Packet>p, CustomHeader &ch){
 		}
 		m_bytes[inDev][idx][qIndex] += p->GetSize();
 		m_devices[idx]->SwitchSend(qIndex, p, ch);
-		DynamicCast<QbbNetDevice>(m_devices[idx])->totalBytesRcvd += p->GetSize();
+		DynamicCast<QbbNetDevice>(m_devices[idx])->totalBytesRcvd += p->GetSize(); // Attention: this is the egress port's total received packets. Not the ingress port.
 	}else
+	  std::cout << "outdev not found! Dropped. This should not happen. Debugging required!" << std::endl;
 		return; // Drop
 }
 
@@ -241,10 +251,10 @@ bool SwitchNode::SwitchReceiveFromDevice(Ptr<NetDevice> device, Ptr<Packet> pack
 }
 
 void SwitchNode::SwitchNotifyDequeue(uint32_t ifIndex, uint32_t qIndex, Ptr<Packet> p){
-	FlowIdTag t;
+	InterfaceTag t;
 	p->PeekPacketTag(t);
 	if (qIndex != 0){
-		uint32_t inDev = t.GetFlowId();
+		uint32_t inDev = t.GetPortId();
 		m_mmu->RemoveFromIngressAdmission(inDev, qIndex, p->GetSize());
 		m_mmu->RemoveFromEgressAdmission(ifIndex, qIndex, p->GetSize());
 		m_bytes[inDev][ifIndex][qIndex] -= p->GetSize();

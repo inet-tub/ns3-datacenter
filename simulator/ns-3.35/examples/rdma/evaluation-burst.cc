@@ -1240,36 +1240,36 @@ int main(int argc, char *argv[])
 
 
 
-	Ptr<Node> rxNode = n.Get (62);
-	          Ptr<Ipv4> ip = rxNode->GetObject<Ipv4> ();
-	          Ipv4InterfaceAddress rxInterface = ip->GetAddress (1,0);
-	            Ipv4Address rxAddress = rxInterface.GetLocal ();
-
-	            InetSocketAddress ad (rxAddress, 4444);
-	            Address sinkAddress(ad);
-	            Ptr<BulkSendApplication> bulksend = CreateObject<BulkSendApplication>();
-	            bulksend->SetAttribute("Protocol", TypeIdValue(TcpSocketFactory::GetTypeId()));
-	            bulksend->SetAttribute ("SendSize", UintegerValue (1400));
-	            bulksend->SetAttribute ("MaxBytes", UintegerValue(40000));
-//	            bulksend->SetAttribute("FlowId", UintegerValue(flowCount++));
-//	            bulksend->SetAttribute("priorityCustom",UintegerValue(prior));
-	            bulksend->SetAttribute("Remote", AddressValue(sinkAddress));
-	            bulksend->SetAttribute("InitialCwnd", UintegerValue (55));
-//	      bulksend->SetAttribute("priority",UintegerValue(prior));
-	            bulksend->SetStartTime (Seconds(0.1));
-	            bulksend->SetStopTime (Seconds (10));
-	            n.Get (0)->AddApplication(bulksend);
-
-	            PacketSinkHelper sink ("ns3::TcpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), 4444));
-	            ApplicationContainer sinkApp = sink.Install (n.Get(62));
-	            sinkApp.Get(0)->SetAttribute("TotalQueryBytes",UintegerValue(40000));
-	            sinkApp.Get(0)->SetAttribute("priority",UintegerValue(0)); // ack packets are prioritized
-	            sinkApp.Get(0)->SetAttribute("priorityCustom",UintegerValue(0)); // ack packets are prioritized
-//	            sinkApp.Get(0)->SetAttribute("flowId",UintegerValue(flowCount));
-//	            sinkApp.Get(0)->SetAttribute("senderPriority",UintegerValue(prior));
-//	            flowCount+=1;
-	            sinkApp.Start (Seconds(0.1));
-	            sinkApp.Stop (Seconds (10));
+//	Ptr<Node> rxNode = n.Get (62);
+//	          Ptr<Ipv4> ip = rxNode->GetObject<Ipv4> ();
+//	          Ipv4InterfaceAddress rxInterface = ip->GetAddress (1,0);
+//	            Ipv4Address rxAddress = rxInterface.GetLocal ();
+//
+//	            InetSocketAddress ad (rxAddress, 4444);
+//	            Address sinkAddress(ad);
+//	            Ptr<BulkSendApplication> bulksend = CreateObject<BulkSendApplication>();
+//	            bulksend->SetAttribute("Protocol", TypeIdValue(TcpSocketFactory::GetTypeId()));
+//	            bulksend->SetAttribute ("SendSize", UintegerValue (1400));
+//	            bulksend->SetAttribute ("MaxBytes", UintegerValue(40000));
+////	            bulksend->SetAttribute("FlowId", UintegerValue(flowCount++));
+//	            bulksend->SetAttribute("priorityCustom",UintegerValue(2));
+//	            bulksend->SetAttribute("Remote", AddressValue(sinkAddress));
+//	            bulksend->SetAttribute("InitialCwnd", UintegerValue (55));
+////	      bulksend->SetAttribute("priority",UintegerValue(prior));
+//	            bulksend->SetStartTime (Seconds(0.1));
+//	            bulksend->SetStopTime (Seconds (10));
+//	            n.Get (0)->AddApplication(bulksend);
+//
+//	            PacketSinkHelper sink ("ns3::TcpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), 4444));
+//	            ApplicationContainer sinkApp = sink.Install (n.Get(62));
+//	            sinkApp.Get(0)->SetAttribute("TotalQueryBytes",UintegerValue(40000));
+//	            sinkApp.Get(0)->SetAttribute("priority",UintegerValue(2)); // ack packets are prioritized
+//	            sinkApp.Get(0)->SetAttribute("priorityCustom",UintegerValue(2)); // ack packets are prioritized
+////	            sinkApp.Get(0)->SetAttribute("flowId",UintegerValue(flowCount));
+//	            sinkApp.Get(0)->SetAttribute("senderPriority",UintegerValue(2));
+////	            flowCount+=1;
+//	            sinkApp.Start (Seconds(0.1));
+//	            sinkApp.Stop (Seconds (10));
 
 
 	topof.close();
