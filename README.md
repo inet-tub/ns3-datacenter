@@ -43,7 +43,7 @@ In the following, `$REPO` = path to the root directory of this repository. Chang
 cd $REPO/simulator/ns-3.35/
 CXXFLAGS=-w ./waf configure --build-profile=optimized --disable-example --disable-tests --disable-python
 ```
-**Build**
+**Build:**
 
 ```bash
 cd $REPO/simulator/ns-3.35/
