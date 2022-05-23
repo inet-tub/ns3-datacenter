@@ -54,7 +54,7 @@ cd $REPO/simulator/ns-3.35/
 
 Checkout [`simulator/ns-3.35/examples/PowerTCP`](https://github.com/inet-tub/ns3-datacenter/tree/master/simulator/ns-3.35/examples/PowerTCP) for various simulation files and scripts to run PowerTCP. 
 
-# Running PowerTCP
+# Running ABM
 
 Checkout [`simulator/ns-3.35/examples/ABM`](https://github.com/inet-tub/ns3-datacenter/tree/master/simulator/ns-3.35/examples/ABM) for simulation files and scripts to run ABM and other buffer management algorithms. **Note:** This only runs in the TCP/IP stack and this is what we used in the paper. Support for the RDMA stack and mixed stack will be updated in the upcoming months. 
 
