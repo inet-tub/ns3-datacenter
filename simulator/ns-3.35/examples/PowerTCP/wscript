@@ -1,18 +1,15 @@
 ## -*- Mode: python; py-indent-offset: 4; indent-tabs-mode: nil; coding: utf-8; -*-
 
 def build(bld):
-    obj = bld.create_ns3_program('evaluation',
+    obj = bld.create_ns3_program('powertcp-evaluation',
                                  ['point-to-point', 'applications', 'internet'])
-    obj.source = ['evaluation.cc', 'cdf.c']
-    obj = bld.create_ns3_program('evaluation-fairness',
+    obj.source = ['powertcp-evaluation.cc', 'cdf.c']
+    obj = bld.create_ns3_program('powertcp-evaluation-fairness',
                                  ['point-to-point', 'applications', 'internet'])
-    obj.source = ['evaluation-fairness.cc', 'cdf.c']
-    obj = bld.create_ns3_program('evaluation-burst',
+    obj.source = ['powertcp-evaluation-fairness.cc', 'cdf.c']
+    obj = bld.create_ns3_program('powertcp-evaluation-burst',
                                  ['point-to-point', 'applications', 'internet'])
-    obj.source = ['evaluation-burst.cc', 'cdf.c']
-    obj = bld.create_ns3_program('evaluation-workload',
+    obj.source = ['powertcp-evaluation-burst.cc', 'cdf.c']
+    obj = bld.create_ns3_program('powertcp-evaluation-workload',
                                  ['point-to-point', 'applications', 'internet'])
-    obj.source = ['evaluation-workload.cc', 'cdf.c']
-    obj = bld.create_ns3_program('main-simple',
-                                 ['network', 'internet', 'applications'])
-    obj.source = 'main-simple.cc'
+    obj.source = ['powertcp-evaluation-workload.cc', 'cdf.c']

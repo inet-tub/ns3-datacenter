@@ -757,7 +757,6 @@ void RdmaHw::HyperIncreaseMlx(Ptr<RdmaQueuePair> q) {
  ***********************/
 void RdmaHw::HandleAckHp(Ptr<RdmaQueuePair> qp, Ptr<Packet> p, CustomHeader &ch) {
 	uint32_t ack_seq = ch.ack.seq;
-
 	// update rate
 	if (ack_seq > qp->hp.m_lastUpdateSeq) { // if full RTT feedback is ready, do full update
 		if (PowerTCPEnabled) {
@@ -766,7 +765,6 @@ void RdmaHw::HandleAckHp(Ptr<RdmaQueuePair> qp, Ptr<Packet> p, CustomHeader &ch)
 		else
 			UpdateRateHp(qp, p, ch, false);
 	} else { // do fast react
-//		UpdateRateHp(qp, p, ch, false);
 		if (PowerTCPEnabled)
 			FastReactPower(qp, p, ch);
 		else
@@ -968,14 +966,14 @@ void RdmaHw::UpdateRatePower(Ptr<RdmaQueuePair> qp, Ptr<Packet> p, CustomHeader 
 	double rtt;
 
 	if (it != qp->rates.end()) {
+		qp->rates.erase(it);
+		prevRtt = Simulator::Now().GetNanoSeconds() - it->second;
 		if (PowerTCPdelay) {
 			qp->m_baseRtt = std::min(uint64_t(Simulator::Now().GetNanoSeconds() - it->second), qp->m_baseRtt);
 		}
-		qp->rates.erase(it);
-		prevRtt = Simulator::Now().GetNanoSeconds() - it->second;
 		prevCompletion = Simulator::Now().GetNanoSeconds();
 	}
-	if (qp->hp.m_lastUpdateSeq == 0) {
+	if (qp->hp.m_lastUpdateSeq == 0 && !PowerTCPdelay) {
 		qp->prevRtt = prevRtt;
 		qp->prevCompletion = Simulator::Now().GetNanoSeconds();
 		qp->hp.m_lastUpdateSeq = next_seq;
@@ -984,7 +982,7 @@ void RdmaHw::UpdateRatePower(Ptr<RdmaQueuePair> qp, Ptr<Packet> p, CustomHeader 
 		NS_ASSERT(ih.nhop <= IntHeader::maxHop);
 		for (uint32_t i = 0; i < ih.nhop; i++)
 			qp->hp.hop[i] = ih.hop[i];
-	} else {
+	}else {
 		// check packet INT
 		IntHeader &ih = ch.ack.ih;
 		if (ih.nhop <= IntHeader::maxHop) {
@@ -1004,15 +1002,14 @@ void RdmaHw::UpdateRatePower(Ptr<RdmaQueuePair> qp, Ptr<Packet> p, CustomHeader 
 
 				uint64_t tau = ih.hop[i].GetTimeDelta(qp->hp.hop[i]);
 				double duration = tau * 1e-9;
-				double txRate = (ih.hop[i].GetBytesDelta(qp->hp.hop[i])) * 8.0 / duration;
+				double rxRate = (ih.hop[i].GetBytesDelta(qp->hp.hop[i])) * 8.0 / duration;
 
 				double u;
 
 				if (!PowerTCPdelay) {
-					double A = txRate + (double(ih.hop[i].GetQlen() * 8.0) - double(qp->hp.hop[i].GetQlen() * 8.0)) / duration;
-					// if (A < ih.hop[i].GetLineRate()*0.5)
-					// A = ih.hop[i].GetLineRate()*0.5;
-					double power = ( A ) * (double(ih.hop[i].GetQlen() * 8.0) + ih.hop[i].GetLineRate() * qp->m_baseRtt * 1e-9);
+					double A = rxRate;
+					// double A = txRate + (double(ih.hop[i].GetQlen() * 8.0) - double(qp->hp.hop[i].GetQlen() * 8.0)) / duration;
+					double power = ( A ) * (double(ih.hop[i].GetQlen() * 8.0) + ih.hop[i].GetLineRate() * (qp->m_baseRtt * 1e-9));
 					double powerx = (power) / (ih.hop[i].GetLineRate() * (ih.hop[i].GetLineRate() * qp->m_baseRtt * 1e-9) );
 					u = powerx; // PowerTCP
 				}
@@ -1023,7 +1020,7 @@ void RdmaHw::UpdateRatePower(Ptr<RdmaQueuePair> qp, Ptr<Packet> p, CustomHeader 
 						A = 0.5;
 					double power = ( A ) * (prevRtt);
 					double powerx = (power) / (1.05 * qp->m_baseRtt);
-					u = powerx; // delay-PowerTCP
+					u = powerx; // theta-PowerTCP
 				}
 				if (u > U) {
 					U = u;

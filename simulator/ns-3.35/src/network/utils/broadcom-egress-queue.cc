@@ -83,6 +83,7 @@ namespace ns3 {
 				}
 				m_bytesInQueueTotal += p->GetSize();
 				m_bytesInQueue[qIndex] += p->GetSize();
+				m_rxBytes+= p->GetSize();
 			}
 			else
 			{

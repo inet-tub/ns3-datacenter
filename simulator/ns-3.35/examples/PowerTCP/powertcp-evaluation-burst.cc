@@ -450,8 +450,7 @@ int main(int argc, char *argv[])
 //#else
 ////		conf.open(PATH_TO_PGO_CONFIG);
 //#endif
-	// std::string confFile="/home/vamsi/High-Precision-Congestion-Control/simulation/scratch/config.txt";
-	std::string confFile = "/home/vamsi/src/phd/ns3-datacenter/simulator/ns-3.35/examples/rdma/config-burst.txt";
+	std::string confFile = "/home/vamsi/src/phd/ns3-datacenter/simulator/ns-3.35/examples/PowerTCP/config-burst.txt";
 	std::cout << confFile;
 	CommandLine cmd;
 	cmd.AddValue("conf", "config file path", confFile);
@@ -1040,8 +1039,8 @@ int main(int argc, char *argv[])
 		ipv4.Assign(d);
 
 		// setup PFC trace
-		DynamicCast<QbbNetDevice>(d.Get(0))->TraceConnectWithoutContext("QbbPfc", MakeBoundCallback (&get_pfc, pfc_file, DynamicCast<QbbNetDevice>(d.Get(0))));
-		DynamicCast<QbbNetDevice>(d.Get(1))->TraceConnectWithoutContext("QbbPfc", MakeBoundCallback (&get_pfc, pfc_file, DynamicCast<QbbNetDevice>(d.Get(1))));
+		// DynamicCast<QbbNetDevice>(d.Get(0))->TraceConnectWithoutContext("QbbPfc", MakeBoundCallback (&get_pfc, pfc_file, DynamicCast<QbbNetDevice>(d.Get(0))));
+		// DynamicCast<QbbNetDevice>(d.Get(1))->TraceConnectWithoutContext("QbbPfc", MakeBoundCallback (&get_pfc, pfc_file, DynamicCast<QbbNetDevice>(d.Get(1))));
 	}
 
 	nic_rate = get_nic_rate(n);

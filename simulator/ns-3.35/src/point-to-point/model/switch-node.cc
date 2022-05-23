@@ -105,37 +105,6 @@ int SwitchNode::GetOutDev(Ptr<const Packet> p, CustomHeader &ch){
   return nexthops[idx];
 }
 
-//int SwitchNode::GetOutDev(Ptr<const Packet> p, CustomHeader &ch){
-//	// look up entries
-//	auto entry = m_rtTable.find(ch.dip);
-//
-//	// no matching entry
-//	if (entry == m_rtTable.end()){
-//		std::cout << "entry not found. ch.dip " << ch.dip << std::endl;
-//	    return -1;
-//	}
-//
-//	// entry found
-//	auto &nexthops = entry->second;
-//
-//	// pick one next hop based on hash
-//	union {
-//		uint8_t u8[4+4+2+2];
-//		uint32_t u32[3];
-//	} buf;
-//	buf.u32[0] = ch.sip;
-//	buf.u32[1] = ch.dip;
-//	if (ch.l3Prot == 0x6)
-//		buf.u32[2] = ch.tcp.sport | ((uint32_t)ch.tcp.dport << 16);
-//	else if (ch.l3Prot == 0x11)
-//		buf.u32[2] = ch.udp.sport | ((uint32_t)ch.udp.dport << 16);
-//	else if (ch.l3Prot == 0xFC || ch.l3Prot == 0xFD)
-//		buf.u32[2] = ch.ack.sport | ((uint32_t)ch.ack.dport << 16);
-//
-//	uint32_t idx = EcmpHash(buf.u8, 12, m_ecmpSeed) % nexthops.size();
-//	return nexthops[idx];
-//}
-
 void SwitchNode::CheckAndSendPfc(uint32_t inDev, uint32_t qIndex){
 	Ptr<QbbNetDevice> device = DynamicCast<QbbNetDevice>(m_devices[inDev]);
 	if (m_mmu->CheckShouldPause(inDev, qIndex)){
@@ -287,8 +256,8 @@ void SwitchNode::SwitchNotifyDequeue(uint32_t ifIndex, uint32_t qIndex, Ptr<Pack
 				if (!PowerEnabled)
 					ih->PushHop(Simulator::Now().GetTimeStep(), m_txBytes[ifIndex], dev->GetQueue()->GetNBytesTotal(), dev->GetDataRate().GetBitRate());
 				else
-					ih->PushHop(Simulator::Now().GetTimeStep(), m_txBytes[ifIndex], dev->GetQueue()->GetNBytesTotal(), dev->GetDataRate().GetBitRate());
-					// ih->PushHop(Simulator::Now().GetTimeStep(), dev->GetQueue()->GetNBytesRxTotal(), dev->GetQueue()->GetNBytesTotal(), dev->GetDataRate().GetBitRate());
+					ih->PushHop(Simulator::Now().GetTimeStep(), dev->GetQueue()->GetNBytesRxTotal(), dev->GetQueue()->GetNBytesTotal(), dev->GetDataRate().GetBitRate());
+					// ih->PushHop(Simulator::Now().GetTimeStep(), m_txBytes[ifIndex], dev->GetQueue()->GetNBytesTotal(), dev->GetDataRate().GetBitRate());
 			}else if (m_ccMode == 10){ // HPCC-PINT
 				uint64_t t = Simulator::Now().GetTimeStep();
 				uint64_t dt = t - m_lastPktTs[ifIndex];

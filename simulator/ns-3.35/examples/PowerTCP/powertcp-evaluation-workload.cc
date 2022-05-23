@@ -866,8 +866,9 @@ int main(int argc, char *argv[])
 ////		conf.open(PATH_TO_PGO_CONFIG);
 //#endif
 		// std::string confFile="/home/vamsi/High-Precision-Congestion-Control/simulation/scratch/config.txt";
-		std::string confFile="/home/vamsi/High-Precision-Congestion-Control/simulation/src/internet/examples/config-workload.txt";
-		std::string cdfFileName = "/home/vamsi/High-Precision-Congestion-Control/simulation/src/internet/examples/websearch.txt";
+		
+		std::string confFile="/home/vamsi/src/phd/ns3-datacenter/simulator/ns-3.35/examples/PowerTCP/config-workload.txt";
+		std::string cdfFileName = "/home/vamsi/src/phd/ns3-datacenter/simulator/ns-3.35/examples/PowerTCP/websearch.txt";
 
 		unsigned randomSeed = 7;
 
@@ -1498,7 +1499,7 @@ int main(int argc, char *argv[])
 			double alpha = 1.0/8;
 			sw->m_mmu->SetAlphaIngress(alpha);
 			uint64_t totalHeadroom = 0;
-			for (uint32_t j = 0; j < sw->GetNDevices(); j++) {
+			for (uint32_t j = 1; j < sw->GetNDevices(); j++) {
 				
 				for (uint32_t qu = 0; qu < 8; qu++){
 					Ptr<QbbNetDevice> dev = DynamicCast<QbbNetDevice>(sw->GetDevice(j));
