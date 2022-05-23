@@ -33,7 +33,7 @@ Many additions to the source code are based on prior work: [ns3-rdma](https://gi
 
 ```
 
-# Configure, Build and Run
+# Configure and Build
 
 In the following, `$REPO` = path to the root directory of this repository. Change $REPO accordingly.
 
@@ -43,13 +43,16 @@ In the following, `$REPO` = path to the root directory of this repository. Chang
 cd $REPO/simulator/ns-3.35/
 CXXFLAGS=-w ./waf configure --build-profile=optimized --disable-example --disable-tests --disable-python
 ```
-**Build and run ns3:**
+**Build**
 
 ```bash
 cd $REPO/simulator/ns-3.35/
 ./waf
 ```
 
+# Running PowerTCP
+
+Checkout [this folder](https://github.com/inet-tub/ns3-datacenter/tree/master/simulator/ns-3.35/examples/PowerTCP) - `simulator/ns-3.35/examples/PowerTCP` for various simulation files and scripts to run PowerTCP. More documentation will be added in the upcoming days.
 
 # Changes to NS-3.35
 
