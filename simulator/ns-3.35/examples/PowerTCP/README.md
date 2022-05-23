@@ -17,7 +17,7 @@ To avoid any directory conflicts, first open `config.sh` and set the value of `N
 
 # Run Workload Simulations
 
-- **Simulations:** Run `./script-workload.sh` in your terminal to launch workload tests for PowerTCP, Theta-PowerTCP, HPCC, TIMELY and DCQCN. The simulation data is written to `dump_workload/`. The script launches simulations for
+- **Simulations:** Run `./script-workload.sh` in your terminal to launch workload tests for PowerTCP, Theta-PowerTCP, HPCC, TIMELY and DCQCN. The simulation data is written to `dump_workload/`. The script launches simulations for the following cases:
 	- varying loads; no incast traffic
 	- 80% load, 2MB request size and varying request rates
 	- 80% load, 4/second request rate and varying request sizes 
