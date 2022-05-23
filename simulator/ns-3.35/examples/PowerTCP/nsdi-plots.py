@@ -75,12 +75,12 @@ for alg in algs:
     ax.set_xlim(0.1495,0.154)
     # ax.set_xlim(0.0998,0.159)
     ax.plot(df["time"],df["th"],label="Throughput",c='#1979a9',lw=2)
-    # ax1.set_ylim(0,600)
-    # ax1.set_ylabel("Queue length (KB)")
-    # ax1.plot(df["time"],df["qlen"]/(1000),c='r',label="Qlen",lw=2)
-    ax1.set_ylim(0,2)
-    ax1.plot(df["time"],df["power"],c='g',label="NormPower",lw=2)
-    ax1.set_title(alg)
+    ax1.set_ylim(0,600)
+    ax1.set_ylabel("Queue length (KB)")
+    ax1.plot(df["time"],df["qlen"]/(1000),c='r',label="Qlen",lw=2)
+    # ax1.set_ylim(0,2)
+    # ax1.plot(df["time"],df["power"],c='g',label="NormPower",lw=2)
+    # ax1.set_title(alg)
     
     # ax1.axhline(25*10**9*5*1e-6*10/(1000*8),c='k',ls='--')
     
