@@ -1,0 +1,15 @@
+## -*- Mode: python; py-indent-offset: 4; indent-tabs-mode: nil; coding: utf-8; -*-
+
+def build(bld):
+    obj = bld.create_ns3_program('abm-evaluation',
+                                 ['point-to-point', 'traffic-control', 'internet', 'applications'])
+    obj.source = ['abm-evaluation.cc', 'cdf.c']
+    obj = bld.create_ns3_program('abm-evaluation-burst',
+                                 ['point-to-point', 'traffic-control', 'internet', 'applications'])
+    obj.source = ['abm-evaluation-burst.cc', 'cdf.c']
+    obj = bld.create_ns3_program('abm-evaluation-multi',
+                                 ['point-to-point', 'traffic-control', 'internet', 'applications'])
+    obj.source = ['abm-evaluation-multi.cc', 'cdf.c']
+    obj = bld.create_ns3_program('abm-evaluation-unimulti',
+                                 ['point-to-point', 'traffic-control', 'internet', 'applications'])
+    obj.source = ['abm-evaluation-unimulti.cc', 'cdf.c']
