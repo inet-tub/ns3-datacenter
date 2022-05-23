@@ -1,5 +1,7 @@
 
+# NOTE
 
+Some updates are on-going, merging PowerTCP and ABM into the same repository where one can simulate both TCP/IP stack and RDMA stack together. Thanks for your patience!
 
 
 # Build and Run
