@@ -1,8 +1,31 @@
 
-# NOTE
+# ns3-datacenter
 
-Some updates are on-going, merging PowerTCP and ABM into the same repository where one can simulate both TCP/IP stack and RDMA stack together. Thanks for your patience!
+This repository contains the source code used for [PowerTCP](https://www.usenix.org/conference/nsdi22/presentation/addanki) and ABM.
 
+We extend ns-3.35 to support various datacenter congestion control algorithms over both TCP/IP and RDMA stacks simulataneously. Several buffer management algorithms have been added as well. The switch MMU is based on SONIC buffer model (purely based on our understanding only). Several additions to the source code are based on prior work - [ns3-rdma](https://github.com/bobzhuyb/ns3-rdma) and [HPCC](https://github.com/alibaba-edu/High-Precision-Congestion-Control). If you use this repository in your work, please consider citing the following papers.
+
+```bib
+@inproceedings{abm,
+  author = {Addanki, Vamsi and Apostolaki, Maria and Ghobadi, Manya and Schmid, Stefan and Vanbever, Laurent},
+  title = {ABM: Active Buffer Management in Datacenters},
+  year = {2022},
+  month = {August},
+  booktitle = {Proceedings of the ACM SIGCOMM 2022 Conference},
+  address = {Amsterdam, Netherlands}
+}
+
+@inproceedings{nsdi22,
+  author = {Addanki, Vamsi and Michel, Oliver and Schmid, Stefan},
+  title = {{PowerTCP}: Pushing the Performance Limits of Datacenter Networks},
+  booktitle = {19th USENIX Symposium on Networked Systems Design and Implementation (NSDI 22)},
+  year = {2022},
+  address = {Renton, WA},
+  url = {https://www.usenix.org/conference/nsdi22/presentation/addanki},
+  publisher = {USENIX Association},
+  month = {April},
+} 
+```
 
 # Build and Run
 
