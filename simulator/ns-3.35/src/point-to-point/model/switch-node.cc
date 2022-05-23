@@ -177,9 +177,10 @@ void SwitchNode::SendToDev(Ptr<Packet>p, CustomHeader &ch){
 		p->PeekPacketTag(t);
 		uint32_t inDev = t.GetPortId();
 		if (qIndex != 0){ //not highest priority
-			if (m_mmu->CheckIngressAdmission(inDev, qIndex, p->GetSize()) && m_mmu->CheckEgressAdmission(idx, qIndex, p->GetSize())){			// Admission control
-				m_mmu->UpdateIngressAdmission(inDev, qIndex, p->GetSize());
-				m_mmu->UpdateEgressAdmission(idx, qIndex, p->GetSize());
+			// IMPORTANT: MyPriorityTag should only be attached by lossy traffic. This tag indicates the qIndex but also indicates that it is "lossy". Never attach MyPriorityTag on lossless traffic.
+			if (m_mmu->CheckIngressAdmission(inDev, qIndex, p->GetSize(), found) && m_mmu->CheckEgressAdmission(idx, qIndex, p->GetSize(), found)){			// Admission control
+				m_mmu->UpdateIngressAdmission(inDev, qIndex, p->GetSize(), found);
+				m_mmu->UpdateEgressAdmission(idx, qIndex, p->GetSize(), found);
 			}else{
 				return; // Drop
 			}
@@ -253,10 +254,14 @@ bool SwitchNode::SwitchReceiveFromDevice(Ptr<NetDevice> device, Ptr<Packet> pack
 void SwitchNode::SwitchNotifyDequeue(uint32_t ifIndex, uint32_t qIndex, Ptr<Packet> p){
 	InterfaceTag t;
 	p->PeekPacketTag(t);
+
+	MyPriorityTag priotag;
+	bool found = p->PeekPacketTag(priotag);
+
 	if (qIndex != 0){
 		uint32_t inDev = t.GetPortId();
-		m_mmu->RemoveFromIngressAdmission(inDev, qIndex, p->GetSize());
-		m_mmu->RemoveFromEgressAdmission(ifIndex, qIndex, p->GetSize());
+		m_mmu->RemoveFromIngressAdmission(inDev, qIndex, p->GetSize(),found);
+		m_mmu->RemoveFromEgressAdmission(ifIndex, qIndex, p->GetSize(),found);
 		m_bytes[inDev][ifIndex][qIndex] -= p->GetSize();
 		if (m_ecnEnabled){
 			bool egressCongested = m_mmu->ShouldSendCN(ifIndex, qIndex);
