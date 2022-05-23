@@ -13,3 +13,22 @@ To avoid any directory conflicts, first open `config.sh` and set the value of `N
 - **Simulations:** Run `./script-fairness.sh` in your terminal to launch fairness test for PowerTCP, Theta-PowerTCP, HPCC, TIMELY and DCQCN. The simulation data is written to `dump_fairness/`. 
 - **Parse results:** Run `./results-fairness.sh` and the results can be found in `results_fairness/`. 
 - **Generate plots:** Run `python3 plot-fairness.py` to generate figures (pdf and png).
+
+
+# Run Workload Simulations
+
+- **Simulations:** Run `./script-workload.sh` in your terminal to launch workload tests for PowerTCP, Theta-PowerTCP, HPCC, TIMELY and DCQCN. The simulation data is written to `dump_workload/`. The script launches simulations for
+	- varying loads; no incast traffic
+	- 80% load, 2MB request size and varying request rates
+	- 80% load, 4/second request rate and varying request sizes 
+- **Parse results:** Run `./results-workload.sh` and the results can be found in `results_workload/`. 
+- **Generate plots:** Run `python3 plot-workload.py` to generate figures (pdf and png).
+
+**IMPORTANT to note:** These simulations take a very long time. The scripts are written to launch **38** simulations in parallel. Please adjust this number based on your cpu. Below are the lines to change (they appear multiple times in the script. Pay attention!).
+
+```bash
+while [[ $(ps aux|grep "powertcp-evaluation-workload-optimized"|wc -l) -gt 38 ]];do
+	echo "Waiting for cpu cores.... $N-th experiment "
+	sleep 60
+done
+```
