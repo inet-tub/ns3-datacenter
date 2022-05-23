@@ -43,7 +43,7 @@ SwitchMmu::SwitchMmu(void) {
 	egressPool[LOSSLESS] = 24 * 1024 * 1024; // egress lossless pool. Lossless bypasses egress admission
 	egressPool[LOSSY] = 14 * 1024 * 1024; // egress lossy pool.
 	egressPoolAll = 24 * 1024 * 1024;
-	xoffTotal = 6 * 1024 * 1024;
+	xoffTotal = 0; //6 * 1024 * 1024;
 
 
 	for (uint32_t port = 0; port < pCnt; port++) {
@@ -111,7 +111,9 @@ SwitchMmu::SetEgressLosslessPool(uint64_t b) {
 void
 SwitchMmu::SetReserved(uint64_t b, uint32_t port, uint32_t q, std::string inout) {
 	if (inout == "ingress"){
+		xoffTotal -= reserveIngress[port][q];
 		reserveIngress[port][q] = b;
+		xoffTotal += reserveIngress[port][q];
 	}
 	else if (inout == "egress"){
 		reserveEgress[port][q] = b;
@@ -123,7 +125,9 @@ SwitchMmu::SetReserved(uint64_t b, std::string inout) {
 	if (inout == "ingress"){
 		for (uint32_t port = 0; port<pCnt; port++){
 			for(uint32_t q=0; q < qCnt ; q++){
+				xoffTotal -= reserveIngress[port][q];
 				reserveIngress[port][q] = b;
+				xoffTotal += reserveIngress[port][q];
 			}
 		}
 	}

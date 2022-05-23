@@ -8,7 +8,7 @@ We extend ns-3.35 to support some of the recent advancements in the datacenter c
 - The switch MMU is based on SONIC buffer model (purely based on our understanding only). 
 - Support for several Buffer Management algorithms including ABM.
 
-Many additions to the source code are based on prior work - [ns3-rdma](https://github.com/bobzhuyb/ns3-rdma) and [HPCC](https://github.com/alibaba-edu/High-Precision-Congestion-Control). If you use this repository in your work, please consider citing the following papers.
+Many additions to the source code are based on prior work: [ns3-rdma](https://github.com/bobzhuyb/ns3-rdma) and [HPCC](https://github.com/alibaba-edu/High-Precision-Congestion-Control). If you use this repository in your work, please consider citing the following papers.
 
 ```bib
 @inproceedings{nsdi22,
@@ -33,19 +33,21 @@ Many additions to the source code are based on prior work - [ns3-rdma](https://g
 
 ```
 
-# Build and Run
+# Configure, Build and Run
 
-**Important:** Run `source config.sh` in your terminal before doing anything. You can also add `source /path/to/repo/config.sh` at the end of `~/.bashrc` to make things easier.
+In the following, `$REPO` = path to the root directory of this repository. Change $REPO accordingly.
 
 **Configure ns3:**
 
 ```bash
-cd $NS3DC; CXXFLAGS=-w ./waf configure --build-profile=optimized --disable-example --disable-tests --disable-python
+cd $REPO/simulator/ns-3.35/
+CXXFLAGS=-w ./waf configure --build-profile=optimized --disable-example --disable-tests --disable-python
 ```
 **Build and run ns3:**
 
 ```bash
-cd $NS3DC; ./waf
+cd $REPO/simulator/ns-3.35/
+./waf
 ```
 
 
