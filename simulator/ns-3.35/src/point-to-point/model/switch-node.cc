@@ -15,6 +15,7 @@
 #include "ns3/tcp-header.h"
 #include "ns3/udp-header.h"
 #include "ns3/custom-priority-tag.h"
+#include "ns3/feedback-tag.h"
 
 namespace ns3 {
 
