@@ -43,9 +43,9 @@
 # cmd.AddValue ("torOutFile", "File path for ToR statistic", torOutFile);
 # cmd.AddValue ("rto", "min Retransmission timeout value in MicroSeconds", rto);
 
-NS3="/home/vamsi/ABM-ns3/ns-3.35"
-DIR="$NS3/examples/abm-evaluation"
-DUMP_DIR="/home/vamsi/ABM-ns3/dump_sigcomm"
+source config.sh
+DIR="$NS3/examples/ABM"
+DUMP_DIR="$DIR/dump_sigcomm"
 
 DT=101
 FAB=102

@@ -1,6 +1,10 @@
-NS3="/home/vamsi/ABM-ns3/ns-3.35"
-DIR="$NS3/examples/abm-evaluation"
-DUMP_DIR="/home/vamsi/ABM-ns3/dump_all"
+# NS3="/home/vamsi/ABM-ns3/ns-3.35"
+# DIR="$NS3/examples/abm-evaluation"
+# DUMP_DIR="/home/vamsi/ABM-ns3/dump_all"
+source config.sh
+DIR="$NS3/examples/ABM"
+DUMP_DIR="$DIR/dump_sigcomm"
+mkdir $DUMP_DIR
 
 DT=101
 FAB=102
