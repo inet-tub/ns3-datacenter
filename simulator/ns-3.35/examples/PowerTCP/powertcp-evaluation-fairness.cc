@@ -13,14 +13,6 @@
 * along with this program; if not, write to the Free Software
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/*
- * This file is entirely reused from HPCC Simulator
- */
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
 #undef PGO_TRAINING
 #define PATH_TO_PGO_CONFIG "path_to_pgo_config"
 
@@ -101,7 +93,7 @@ NodeContainer n;
 NetDeviceContainer switchToSwitchInterfaces;
 std::map< uint32_t,std::map< uint32_t,std::vector<Ptr<QbbNetDevice>> > > switchToSwitch;
 
-// vamsi
+
 std::map<uint32_t,uint32_t> switchNumToId;
 std::map<uint32_t,uint32_t> switchIdToNum;
 std::map<uint32_t,NetDeviceContainer> switchUp;
@@ -353,28 +345,6 @@ uint64_t get_nic_rate(NodeContainer &n){
 			return DynamicCast<QbbNetDevice>(n.Get(i)->GetDevice(1))->GetDataRate().GetBitRate();
 }
 
-//////////////////// Temporary ////////////////////////////////
-uint32_t x=0;
-std::string datarates[2]={"100Gbps","100Gbps"};
-double delayReconf[2]={1,1};
-
-void invokeReconfiguration (std::map<uint32_t,NetDeviceContainer> ToR,uint32_t numToRs){
-
-	for (uint32_t i=0; i<numToRs;i++){
-			for (uint32_t j=0; j< ToR[i].GetN();j++){
-				Ptr<QbbNetDevice> nd = DynamicCast<QbbNetDevice>(ToR[i].Get(j));
-				nd->SetDataRate(DataRate(datarates[x]));
-				std::cout << "x " << x << " dataRate " << datarates[x] << " delay " << delayReconf[x] << " Time " << Simulator::Now().GetSeconds() << std::endl;
-			}
-		}
-		Simulator::Schedule(Seconds(delayReconf[x]),invokeReconfiguration,ToR,numToRs);
-		x++;
-		if(x>1)
-			x=0;
-}
-//////////////////// Temporary ////////////////////////////////
-
-
 void PrintResults(std::map<uint32_t,NetDeviceContainer> ToR,uint32_t numToRs,double delay){
 	for (uint32_t i=0; i<numToRs;i++){
 		double throughputTotal=0;
@@ -421,24 +391,12 @@ int main(int argc, char *argv[])
 {
 	clock_t begint, endt;
 	begint = clock();
-//#ifndef PGO_TRAINING
-//	if (argc > 1)
-//#else
-//	if (true)
-//#endif
-//	{
-		//Read the configuration file
 		std::ifstream conf;
 		bool wien = true;
 		bool delayWien = false;
 
 		uint32_t algorithm=3;
 		uint32_t windowCheck=1;
-//#ifndef PGO_TRAINING
-////		conf.open(argv[1]);
-//#else
-////		conf.open(PATH_TO_PGO_CONFIG);
-//#endif
 		std::string confFile = "/home/vamsi/src/phd/ns3-datacenter/simulator/ns-3.35/examples/PowerTCP/config-fairness.txt";
 
 		std::cout << confFile;
@@ -450,19 +408,12 @@ int main(int argc, char *argv[])
 		cmd.AddValue ("algorithm", "specify CC mode. This is added for my convinience since I prefer cmd rather than parsing files.", algorithm);
 	    cmd.AddValue("windowCheck","windowCheck",windowCheck);
 
-//		cmd.AddValue("enable_qcn", "qcn support", enable_qcn);
-//		cmd.AddValue("use_dynamic_pfc_threshold", " ", use_dynamic_pfc_threshold);
-//		cmd.AddValue("clamp_target_rate"," ",clamp_target_rate);
-////		cmd.AddValue()
-
 		cmd.Parse (argc,argv);
 		conf.open(confFile.c_str());
 		while (!conf.eof())
 		{
 			std::string key;
 			conf >> key;
-
-			//std::cout << conf.cur << "\n";
 
 			if (key.compare("ENABLE_QCN") == 0)
 			{
@@ -761,14 +712,6 @@ int main(int argc, char *argv[])
 			fflush(stdout);
 		}
 		conf.close();
-//	}
-//	else
-//	{
-//		std::cout << "Error: require a config file\n";
-//		fflush(stdout);
-//		return 1;
-//	}
-
 
 		// overriding config file. I prefer to use cmd arguments
 		cc_mode = algorithm; // overrides configuration file
@@ -785,7 +728,7 @@ int main(int argc, char *argv[])
 	// IntHeader::mode
 	if (cc_mode == 7) // timely, use ts
 		IntHeader::mode = IntHeader::TS;
-	else if (cc_mode == 3) // hpcc, use int
+	else if (cc_mode == 3) // hpcc, powertcp, use int
 		IntHeader::mode = IntHeader::NORMAL;
 	else if (cc_mode == 10) // hpcc-pint
 		IntHeader::mode = IntHeader::PINT;
@@ -796,71 +739,23 @@ int main(int argc, char *argv[])
 	if (cc_mode == 10){
 		Pint::set_log_base(pint_log_base);
 		IntHeader::pint_bytes = Pint::get_n_bytes();
-		// printf("PINT bits: %d bytes: %d\n", Pint::get_n_bits(), Pint::get_n_bytes());
 	}
-
-	//SeedManager::SetSeed(time(NULL));
-
-//	////////////////// Vamsi //////////////////////////////////////////
-//	uint32_t servers=10;
-//	uint32_t tors=2;
-//	uint32_t spines=1; // Be careful, spine must be non-blocking for this experiment.
-//
-//	uint32_t node_num, switch_num, link_num, trace_num;
-//	node_num=servers*tors+tors;
-//	switch_num=tors;
-//	link_num=servers*tors+tors*spines;
-//
-//	CommandLine cmd;
-//	cmd.AddValue("servers","number of servers per ToR",servers);
-//	cmd.AddValue("tors","number of ToR switches",tors);
-//	cmd.Parse (argc,argv);
-//	////////////////// Vamsi //////////////////////////////////////////
 
 	topof.open(topology_file.c_str());
 	flowf.open(flow_file.c_str());
-//	tracef.open(trace_file.c_str());
 	uint32_t node_num, switch_num, tors, link_num, trace_num;
 	topof >> node_num >> switch_num >> tors >> link_num; // changed here. The previous order was node, switch, link // tors is not used. switch_num=tors for now.
-//	topof >> node_num >> switch_num >> link_num; // changed here. The previous order was node, switch, link // tors is not used. switch_num=tors for now.
 	tors=switch_num;
 	std::cout << node_num << " " << switch_num << " " << tors <<  " " << link_num << std::endl;
 	flowf >> flow_num;
 
-//	tracef >> trace_num;
-
-	//n.Create(node_num);
-
 	NodeContainer serverNodes;
-//	serverNodes.Create(servers*tors);
 	NodeContainer torNodes;
-//	for (uint32_t i=0;i<tors;i++){
-//		Ptr<SwitchNode> sw = CreateObject<SwitchNode>();
-//		torNodes.Add(sw);
-//		sw->SetAttribute("EcnEnabled", BooleanValue(enable_qcn));
-//	}
 	NodeContainer spineNodes;
-//	for (uint32_t i=0;i<spines;i++){
-//		Ptr<SwitchNode> sw = CreateObject<SwitchNode>();
-//		spineNodes.Add(sw);
-//		sw->SetAttribute("EcnEnabled", BooleanValue(enable_qcn));
-//	}
 	NodeContainer switchNodes;
-//	switchNodes.Add(torNodes);
-//	switchNodes.Add(spineNodes);
-
 	NodeContainer allNodes;
-	// first tors, then spines then servers
-//	allNodes.Add(switchNodes);
-//	allNodes.Add(serverNodes);
-//	n.Add(switchNodes);
-//	n.Add(serverNodes);
-
-
 
 	std::vector<uint32_t> node_type(node_num, 0);
-
-
 
 	std::cout << "switch_num "<< switch_num << std::endl;
 	for (uint32_t i=0;i<switch_num;i++){
@@ -876,13 +771,6 @@ int main(int argc, char *argv[])
 			node_type[sid]=2;
 
 	}
-//
-//	for (uint32_t i = 0; i < switch_num; i++)
-//	{
-//		uint32_t sid;
-//		topof >> sid;
-//		node_type[sid] = 1;
-//	}
 
 	for (uint32_t i = 0; i < node_num; i++){
 		if (node_type[i] == 0){
@@ -890,7 +778,6 @@ int main(int argc, char *argv[])
 			n.Add(node);
 			allNodes.Add(node);
 			serverNodes.Add(node);
-//			n.Add(CreateObject<Node>());
 		}
 		else{
 			Ptr<SwitchNode> sw = CreateObject<SwitchNode>();
@@ -1160,40 +1047,6 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	//
-	// add trace
-	//
-
-//	NodeContainer trace_nodes;
-//	for (uint32_t i = 0; i < trace_num; i++)
-//	{
-//		uint32_t nid;
-//		tracef >> nid;
-//		if (nid >= n.GetN()){
-//			continue;
-//		}
-//		trace_nodes = NodeContainer(trace_nodes, n.Get(nid));
-//	}
-
-//	FILE *trace_output = fopen(trace_output_file.c_str(), "w");
-//	if (enable_trace)
-//		qbb.EnableTracing(trace_output, trace_nodes);
-
-	// dump link speed to trace file
-//	{
-//		SimSetting sim_setting;
-//		for (auto i: nbr2if){
-//			for (auto j : i.second){
-//				uint16_t node = i.first->GetId();
-//				uint8_t intf = j.second.idx;
-//				uint64_t bps = DynamicCast<QbbNetDevice>(i.first->GetDevice(j.second.idx))->GetDataRate().GetBitRate();
-//				sim_setting.port_speed[node][intf] = bps;
-//			}
-//		}
-//		sim_setting.win = maxBdp;
-//		sim_setting.Serialize(trace_output);
-//	}
-
 	Ipv4GlobalRoutingHelper::PopulateRoutingTables();
 
 	NS_LOG_INFO("Create Applications.");
@@ -1221,32 +1074,15 @@ int main(int argc, char *argv[])
 	topof.close();
 	tracef.close();
 	double delay = 0.5*maxRtt*1e-9; // 10 micro seconds
-	// Simulator::Schedule(Seconds(delay),PrintResults,switchUp,tors,delay);
 	Simulator::Schedule(Seconds(delay),PrintResultsFlow,sourceNodes,flow_num,delay);
-//	Simulator::Schedule(Seconds(0.3),invokeReconfiguration,switchUp,tors);
 
-	// schedule link down
-//	if (link_down_time > 0){
-//		Simulator::Schedule(Seconds(2) + MicroSeconds(link_down_time), &TakeDownLink, n, n.Get(link_down_A), n.Get(link_down_B));
-//	}
-
-	// schedule buffer monitor
-//	FILE* qlen_output = fopen(qlen_mon_file.c_str(), "w");
-//	Simulator::Schedule(NanoSeconds(qlen_mon_start), &monitor_buffer, qlen_output, &n);
-
-	//
-	// Now, do the actual simulation.
-	//
 	std::cout << "Running Simulation.\n";
-//	fflush(stdout);
 	NS_LOG_INFO("Run Simulation.");
 	Simulator::Stop(Seconds(simulator_stop_time));
 	Simulator::Run();
 	Simulator::Destroy();
 	NS_LOG_INFO("Done.");
-//	fclose(trace_output);
 
 	endt = clock();
 	std::cout << (double)(endt - begint) / CLOCKS_PER_SEC << "\n";
-
 }

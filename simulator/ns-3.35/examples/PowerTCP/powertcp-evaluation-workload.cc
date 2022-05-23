@@ -14,20 +14,13 @@
 * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/*
- * This file is entirely reused from HPCC Simulator
- */
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
 #undef PGO_TRAINING
 #define PATH_TO_PGO_CONFIG "path_to_pgo_config"
 
 #include <iostream>
 #include <fstream>
 #include <unordered_map>
-#include <time.h> 
+#include <time.h>
 #include "ns3/core-module.h"
 #include "ns3/qbb-helper.h"
 #include "ns3/point-to-point-helper.h"
@@ -118,15 +111,15 @@ std::ifstream topof, flowf, tracef;
 
 NodeContainer n;
 NetDeviceContainer switchToSwitchInterfaces;
-std::map< uint32_t,std::map< uint32_t,std::vector<Ptr<QbbNetDevice>> > > switchToSwitch;
+std::map< uint32_t, std::map< uint32_t, std::vector<Ptr<QbbNetDevice>> > > switchToSwitch;
 
 // vamsi
-std::map<uint32_t,uint32_t> switchNumToId;
-std::map<uint32_t,uint32_t> switchIdToNum;
-std::map<uint32_t,NetDeviceContainer> switchUp;
-std::map<uint32_t,NetDeviceContainer> switchDown;
+std::map<uint32_t, uint32_t> switchNumToId;
+std::map<uint32_t, uint32_t> switchIdToNum;
+std::map<uint32_t, NetDeviceContainer> switchUp;
+std::map<uint32_t, NetDeviceContainer> switchDown;
 //NetDeviceContainer switchUp[switch_num];
-std::map<uint32_t,NetDeviceContainer> sourceNodes;
+std::map<uint32_t, NetDeviceContainer> sourceNodes;
 
 NodeContainer servers;
 NodeContainer tors;
@@ -135,13 +128,13 @@ uint64_t nic_rate;
 
 uint64_t maxRtt, maxBdp;
 
-struct Interface{
+struct Interface {
 	uint32_t idx;
 	bool up;
 	uint64_t delay;
 	uint64_t bw;
 
-	Interface() : idx(0), up(false){}
+	Interface() : idx(0), up(false) {}
 };
 map<Ptr<Node>, map<Ptr<Node>, Interface> > nbr2if;
 // Mapping destination to next hop for each node: <node, <dest, <nexthop0, ...> > >
@@ -158,7 +151,7 @@ std::vector<Ipv4Address> serverAddress;
 std::unordered_map<uint32_t, unordered_map<uint32_t, uint16_t> > portNumder;
 std::unordered_map<uint32_t, unordered_map<uint32_t, uint16_t> > DestportNumder;
 
-struct FlowInput{
+struct FlowInput {
 	uint64_t src, dst, pg, maxPacketCount, port, dport;
 	double start_time;
 	uint32_t idx;
@@ -166,17 +159,17 @@ struct FlowInput{
 FlowInput flow_input = {0};
 uint32_t flow_num;
 
-void ReadFlowInput(){
-	if (flow_input.idx < flow_num){
+void ReadFlowInput() {
+	if (flow_input.idx < flow_num) {
 		flowf >> flow_input.src >> flow_input.dst >> flow_input.pg >> flow_input.dport >> flow_input.maxPacketCount >> flow_input.start_time;
-		std::cout << "Flow "<< flow_input.src << " " << flow_input.dst << " " << flow_input.pg << " " << flow_input.dport << " " << flow_input.maxPacketCount << " " << flow_input.start_time << " " << Simulator::Now().GetSeconds() << std::endl;
+		std::cout << "Flow " << flow_input.src << " " << flow_input.dst << " " << flow_input.pg << " " << flow_input.dport << " " << flow_input.maxPacketCount << " " << flow_input.start_time << " " << Simulator::Now().GetSeconds() << std::endl;
 		NS_ASSERT(n.Get(flow_input.src)->GetNodeType() == 0 && n.Get(flow_input.dst)->GetNodeType() == 0);
 	}
 }
-void ScheduleFlowInputs(){
-	while (flow_input.idx < flow_num && Seconds(flow_input.start_time) <= Simulator::Now()){
-		uint32_t port = portNumder[flow_input.src][flow_input.dst]++; // get a new port number 
-		RdmaClientHelper clientHelper(flow_input.pg, serverAddress[flow_input.src], serverAddress[flow_input.dst], port, flow_input.dport, flow_input.maxPacketCount, has_win?(global_t==1?maxBdp:pairBdp[n.Get(flow_input.src)][n.Get(flow_input.dst)]):0, global_t==1?maxRtt:pairRtt[flow_input.src][flow_input.dst],Simulator::GetMaximumSimulationTime());
+void ScheduleFlowInputs() {
+	while (flow_input.idx < flow_num && Seconds(flow_input.start_time) <= Simulator::Now()) {
+		uint32_t port = portNumder[flow_input.src][flow_input.dst]++; // get a new port number
+		RdmaClientHelper clientHelper(flow_input.pg, serverAddress[flow_input.src], serverAddress[flow_input.dst], port, flow_input.dport, flow_input.maxPacketCount, has_win ? (global_t == 1 ? maxBdp : pairBdp[n.Get(flow_input.src)][n.Get(flow_input.dst)]) : 0, global_t == 1 ? maxRtt : pairRtt[flow_input.src][flow_input.dst], Simulator::GetMaximumSimulationTime());
 		ApplicationContainer appCon = clientHelper.Install(n.Get(flow_input.src));
 //		appCon.Start(Seconds(flow_input.start_time));
 		appCon.Start(Seconds(0)); // setting the correct time here conflicts with Sim time since there is already a schedule event that triggered this function at desired time.
@@ -186,47 +179,26 @@ void ScheduleFlowInputs(){
 	}
 
 	// schedule the next time to run this function
-	if (flow_input.idx < flow_num){
-		Simulator::Schedule(Seconds(flow_input.start_time)-Simulator::Now(), ScheduleFlowInputs);
-	}else { // no more flows, close the file
+	if (flow_input.idx < flow_num) {
+		Simulator::Schedule(Seconds(flow_input.start_time) - Simulator::Now(), ScheduleFlowInputs);
+	} else { // no more flows, close the file
 		flowf.close();
 	}
 }
 
-Ipv4Address node_id_to_ip(uint32_t id){
+Ipv4Address node_id_to_ip(uint32_t id) {
 	return Ipv4Address(0x0b000001 + ((id / 256) * 0x00010000) + ((id % 256) * 0x00000100));
 }
 
-uint32_t ip_to_node_id(Ipv4Address ip){
+uint32_t ip_to_node_id(Ipv4Address ip) {
 	return (ip.Get() >> 8) & 0xffff;
 }
 
-// void qp_finish(FILE* fout, Ptr<RdmaQueuePair> q){
-// 	uint32_t sid = ip_to_node_id(q->sip), did = ip_to_node_id(q->dip);
-// 	uint64_t base_rtt = pairRtt[sid][did], b = pairBw[sid][did];
-// 	uint32_t total_bytes = q->m_size + ((q->m_size-1) / packet_payload_size + 1) * (CustomHeader::GetStaticWholeHeaderSize() - IntHeader::GetStaticSize()); // translate to the minimum bytes required (with header but no INT)
-// 	uint64_t standalone_fct = base_rtt + total_bytes * 8000000000lu / b;
-// 	// sip, dip, sport, dport, size (B), start_time, fct (ns), standalone_fct (ns)
-// 	fprintf(fout, "%08x %08x %u %u %lu %lu %lu %lu\n", q->sip.Get(), q->dip.Get(), q->sport, q->dport, q->m_size, q->startTime.GetTimeStep(), (Simulator::Now() - q->startTime).GetTimeStep(), standalone_fct);
-// 	fflush(fout);
-
-// 	// remove rxQp from the receiver
-// 	Ptr<Node> dstNode = n.Get(did);
-// 	Ptr<RdmaDriver> rdma = dstNode->GetObject<RdmaDriver> ();
-// 	rdma->m_rdma->DeleteRxQp(q->sip.Get(), q->m_pg, q->sport);
-// }
-
-
-void qp_finish(FILE* fout, Ptr<RdmaQueuePair> q){
+void qp_finish(FILE* fout, Ptr<RdmaQueuePair> q) {
 	uint32_t sid = ip_to_node_id(q->sip), did = ip_to_node_id(q->dip);
 	uint64_t base_rtt = pairRtt[sid][did], b = pairBw[sid][did];
-	uint32_t total_bytes = q->m_size + ((q->m_size-1) / packet_payload_size + 1) * (CustomHeader::GetStaticWholeHeaderSize() - IntHeader::GetStaticSize()); // translate to the minimum bytes required (with header but no INT)
-	// uint32_t total_bytes = q->m_size;
-	// uint64_t standalone_fct = base_rtt + total_bytes * 8000000000lu / b;
-	uint64_t standalone_fct = base_rtt + total_bytes *8* 1e9 / b;
-	// sip, dip, sport, dport, size (B), start_time, fct (ns), standalone_fct (ns)
-	// fprintf(fout, "%08x %08x %u %u %lu %lu %lu %lu\n", q->sip.Get(), q->dip.Get(), q->sport, q->dport, q->m_size, q->startTime.GetTimeStep(), (Simulator::Now() - q->startTime).GetTimeStep(), standalone_fct);
-	// fflush(fout);
+	uint32_t total_bytes = q->m_size + ((q->m_size - 1) / packet_payload_size + 1) * (CustomHeader::GetStaticWholeHeaderSize() - IntHeader::GetStaticSize()); // translate to the minimum bytes required (with header but no INT)
+	uint64_t standalone_fct = base_rtt + total_bytes * 8 * 1e9 / b;
 	std::cout << "FCT " << (Simulator::Now() - q->startTime).GetNanoSeconds() << " size " << q->m_size << " baseFCT " << standalone_fct << std::endl;
 
 	// remove rxQp from the receiver
@@ -236,28 +208,28 @@ void qp_finish(FILE* fout, Ptr<RdmaQueuePair> q){
 }
 
 
-void get_pfc(FILE* fout, Ptr<QbbNetDevice> dev, uint32_t type){
+void get_pfc(FILE* fout, Ptr<QbbNetDevice> dev, uint32_t type) {
 	fprintf(fout, "%lu %u %u %u %u\n", Simulator::Now().GetTimeStep(), dev->GetNode()->GetId(), dev->GetNode()->GetNodeType(), dev->GetIfIndex(), type);
 }
 
-struct QlenDistribution{
+struct QlenDistribution {
 	vector<uint32_t> cnt; // cnt[i] is the number of times that the queue len is i KB
 
-	void add(uint32_t qlen){
+	void add(uint32_t qlen) {
 		uint32_t kb = qlen / 1000;
-		if (cnt.size() < kb+1)
-			cnt.resize(kb+1);
+		if (cnt.size() < kb + 1)
+			cnt.resize(kb + 1);
 		cnt[kb]++;
 	}
 };
 map<uint32_t, map<uint32_t, QlenDistribution> > queue_result;
-void monitor_buffer(FILE* qlen_output, NodeContainer *n){
-	for (uint32_t i = 0; i < n->GetN(); i++){
-		if (n->Get(i)->GetNodeType() == 1){ // is switch
+void monitor_buffer(FILE* qlen_output, NodeContainer *n) {
+	for (uint32_t i = 0; i < n->GetN(); i++) {
+		if (n->Get(i)->GetNodeType() == 1) { // is switch
 			Ptr<SwitchNode> sw = DynamicCast<SwitchNode>(n->Get(i));
 			if (queue_result.find(i) == queue_result.end())
 				queue_result[i];
-			for (uint32_t j = 1; j < sw->GetNDevices(); j++){
+			for (uint32_t j = 1; j < sw->GetNDevices(); j++) {
 				uint32_t size = 0;
 				for (uint32_t k = 0; k < SwitchMmu::qCnt; k++)
 					size += sw->m_mmu->egress_bytes[j][k];
@@ -265,10 +237,10 @@ void monitor_buffer(FILE* qlen_output, NodeContainer *n){
 			}
 		}
 	}
-	if (Simulator::Now().GetTimeStep() % qlen_dump_interval == 0){
+	if (Simulator::Now().GetTimeStep() % qlen_dump_interval == 0) {
 		fprintf(qlen_output, "time: %lu\n", Simulator::Now().GetTimeStep());
 		for (auto &it0 : queue_result)
-			for (auto &it1 : it0.second){
+			for (auto &it1 : it0.second) {
 				fprintf(qlen_output, "%u %u", it0.first, it1.first);
 				auto &dist = it1.second.cnt;
 				for (uint32_t i = 0; i < dist.size(); i++)
@@ -281,7 +253,7 @@ void monitor_buffer(FILE* qlen_output, NodeContainer *n){
 		Simulator::Schedule(NanoSeconds(qlen_mon_interval), &monitor_buffer, qlen_output, n);
 }
 
-void CalculateRoute(Ptr<Node> host){
+void CalculateRoute(Ptr<Node> host) {
 	// queue for the BFS.
 	vector<Ptr<Node> > q;
 	// Distance from the host to each node.
@@ -296,16 +268,16 @@ void CalculateRoute(Ptr<Node> host){
 	txDelay[host] = 0;
 	bw[host] = 0xfffffffffffffffflu;
 	// BFS.
-	for (int i = 0; i < (int)q.size(); i++){
+	for (int i = 0; i < (int)q.size(); i++) {
 		Ptr<Node> now = q[i];
 		int d = dis[now];
-		for (auto it = nbr2if[now].begin(); it != nbr2if[now].end(); it++){
+		for (auto it = nbr2if[now].begin(); it != nbr2if[now].end(); it++) {
 			// skip down link
 			if (!it->second.up)
 				continue;
 			Ptr<Node> next = it->first;
 			// If 'next' have not been visited.
-			if (dis.find(next) == dis.end()){
+			if (dis.find(next) == dis.end()) {
 				dis[next] = d + 1;
 				delay[next] = delay[now] + it->second.delay;
 				txDelay[next] = txDelay[now] + packet_payload_size * 1000000000lu * 8 / it->second.bw;
@@ -315,7 +287,7 @@ void CalculateRoute(Ptr<Node> host){
 					q.push_back(next);
 			}
 			// if 'now' is on the shortest path from 'next' to 'host'.
-			if (d + 1 == dis[next]){
+			if (d + 1 == dis[next]) {
 				nextHop[next][host].push_back(now);
 			}
 		}
@@ -328,32 +300,32 @@ void CalculateRoute(Ptr<Node> host){
 		pairBw[it.first->GetId()][host->GetId()] = it.second;
 }
 
-void CalculateRoutes(NodeContainer &n){
-	for (int i = 0; i < (int)n.GetN(); i++){
+void CalculateRoutes(NodeContainer &n) {
+	for (int i = 0; i < (int)n.GetN(); i++) {
 		Ptr<Node> node = n.Get(i);
 		if (node->GetNodeType() == 0)
 			CalculateRoute(node);
 	}
 }
 
-void SetRoutingEntries(){
+void SetRoutingEntries() {
 	// For each node.
-	for (auto i = nextHop.begin(); i != nextHop.end(); i++){
+	for (auto i = nextHop.begin(); i != nextHop.end(); i++) {
 		Ptr<Node> node = i->first;
 		auto &table = i->second;
-		for (auto j = table.begin(); j != table.end(); j++){
+		for (auto j = table.begin(); j != table.end(); j++) {
 			// The destination node.
 			Ptr<Node> dst = j->first;
 			// The IP address of the dst.
 			Ipv4Address dstAddr = dst->GetObject<Ipv4>()->GetAddress(1, 0).GetLocal();
 			// The next hops towards the dst.
 			vector<Ptr<Node> > nexts = j->second;
-			for (int k = 0; k < (int)nexts.size(); k++){
+			for (int k = 0; k < (int)nexts.size(); k++) {
 				Ptr<Node> next = nexts[k];
 				uint32_t interface = nbr2if[node][next].idx;
 				if (node->GetNodeType() == 1)
 					DynamicCast<SwitchNode>(node)->AddTableEntry(dstAddr, interface);
-				else{
+				else {
 					node->GetObject<RdmaDriver>()->m_rdma->AddTableEntry(dstAddr, interface);
 				}
 			}
@@ -362,7 +334,7 @@ void SetRoutingEntries(){
 }
 
 // take down the link between a and b, and redo the routing
-void TakeDownLink(NodeContainer n, Ptr<Node> a, Ptr<Node> b){
+void TakeDownLink(NodeContainer n, Ptr<Node> a, Ptr<Node> b) {
 	if (!nbr2if[a][b].up)
 		return;
 	// take down link between a and b
@@ -370,7 +342,7 @@ void TakeDownLink(NodeContainer n, Ptr<Node> a, Ptr<Node> b){
 	nextHop.clear();
 	CalculateRoutes(n);
 	// clear routing tables
-	for (uint32_t i = 0; i < n.GetN(); i++){
+	for (uint32_t i = 0; i < n.GetN(); i++) {
 		if (n.Get(i)->GetNodeType() == 1)
 			DynamicCast<SwitchNode>(n.Get(i))->ClearTable();
 		else
@@ -382,85 +354,17 @@ void TakeDownLink(NodeContainer n, Ptr<Node> a, Ptr<Node> b){
 	SetRoutingEntries();
 
 	// redistribute qp on each host
-	for (uint32_t i = 0; i < n.GetN(); i++){
+	for (uint32_t i = 0; i < n.GetN(); i++) {
 		if (n.Get(i)->GetNodeType() == 0)
 			n.Get(i)->GetObject<RdmaDriver>()->m_rdma->RedistributeQp();
 	}
 }
 
-uint64_t get_nic_rate(NodeContainer &n){
+uint64_t get_nic_rate(NodeContainer &n) {
 	for (uint32_t i = 0; i < n.GetN(); i++)
 		if (n.Get(i)->GetNodeType() == 0)
 			return DynamicCast<QbbNetDevice>(n.Get(i)->GetDevice(1))->GetDataRate().GetBitRate();
 }
-
-//////////////////// Temporary ////////////////////////////////
-uint32_t x=0;
-std::string datarates[2]={"100Gbps","100Gbps"};
-double delayReconf[2]={1,1};
-
-void invokeReconfiguration (std::map<uint32_t,NetDeviceContainer> ToR,uint32_t numToRs){
-
-	for (uint32_t i=0; i<numToRs;i++){
-			for (uint32_t j=0; j< ToR[i].GetN();j++){
-				Ptr<QbbNetDevice> nd = DynamicCast<QbbNetDevice>(ToR[i].Get(j));
-				nd->SetDataRate(DataRate(datarates[x]));
-				std::cout << "x " << x << " dataRate " << datarates[x] << " delay " << delayReconf[x] << " Time " << Simulator::Now().GetSeconds() << std::endl;
-			}
-		}
-		Simulator::Schedule(Seconds(delayReconf[x]),invokeReconfiguration,ToR,numToRs);
-		x++;
-		if(x>1)
-			x=0;
-}
-//////////////////// Temporary ////////////////////////////////
-
-
-void PrintResults(std::map<uint32_t,NetDeviceContainer> ToR,uint32_t numToRs,double delay){
-	for (uint32_t i=0; i<numToRs;i++){
-		double throughputTotal=0;
-		uint64_t torBuffer=0;
-		for (uint32_t j=0; j< ToR[i].GetN();j++){
-			Ptr<QbbNetDevice> nd = DynamicCast<QbbNetDevice>(ToR[i].Get(j));
-//			uint64_t txBytes = nd->getTxBytes();
-			uint64_t txBytes = nd->GetQueue()->getTxBytes();
-
-			uint64_t qlen = nd->GetQueue()->GetNBytesTotal();
-			torBuffer+=qlen;
-			double throughput = double(txBytes*8)/delay;
-			if (j==16) //  ToDo. very ugly hardcode here specific to the burst evaluation scenario where 16 is the receiver in flow-burstExp.txt. 
-				throughputTotal+=throughput;
-			std::cout << "ToR " << i << " Port " << j << " throughput "<< throughput << " txBytes " << txBytes << " qlen " << qlen << " time " << Simulator::Now().GetSeconds() << std::endl;
-		}
-		std::cout << "ToR " << i << " Total " << 0 << " throughput " << throughputTotal << " buffer " << torBuffer <<  " time " << Simulator::Now().GetSeconds() << std::endl;
-	}
-	Simulator::Schedule(Seconds(delay),PrintResults,ToR,numToRs,delay);
-}
-
-
-void PrintResultsFlow(std::map<uint32_t,NetDeviceContainer> Src,uint32_t numFlows,double delay){
-	for (uint32_t i=0; i<numFlows;i++){
-		double throughputTotal=0;
-
-		for (uint32_t j=0; j< Src[i].GetN();j++){
-			Ptr<QbbNetDevice> nd = DynamicCast<QbbNetDevice>(Src[i].Get(j));
-//			uint64_t txBytes = nd->getTxBytes();
-			uint64_t txBytes = nd->getNumTxBytes();
-
-			uint64_t qlen = nd->GetQueue()->GetNBytesTotal();
-			double throughput = double(txBytes*8)/delay;
-			throughputTotal+=throughput;
-			// std::cout << "Src " << i << " Port " << j << " throughput "<< throughput << " txBytes " << txBytes << " qlen " << qlen << " time " << Simulator::Now().GetSeconds() << std::endl;
-		}
-		std::cout << "Src " << i << " Total " << 0 << " throughput " << throughputTotal <<  " time " << Simulator::Now().GetSeconds() << std::endl;
-	}
-	Simulator::Schedule(Seconds(delay),PrintResultsFlow,Src,numFlows,delay);
-}
-
-
-
-
-
 
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -468,354 +372,174 @@ void PrintResultsFlow(std::map<uint32_t,NetDeviceContainer> Src,uint32_t numFlow
 
 double poission_gen_interval(double avg_rate)
 {
-    if (avg_rate > 0)
-       return -logf(1.0 - (double)rand() / RAND_MAX) / avg_rate;
-    else
-       return 0;
+	if (avg_rate > 0)
+		return -logf(1.0 - (double)rand() / RAND_MAX) / avg_rate;
+	else
+		return 0;
 }
 
 template<typename T>
 T rand_range (T min, T max)
 {
-    return min + ((double)max - min) * rand () / RAND_MAX;
+	return min + ((double)max - min) * rand () / RAND_MAX;
 }
 
 uint32_t numPriorities;
-uint32_t prioRand=0;
+uint32_t prioRand = 0;
 
 
 #define QUERY_DATA 300000
 
-int tar=0;
-int get_target_leaf(int leafCount){
-tar+=1;
-	if(tar==leafCount){
-		tar=0;
+int tar = 0;
+int get_target_leaf(int leafCount) {
+	tar += 1;
+	if (tar == leafCount) {
+		tar = 0;
 		return tar;
 	}
 	return tar;
 }
 
-// void install_applications_query (int fromLeafId, NodeContainer servers, double requestRate,uint32_t requestSize, struct cdf_table *cdfTable,
-//         long &flowCount, long &totalFlowSize, int SERVER_COUNT, int LEAF_COUNT, double START_TIME, double END_TIME, double FLOW_LAUNCH_END_TIME)
-// {
-// 	int fan= SERVER_COUNT;//SERVER_COUNT/rand_range(1,SERVER_COUNT);
+uint64_t PORT_START = 4000;
 
-// //    NS_LOG_INFO ("Install applications:");
-//     for (int i = 0; i < SERVER_COUNT; i++)
-//     {
-//         int fromServerIndex = fromLeafId * SERVER_COUNT + i;
+uint32_t FAN = 5;
 
-//         double startTime = START_TIME + poission_gen_interval (requestRate);
-//         while (startTime < FLOW_LAUNCH_END_TIME && startTime > START_TIME)
-//         {
-//         	int leaftarget=fromLeafId;
-//         	while (leaftarget==fromLeafId)
-//         		leaftarget = get_target_leaf(LEAF_COUNT);//rand_range(0,LEAF_COUNT);
-
-// //        	int arr[SERVER_COUNT];
-//         	std::vector<int> arr;
-//         	for(int iter = 0; iter < SERVER_COUNT; ++iter)
-//         		arr.push_back(iter);
-// //        	    arr[iter] = iter;
-
-
-//         	std::vector<int> arrTemp;
-
-//         	for (int it =0; it < fan; ++it) {
-// //        	   int j = rand_range(0,SERVER_COUNT-it);
-//         		int size=arr.size();
-//         	   int j = rand_range(0,size-1);
-
-//         	   arrTemp.push_back(arr[j]);
-//         	   arr.erase(arr.begin()+j);
-
-// //        	   if (j != 0) {
-// //        	   uint32_t temp;
-// //        	   temp=arr[it];
-// //        	   arr[it]=arr[it+j];
-// //        	   arr[it+j]=temp;
-
-
-// //        	   }
-//         	}
-
-
-//             uint16_t port = PORT_START++;//uint16_t (rand_range (PORT_START, PORT_END));
-
-//             int destServerIndex = fromServerIndex;
-// //	        while (destServerIndex >= fromLeafId * SERVER_COUNT && destServerIndex < fromLeafId * SERVER_COUNT + SERVER_COUNT)
-// //            {
-// //		        destServerIndex = rand_range (0, SERVER_COUNT * LEAF_COUNT);
-// //            }
-
-
-//             uint32_t query=0;
-// 	        for (int r=0;r<fan;r++){
-// 	        	fromServerIndex= SERVER_COUNT*leaftarget+arrTemp[r];
-// //std::cout<< "Query Server-"<<r << " " << arrTemp[r]<<std::endl;
-
-// 	        Ptr<Node> destServer = servers.Get (destServerIndex);
-// 	        Ptr<Ipv4> ipv4 = destServer->GetObject<Ipv4> ();
-// 	        Ipv4InterfaceAddress destInterface = ipv4->GetAddress (1,0);
-// 	        Ipv4Address destAddress = destInterface.GetLocal ();
-
-// //            BulkSendHelper source ("ns3::TcpSocketFactory", InetSocketAddress (destAddress, port));
-//             InetSocketAddress ad (destAddress, port);
-//             ad.SetTos(0xb8);
-// 	        Address sinkAddress(ad);
-// //            Config::SetDefault ("ns3::TcpSocket::InitialCwnd", UintegerValue (UINT32_MAX));
-//             Ptr<BulkSendApplication> bulksend = CreateObject<BulkSendApplication>();
-
-//             bulksend->SetAttribute("Protocol", TypeIdValue(TcpSocketFactory::GetTypeId()));
-//             uint32_t flowSize = requestSize/fan;//QUERY_DATA/fan;//gen_random_cdf (cdfTable);
-
-
-//             totalFlowSize += flowSize;
-//             query+=flowSize;
-            
-//             bulksend->SetAttribute ("SendSize", UintegerValue (PACKET_SIZE));//PACKET_SIZE
-//             bulksend->SetAttribute ("MaxBytes", UintegerValue(flowSize));
-// //            source.SetAttribute ("DelayThresh", UintegerValue (applicationPauseThresh));
-// //            source.SetAttribute ("DelayTime", TimeValue (MicroSeconds (applicationPauseTime)));
-//             bulksend->SetAttribute("FlowId", UintegerValue(flowCount));
-//             bulksend->SetAttribute("priorityCustom",UintegerValue(0));
-//             bulksend->SetAttribute("Remote", AddressValue(sinkAddress));
-//             bulksend->SetAttribute("InitialCwnd", UintegerValue (128));
-// //            std::cout << "FlowID=" << flowCount << "dest=" << destInterface << std::endl;
-
-
-//             // Install apps
-// //              Ptr<Socket> socket;
-// //              socket = Socket::CreateSocket (servers.Get (fromServerIndex), TcpSocketFactory::GetTypeId ());
-//             servers.Get (fromServerIndex)->AddApplication(bulksend);
-// //            ApplicationContainer sourceApp = source.Install (servers.Get (fromServerIndex));
-//             bulksend->SetStartTime (Seconds (startTime));
-//             bulksend->SetStopTime (Seconds (END_TIME));
-
-
-
-//             /*
-//             NS_LOG_INFO ("\tFlow from server: " << fromServerIndex << " to server: "
-//                     << destServerIndex << " on port: " << port << " with flow size: "
-//                     << flowSize << " [start time: " << startTime <<"]");
-//             */
-// 	        }
-// 	        // Install packet sinks
-// 	                    PacketSinkHelper sink ("ns3::TcpSocketFactory",
-// 	                            InetSocketAddress (Ipv4Address::GetAny (), port));
-// 	                    ApplicationContainer sinkApp = sink.Install (servers. Get (destServerIndex));
-// 	                    sinkApp.Get(0)->SetAttribute("TotalQueryBytes",UintegerValue(query));
-// 	                    sinkApp.Start (Seconds (startTime));
-// 	                    sinkApp.Stop (Seconds (END_TIME));
-// 	                    flowCount ++;
-//             startTime += poission_gen_interval (requestRate);
-//         }
-//     }
-// }
-
-
-uint64_t PORT_START=4000;
-
-uint32_t FAN=5;
-
-void install_applications_queryNew (int fromLeafId, double requestRate,uint32_t requestSize, struct cdf_table *cdfTable,
-        long &flowCount, long &totalFlowSize, int SERVER_COUNT, int LEAF_COUNT, double START_TIME, double END_TIME, double FLOW_LAUNCH_END_TIME)
+void install_applications_queryNew (int fromLeafId, double requestRate, uint32_t requestSize, struct cdf_table *cdfTable,
+                                    long &flowCount, long &totalFlowSize, int SERVER_COUNT, int LEAF_COUNT, double START_TIME, double END_TIME, double FLOW_LAUNCH_END_TIME)
 {
-	uint32_t fan= FAN;//SERVER_COUNT/rand_range(1,SERVER_COUNT);
-	// uint32_t fan= rand_range(1,SERVER_COUNT);
-	// int fan= SERVER_COUNT/rand_range(1,SERVER_COUNT);
+	uint32_t fan = FAN; //SERVER_COUNT/rand_range(1,SERVER_COUNT);
+	for (int i = 0; i < SERVER_COUNT; i++)
+	{
+		int fromServerIndexX = fromLeafId * SERVER_COUNT + i;
 
-//    NS_LOG_INFO ("Install applications:");
-    for (int i = 0; i < SERVER_COUNT; i++)
-    {
-        int fromServerIndexX = fromLeafId * SERVER_COUNT + i;
+		double startTime = START_TIME + poission_gen_interval (requestRate);
+		while (startTime < FLOW_LAUNCH_END_TIME && startTime > START_TIME)
+		{
+			int leaftarget = fromLeafId;
+			while (leaftarget == fromLeafId)
+				leaftarget = get_target_leaf(LEAF_COUNT);//rand_range(0,LEAF_COUNT);
 
-        double startTime = START_TIME + poission_gen_interval (requestRate);
-        while (startTime < FLOW_LAUNCH_END_TIME && startTime > START_TIME)
-        {
-        	int leaftarget=fromLeafId;
-        	while (leaftarget==fromLeafId)
-        		leaftarget = get_target_leaf(LEAF_COUNT);//rand_range(0,LEAF_COUNT);
+			uint16_t port = PORT_START++;//uint16_t (rand_range (PORT_START, PORT_END));
 
-// //        	int arr[SERVER_COUNT];
-//         	std::vector<int> arr;
-//         	for(int iter = 0; iter < SERVER_COUNT; ++iter)
-//         		arr.push_back(iter);
-// //        	    arr[iter] = iter;
+			int destServerIndex = fromServerIndexX;
+
+			uint32_t query = 0;
+			uint32_t flowSize = double(requestSize) / double(fan);//QUERY_DATA/fan;//gen_random_cdf (cdfTable);
 
 
-//         	std::vector<int> arrTemp;
+			for (int r = 0; r < fan; r++) {
 
-//         	for (int it =0; it < fan; ++it) {
-// //        	   int j = rand_range(0,SERVER_COUNT-it);
-//         		int size=arr.size();
-//         	   int j = rand_range(0,size-1);
+				uint32_t fromServerIndex = SERVER_COUNT * leaftarget + rand_range(0, SERVER_COUNT);
 
-//         	   arrTemp.push_back(arr[j]);
-//         	   arr.erase(arr.begin()+j);
+				if (DestportNumder[fromServerIndex][destServerIndex] == UINT16_MAX - 1)
+					DestportNumder[fromServerIndex][destServerIndex] = rand_range(10000, 11000);
 
-// //        	   if (j != 0) {
-// //        	   uint32_t temp;
-// //        	   temp=arr[it];
-// //        	   arr[it]=arr[it+j];
-// //        	   arr[it+j]=temp;
-
-
-// //        	   }
-//         	}
-
-
-            uint16_t port = PORT_START++;//uint16_t (rand_range (PORT_START, PORT_END));
-
-            int destServerIndex = fromServerIndexX;
-
-            uint32_t query=0;
-            uint32_t flowSize = double(requestSize) / double(fan);//QUERY_DATA/fan;//gen_random_cdf (cdfTable);
-
-
-	        for (int r=0;r<fan;r++){
-	        	
-		        uint32_t fromServerIndex= SERVER_COUNT*leaftarget+rand_range(0,SERVER_COUNT);
-
-		        if (DestportNumder[fromServerIndex][destServerIndex]== UINT16_MAX-1)
-		        	DestportNumder[fromServerIndex][destServerIndex]=rand_range(10000,11000);
-
-		        if (DestportNumder[fromServerIndex][destServerIndex]== UINT16_MAX-1)
-		        	portNumder[fromServerIndex][destServerIndex]=rand_range(10000,11000);
+				if (DestportNumder[fromServerIndex][destServerIndex] == UINT16_MAX - 1)
+					portNumder[fromServerIndex][destServerIndex] = rand_range(10000, 11000);
 
 				uint16_t dport = DestportNumder[fromServerIndex][destServerIndex]++; //uint16_t (rand_range (PORT_START, PORT_END));
-	            uint16_t sport = portNumder[fromServerIndex][destServerIndex]++;
+				uint16_t sport = portNumder[fromServerIndex][destServerIndex]++;
 
 
-	            totalFlowSize += flowSize;
-	            query+=flowSize;
-	            flowCount++;
+				totalFlowSize += flowSize;
+				query += flowSize;
+				flowCount++;
 
-				RdmaClientHelper clientHelper(3, serverAddress[fromServerIndex], serverAddress[destServerIndex], sport, dport, flowSize, has_win?(global_t==1?maxBdp:pairBdp[n.Get(fromServerIndex)][n.Get(destServerIndex)]):0, global_t==1?maxRtt:pairRtt[fromServerIndex][destServerIndex],Simulator::GetMaximumSimulationTime());
+				RdmaClientHelper clientHelper(3, serverAddress[fromServerIndex], serverAddress[destServerIndex], sport, dport, flowSize, has_win ? (global_t == 1 ? maxBdp : pairBdp[n.Get(fromServerIndex)][n.Get(destServerIndex)]) : 0, global_t == 1 ? maxRtt : pairRtt[fromServerIndex][destServerIndex], Simulator::GetMaximumSimulationTime());
 				ApplicationContainer appCon = clientHelper.Install(n.Get(fromServerIndex));
 				std::cout << " from " << fromServerIndex << " to " << destServerIndex <<  " fromLeadId " << fromLeafId << " serverCount " << SERVER_COUNT << " leafCount " << LEAF_COUNT <<  std::endl;
-	//		appCon.Start(Seconds(flow_input.start_time));
-				appCon.Start(Seconds(startTime)); 
+				//		appCon.Start(Seconds(flow_input.start_time));
+				appCon.Start(Seconds(startTime));
 
 
-	        }
-
-			// std::cout << "QueryStartTime " << startTime << std::endl;
-            startTime += poission_gen_interval (requestRate);
-        }
-    }
+			}
+			startTime += poission_gen_interval (requestRate);
+		}
+	}
 }
 
 
-
 void install_applications (int fromLeafId, double requestRate, struct cdf_table *cdfTable,
-        long &flowCount, long &totalFlowSize, int SERVER_COUNT, int LEAF_COUNT, double START_TIME, double END_TIME, double FLOW_LAUNCH_END_TIME)
+                           long &flowCount, long &totalFlowSize, int SERVER_COUNT, int LEAF_COUNT, double START_TIME, double END_TIME, double FLOW_LAUNCH_END_TIME)
 {
-//    NS_LOG_INFO ("Install applications:");
-    for (int i = 0; i < SERVER_COUNT; i++)
-    {
-        int fromServerIndex = fromLeafId * SERVER_COUNT + i;
+	for (int i = 0; i < SERVER_COUNT; i++)
+	{
+		int fromServerIndex = fromLeafId * SERVER_COUNT + i;
 
-        double startTime = START_TIME + poission_gen_interval (requestRate);
-//        while(startTime > FLOW_LAUNCH_END_TIME)
-//        	startTime = START_TIME + poission_gen_interval (requestRate);
-//        std::cout << startTime << std::endl;
-        while (startTime < FLOW_LAUNCH_END_TIME && startTime > START_TIME)
-        {
-//            flowCount ++;
-//            std::cout << "Port-"<<PORT_START << std::endl;
-           
+		double startTime = START_TIME + poission_gen_interval (requestRate);
+		while (startTime < FLOW_LAUNCH_END_TIME && startTime > START_TIME)
+		{
 
-            int destServerIndex = fromServerIndex;
-	        while (destServerIndex >= fromLeafId * SERVER_COUNT && destServerIndex < fromLeafId * SERVER_COUNT + SERVER_COUNT && destServerIndex==fromServerIndex)
-            {
-		        destServerIndex = rand_range (fromLeafId*SERVER_COUNT, SERVER_COUNT * LEAF_COUNT);
-            }
+			int destServerIndex = fromServerIndex;
+			while (destServerIndex >= fromLeafId * SERVER_COUNT && destServerIndex < fromLeafId * SERVER_COUNT + SERVER_COUNT && destServerIndex == fromServerIndex)
+			{
+				destServerIndex = rand_range (fromLeafId * SERVER_COUNT, SERVER_COUNT * LEAF_COUNT);
+			}
 
-	        if (DestportNumder[fromServerIndex][destServerIndex]== UINT16_MAX-1)
-	        	DestportNumder[fromServerIndex][destServerIndex]=rand_range(10000,11000);
+			if (DestportNumder[fromServerIndex][destServerIndex] == UINT16_MAX - 1)
+				DestportNumder[fromServerIndex][destServerIndex] = rand_range(10000, 11000);
 
-	        if (DestportNumder[fromServerIndex][destServerIndex]== UINT16_MAX-1)
-	        	portNumder[fromServerIndex][destServerIndex]=rand_range(10000,11000);
-		        
+			if (DestportNumder[fromServerIndex][destServerIndex] == UINT16_MAX - 1)
+				portNumder[fromServerIndex][destServerIndex] = rand_range(10000, 11000);
+
 
 			uint16_t dport = DestportNumder[fromServerIndex][destServerIndex]++; //uint16_t (rand_range (PORT_START, PORT_END));
-            uint16_t sport = portNumder[fromServerIndex][destServerIndex]++;
+			uint16_t sport = portNumder[fromServerIndex][destServerIndex]++;
 
-	        uint64_t flowSize = gen_random_cdf (cdfTable);
-	        while(flowSize==0)
-	        	flowSize=gen_random_cdf (cdfTable);
+			uint64_t flowSize = gen_random_cdf (cdfTable);
+			while (flowSize == 0)
+				flowSize = gen_random_cdf (cdfTable);
 
-	        totalFlowSize += flowSize;
-	        flowCount+=1;
+			totalFlowSize += flowSize;
+			flowCount += 1;
 
 
-			RdmaClientHelper clientHelper(3, serverAddress[fromServerIndex], serverAddress[destServerIndex], sport, dport, flowSize, has_win?(global_t==1?maxBdp:pairBdp[n.Get(fromServerIndex)][n.Get(destServerIndex)]):0, global_t==1?maxRtt:pairRtt[fromServerIndex][destServerIndex],Simulator::GetMaximumSimulationTime());
+			RdmaClientHelper clientHelper(3, serverAddress[fromServerIndex], serverAddress[destServerIndex], sport, dport, flowSize, has_win ? (global_t == 1 ? maxBdp : pairBdp[n.Get(fromServerIndex)][n.Get(destServerIndex)]) : 0, global_t == 1 ? maxRtt : pairRtt[fromServerIndex][destServerIndex], Simulator::GetMaximumSimulationTime());
 			ApplicationContainer appCon = clientHelper.Install(n.Get(fromServerIndex));
 			std::cout << " from " << fromServerIndex << " to " << destServerIndex <<  " fromLeadId " << fromLeafId << " serverCount " << SERVER_COUNT << " leafCount " << LEAF_COUNT <<  std::endl;
 //		appCon.Start(Seconds(flow_input.start_time));
-			appCon.Start(Seconds(startTime)); 
+			appCon.Start(Seconds(startTime));
 
-            startTime += poission_gen_interval (requestRate);
-        }
-    }
-    std::cout << "Finished installation of applications from leaf-"<< fromLeafId << std::endl;
+			startTime += poission_gen_interval (requestRate);
+		}
+	}
+	std::cout << "Finished installation of applications from leaf-" << fromLeafId << std::endl;
 }
 
 
 std::vector<uint32_t> maxBinbufferOccupancy(100, 0); // ugly initialization
 
-uint32_t binBuffer=0;
-uint32_t maxBin=100;
+uint32_t binBuffer = 0;
+uint32_t maxBin = 100;
 
-void printBuffer(NodeContainer switches,double delay){
+void printBuffer(NodeContainer switches, double delay) {
 	binBuffer++;
-	for (uint32_t i = 0; i < switches.GetN(); i++){
-		if (switches.Get(i)->GetNodeType()){ // switch
+	for (uint32_t i = 0; i < switches.GetN(); i++) {
+		if (switches.Get(i)->GetNodeType()) { // switch
 			Ptr<SwitchNode> sw = DynamicCast<SwitchNode>(switches.Get(i));
-//			if (queue_result.find(i) == queue_result.end())
-//				queue_result[i];
-			uint32_t totalSize=0;
-			for (uint32_t j = 0; j < sw->GetNDevices(); j++){
+			uint32_t totalSize = 0;
+			for (uint32_t j = 0; j < sw->GetNDevices(); j++) {
 				uint32_t size = 0;
 				for (uint32_t k = 0; k < SwitchMmu::qCnt; k++)
 					size += sw->m_mmu->egress_bytes[j][k];
-//				queue_result[i][j].add(size);
-				// std::cout << "switch " << i << " port " << j << " qlen " << size << " time " << Simulator::Now().GetSeconds() << std::endl;
-				totalSize+=size;
+				totalSize += size;
 			}
-			if (binBuffer<maxBin){
-				if (maxBinbufferOccupancy[i]<totalSize)
-					maxBinbufferOccupancy[i]=totalSize;
+			if (binBuffer < maxBin) {
+				if (maxBinbufferOccupancy[i] < totalSize)
+					maxBinbufferOccupancy[i] = totalSize;
 			}
-			else{
+			else {
 				std::cout << "switch " << i  << " qlen " << maxBinbufferOccupancy[i] << " time " << Simulator::Now().GetSeconds() << std::endl;
-				maxBinbufferOccupancy[i]=0;	
+				maxBinbufferOccupancy[i] = 0;
 			}
 
 		}
 	}
-	if (binBuffer==maxBin)
-		binBuffer=0;
+	if (binBuffer == maxBin)
+		binBuffer = 0;
 
-//	if (Simulator::Now().GetTimeStep() % qlen_dump_interval == 0){
-//		fprintf(qlen_output, "time: %lu\n", Simulator::Now().GetTimeStep());
-//		for (auto &it0 : queue_result)
-//			for (auto &it1 : it0.second){
-//				fprintf(qlen_output, "%u %u", it0.first, it1.first);
-//				auto &dist = it1.second.cnt;
-//				for (uint32_t i = 0; i < dist.size(); i++)
-//					fprintf(qlen_output, " %u", dist[i]);
-//				fprintf(qlen_output, "\n");
-//			}
-//		fflush(qlen_output);
-//	}
-//	if (Simulator::Now().GetTimeStep() < qlen_mon_end)
-//		Simulator::Schedule(NanoSeconds(qlen_mon_interval), &monitor_buffer1, qlen_output, n);
-	Simulator::Schedule(Seconds(delay), printBuffer, switches,delay);
+	Simulator::Schedule(Seconds(delay), printBuffer, switches, delay);
 }
-
 
 
 /******************************************************************************************************************************************************************************************************/
@@ -824,411 +548,379 @@ int main(int argc, char *argv[])
 {
 	clock_t begint, endt;
 	begint = clock();
-//#ifndef PGO_TRAINING
-//	if (argc > 1)
-//#else
-//	if (true)
-//#endif
-//	{
-		//Read the configuration file
-		std::ifstream conf;
-		bool wien = true;
-		bool delayWien = false;
+	std::ifstream conf;
+	bool wien = true;
+	bool delayWien = false;
 
 
-		uint32_t SERVER_COUNT=32;
-		uint32_t LEAF_COUNT=2; // LEAF and SPINE correspond to a single pod. Leafs are ToR switches and Spine are AGG switches. Count is within a single pod.
-		uint32_t SPINE_COUNT=2;
-		uint64_t LEAF_SERVER_CAPACITY=25;
-		uint64_t SPINE_LEAF_CAPACITY=100;
+	uint32_t SERVER_COUNT = 32;
+	uint32_t LEAF_COUNT = 2; // LEAF and SPINE correspond to a single pod. Leafs are ToR switches and Spine are AGG switches. Count is within a single pod.
+	uint32_t SPINE_COUNT = 2;
+	uint64_t LEAF_SERVER_CAPACITY = 25;
+	uint64_t SPINE_LEAF_CAPACITY = 100;
 
-		double START_TIME = 0.1;
-		double END_TIME = 6;
-		double FLOW_LAUNCH_END_TIME = 5;
+	double START_TIME = 0.1;
+	double END_TIME = 6;
+	double FLOW_LAUNCH_END_TIME = 5;
 
-		double load = 0.2;
-
-		
-
-		uint32_t requestSize=1000000;
-		double queryRequestRate=1;
-		uint32_t incast = 5;
-
-		uint32_t algorithm=3;
-		uint32_t windowCheck=1;
+	double load = 0.2;
 
 
 
+	uint32_t requestSize = 1000000;
+	double queryRequestRate = 1;
+	uint32_t incast = 5;
 
-//#ifndef PGO_TRAINING
-////		conf.open(argv[1]);
-//#else
-////		conf.open(PATH_TO_PGO_CONFIG);
-//#endif
-		// std::string confFile="/home/vamsi/High-Precision-Congestion-Control/simulation/scratch/config.txt";
-		
-		std::string confFile="/home/vamsi/src/phd/ns3-datacenter/simulator/ns-3.35/examples/PowerTCP/config-workload.txt";
-		std::string cdfFileName = "/home/vamsi/src/phd/ns3-datacenter/simulator/ns-3.35/examples/PowerTCP/websearch.txt";
+	uint32_t algorithm = 3;
+	uint32_t windowCheck = 1;
 
-		unsigned randomSeed = 7;
+	std::string confFile = "/home/vamsi/src/phd/ns3-datacenter/simulator/ns-3.35/examples/PowerTCP/config-workload.txt";
+	std::string cdfFileName = "/home/vamsi/src/phd/ns3-datacenter/simulator/ns-3.35/examples/PowerTCP/websearch.txt";
 
-
-		std::cout << confFile;
-		CommandLine cmd;
-		cmd.AddValue("conf", "config file path", confFile);
-		cmd.AddValue("wien", "enable wien", wien);
-		cmd.AddValue("delayWien", "enable wien delay", delayWien);
-		cmd.AddValue ("randomSeed", "Random seed, 0 for random generated", randomSeed);
-
-		cmd.AddValue ("SERVER_COUNT", "servers per tor. Please specify the correct value according to the topology file information", SERVER_COUNT);
-		cmd.AddValue ("LEAF_COUNT", "number of ToRs that receive traffic", LEAF_COUNT);
-		cmd.AddValue ("SPINE_COUNT", "number of ToRs that receive traffic", SPINE_COUNT);
-		cmd.AddValue ("LEAF_SERVER_CAPACITY", "tor to server capacity", LEAF_SERVER_CAPACITY);
-		cmd.AddValue ("SPINE_LEAF_CAPACITY", "tor to aggregation switch capacity", SPINE_LEAF_CAPACITY);
-
-		cmd.AddValue ("START_TIME", "sim start time", START_TIME);
-		cmd.AddValue ("END_TIME", "sim end time", END_TIME);
-		cmd.AddValue ("FLOW_LAUNCH_END_TIME", "flow launch process end time", FLOW_LAUNCH_END_TIME);
-		cmd.AddValue ("cdfFileName", "File name for flow distribution", cdfFileName);
-		cmd.AddValue ("load", "Load on the links from ToR to Agg switches (This is the only place with Over-subscription and is the correct place to load, 0.0 - 1.0", load);
-
-		cmd.AddValue ("request", "Query Size in Bytes", requestSize);
-	    cmd.AddValue("queryRequestRate","Query request rate (poisson arrivals)",queryRequestRate);
-
-	    cmd.AddValue ("algorithm", "specify CC mode. This is added for my convinience since I prefer cmd rather than parsing files.", algorithm);
-	    cmd.AddValue("windowCheck","windowCheck",windowCheck);
-
-	    cmd.AddValue("incast","incast",incast);
-
-//		cmd.AddValue("enable_qcn", "qcn support", enable_qcn);
-//		cmd.AddValue("use_dynamic_pfc_threshold", " ", use_dynamic_pfc_threshold);
-//		cmd.AddValue("clamp_target_rate"," ",clamp_target_rate);
-////		cmd.AddValue()
-
-		cmd.Parse (argc,argv);
+	unsigned randomSeed = 7;
 
 
-		SPINE_LEAF_CAPACITY = SPINE_LEAF_CAPACITY*LINK_CAPACITY_BASE;
-		LEAF_SERVER_CAPACITY = LEAF_SERVER_CAPACITY*LINK_CAPACITY_BASE;
+	std::cout << confFile;
+	CommandLine cmd;
+	cmd.AddValue("conf", "config file path", confFile);
+	cmd.AddValue("wien", "enable wien", wien);
+	cmd.AddValue("delayWien", "enable wien delay", delayWien);
+	cmd.AddValue ("randomSeed", "Random seed, 0 for random generated", randomSeed);
 
-		conf.open(confFile.c_str());
-		while (!conf.eof())
+	cmd.AddValue ("SERVER_COUNT", "servers per tor. Please specify the correct value according to the topology file information", SERVER_COUNT);
+	cmd.AddValue ("LEAF_COUNT", "number of ToRs that receive traffic", LEAF_COUNT);
+	cmd.AddValue ("SPINE_COUNT", "number of ToRs that receive traffic", SPINE_COUNT);
+	cmd.AddValue ("LEAF_SERVER_CAPACITY", "tor to server capacity", LEAF_SERVER_CAPACITY);
+	cmd.AddValue ("SPINE_LEAF_CAPACITY", "tor to aggregation switch capacity", SPINE_LEAF_CAPACITY);
+
+	cmd.AddValue ("START_TIME", "sim start time", START_TIME);
+	cmd.AddValue ("END_TIME", "sim end time", END_TIME);
+	cmd.AddValue ("FLOW_LAUNCH_END_TIME", "flow launch process end time", FLOW_LAUNCH_END_TIME);
+	cmd.AddValue ("cdfFileName", "File name for flow distribution", cdfFileName);
+	cmd.AddValue ("load", "Load on the links from ToR to Agg switches (This is the only place with Over-subscription and is the correct place to load, 0.0 - 1.0", load);
+
+	cmd.AddValue ("request", "Query Size in Bytes", requestSize);
+	cmd.AddValue("queryRequestRate", "Query request rate (poisson arrivals)", queryRequestRate);
+
+	cmd.AddValue ("algorithm", "specify CC mode. This is added for my convinience since I prefer cmd rather than parsing files.", algorithm);
+	cmd.AddValue("windowCheck", "windowCheck", windowCheck);
+
+	cmd.AddValue("incast", "incast", incast);
+
+	cmd.Parse (argc, argv);
+
+
+	SPINE_LEAF_CAPACITY = SPINE_LEAF_CAPACITY * LINK_CAPACITY_BASE;
+	LEAF_SERVER_CAPACITY = LEAF_SERVER_CAPACITY * LINK_CAPACITY_BASE;
+
+	conf.open(confFile.c_str());
+	while (!conf.eof())
+	{
+		std::string key;
+		conf >> key;
+
+		if (key.compare("ENABLE_QCN") == 0)
 		{
-			std::string key;
-			conf >> key;
-
-			//std::cout << conf.cur << "\n";
-
-			if (key.compare("ENABLE_QCN") == 0)
-			{
-				uint32_t v;
-				conf >> v;
-				enable_qcn = v;
-				if (enable_qcn)
-					std::cout << "ENABLE_QCN\t\t\t" << "Yes" << "\n";
-				else
-					std::cout << "ENABLE_QCN\t\t\t" << "No" << "\n";
-			}
-			else if (key.compare("USE_DYNAMIC_PFC_THRESHOLD") == 0)
-			{
-				uint32_t v;
-				conf >> v;
-				use_dynamic_pfc_threshold = v;
-				if (use_dynamic_pfc_threshold)
-					std::cout << "USE_DYNAMIC_PFC_THRESHOLD\t" << "Yes" << "\n";
-				else
-					std::cout << "USE_DYNAMIC_PFC_THRESHOLD\t" << "No" << "\n";
-			}
-			else if (key.compare("CLAMP_TARGET_RATE") == 0)
-			{
-				uint32_t v;
-				conf >> v;
-				clamp_target_rate = v;
-				if (clamp_target_rate)
-					std::cout << "CLAMP_TARGET_RATE\t\t" << "Yes" << "\n";
-				else
-					std::cout << "CLAMP_TARGET_RATE\t\t" << "No" << "\n";
-			}
-			else if (key.compare("PAUSE_TIME") == 0)
-			{
-				double v;
-				conf >> v;
-				pause_time = v;
-				std::cout << "PAUSE_TIME\t\t\t" << pause_time << "\n";
-			}
-			else if (key.compare("DATA_RATE") == 0)
-			{
-				std::string v;
-				conf >> v;
-				data_rate = v;
-				std::cout << "DATA_RATE\t\t\t" << data_rate << "\n";
-			}
-			else if (key.compare("LINK_DELAY") == 0)
-			{
-				std::string v;
-				conf >> v;
-				link_delay = v;
-				std::cout << "LINK_DELAY\t\t\t" << link_delay << "\n";
-			}
-			else if (key.compare("PACKET_PAYLOAD_SIZE") == 0)
-			{
-				uint32_t v;
-				conf >> v;
-				packet_payload_size = v;
-				std::cout << "PACKET_PAYLOAD_SIZE\t\t" << packet_payload_size << "\n";
-			}
-			else if (key.compare("L2_CHUNK_SIZE") == 0)
-			{
-				uint32_t v;
-				conf >> v;
-				l2_chunk_size = v;
-				std::cout << "L2_CHUNK_SIZE\t\t\t" << l2_chunk_size << "\n";
-			}
-			else if (key.compare("L2_ACK_INTERVAL") == 0)
-			{
-				uint32_t v;
-				conf >> v;
-				l2_ack_interval = v;
-				std::cout << "L2_ACK_INTERVAL\t\t\t" << l2_ack_interval << "\n";
-			}
-			else if (key.compare("L2_BACK_TO_ZERO") == 0)
-			{
-				uint32_t v;
-				conf >> v;
-				l2_back_to_zero = v;
-				if (l2_back_to_zero)
-					std::cout << "L2_BACK_TO_ZERO\t\t\t" << "Yes" << "\n";
-				else
-					std::cout << "L2_BACK_TO_ZERO\t\t\t" << "No" << "\n";
-			}
-			else if (key.compare("TOPOLOGY_FILE") == 0)
-			{
-				std::string v;
-				conf >> v;
-				topology_file = v;
-				std::cout << "TOPOLOGY_FILE\t\t\t" << topology_file << "\n";
-			}
-			else if (key.compare("FLOW_FILE") == 0)
-			{
-				std::string v;
-				conf >> v;
-				flow_file = v;
-				std::cout << "FLOW_FILE\t\t\t" << flow_file << "\n";
-			}
-			else if (key.compare("TRACE_FILE") == 0)
-			{
-				std::string v;
-				conf >> v;
-				trace_file = v;
-				std::cout << "TRACE_FILE\t\t\t" << trace_file << "\n";
-			}
-			else if (key.compare("TRACE_OUTPUT_FILE") == 0)
-			{
-				std::string v;
-				conf >> v;
-				trace_output_file = v;
-				if (argc > 2)
-				{
-					trace_output_file = trace_output_file + std::string(argv[2]);
-				}
-				std::cout << "TRACE_OUTPUT_FILE\t\t" << trace_output_file << "\n";
-			}
-			else if (key.compare("SIMULATOR_STOP_TIME") == 0)
-			{
-				double v;
-				conf >> v;
-				simulator_stop_time = v;
-				std::cout << "SIMULATOR_STOP_TIME\t\t" << simulator_stop_time << "\n";
-			}
-			else if (key.compare("ALPHA_RESUME_INTERVAL") == 0)
-			{
-				double v;
-				conf >> v;
-				alpha_resume_interval = v;
-				std::cout << "ALPHA_RESUME_INTERVAL\t\t" << alpha_resume_interval << "\n";
-			}
-			else if (key.compare("RP_TIMER") == 0)
-			{
-				double v;
-				conf >> v;
-				rp_timer = v;
-				std::cout << "RP_TIMER\t\t\t" << rp_timer << "\n";
-			}
-			else if (key.compare("EWMA_GAIN") == 0)
-			{
-				double v;
-				conf >> v;
-				ewma_gain = v;
-				std::cout << "EWMA_GAIN\t\t\t" << ewma_gain << "\n";
-			}
-			else if (key.compare("FAST_RECOVERY_TIMES") == 0)
-			{
-				uint32_t v;
-				conf >> v;
-				fast_recovery_times = v;
-				std::cout << "FAST_RECOVERY_TIMES\t\t" << fast_recovery_times << "\n";
-			}
-			else if (key.compare("RATE_AI") == 0)
-			{
-				std::string v;
-				conf >> v;
-				rate_ai = v;
-				std::cout << "RATE_AI\t\t\t\t" << rate_ai << "\n";
-			}
-			else if (key.compare("RATE_HAI") == 0)
-			{
-				std::string v;
-				conf >> v;
-				rate_hai = v;
-				std::cout << "RATE_HAI\t\t\t" << rate_hai << "\n";
-			}
-			else if (key.compare("ERROR_RATE_PER_LINK") == 0)
-			{
-				double v;
-				conf >> v;
-				error_rate_per_link = v;
-				std::cout << "ERROR_RATE_PER_LINK\t\t" << error_rate_per_link << "\n";
-			}
-			else if (key.compare("CC_MODE") == 0){
-				conf >> cc_mode;
-				std::cout << "CC_MODE\t\t" << cc_mode << '\n';
-			}else if (key.compare("RATE_DECREASE_INTERVAL") == 0){
-				double v;
-				conf >> v;
-				rate_decrease_interval = v;
-				std::cout << "RATE_DECREASE_INTERVAL\t\t" << rate_decrease_interval << "\n";
-			}else if (key.compare("MIN_RATE") == 0){
-				conf >> min_rate;
-				std::cout << "MIN_RATE\t\t" << min_rate << "\n";
-			}else if (key.compare("FCT_OUTPUT_FILE") == 0){
-				conf >> fct_output_file;
-				std::cout << "FCT_OUTPUT_FILE\t\t" << fct_output_file << '\n';
-			}else if (key.compare("HAS_WIN") == 0){
-				conf >> has_win;
-				std::cout << "HAS_WIN\t\t" << has_win << "\n";
-			}else if (key.compare("GLOBAL_T") == 0){
-				conf >> global_t;
-				std::cout << "GLOBAL_T\t\t" << global_t << '\n';
-			}else if (key.compare("MI_THRESH") == 0){
-				conf >> mi_thresh;
-				std::cout << "MI_THRESH\t\t" << mi_thresh << '\n';
-			}else if (key.compare("VAR_WIN") == 0){
-				uint32_t v;
-				conf >> v;
-				var_win = v;
-				std::cout << "VAR_WIN\t\t" << v << '\n';
-			}else if (key.compare("FAST_REACT") == 0){
-				uint32_t v;
-				conf >> v;
-				fast_react = v;
-				std::cout << "FAST_REACT\t\t" << v << '\n';
-			}else if (key.compare("U_TARGET") == 0){
-				conf >> u_target;
-				std::cout << "U_TARGET\t\t" << u_target << '\n';
-			}else if (key.compare("INT_MULTI") == 0){
-				conf >> int_multi;
-				std::cout << "INT_MULTI\t\t\t\t" << int_multi << '\n';
-			}else if (key.compare("RATE_BOUND") == 0){
-				uint32_t v;
-				conf >> v;
-				rate_bound = v;
-				std::cout << "RATE_BOUND\t\t" << rate_bound << '\n';
-			}else if (key.compare("ACK_HIGH_PRIO") == 0){
-				conf >> ack_high_prio;
-				std::cout << "ACK_HIGH_PRIO\t\t" << ack_high_prio << '\n';
-			}else if (key.compare("DCTCP_RATE_AI") == 0){
-				conf >> dctcp_rate_ai;
-				std::cout << "DCTCP_RATE_AI\t\t\t\t" << dctcp_rate_ai << "\n";
-			}else if (key.compare("PFC_OUTPUT_FILE") == 0){
-				conf >> pfc_output_file;
-				std::cout << "PFC_OUTPUT_FILE\t\t\t\t" << pfc_output_file << '\n';
-			}else if (key.compare("LINK_DOWN") == 0){
-				conf >> link_down_time >> link_down_A >> link_down_B;
-				std::cout << "LINK_DOWN\t\t\t\t" << link_down_time << ' '<< link_down_A << ' ' << link_down_B << '\n';
-			}else if (key.compare("ENABLE_TRACE") == 0){
-				conf >> enable_trace;
-				std::cout << "ENABLE_TRACE\t\t\t\t" << enable_trace << '\n';
-			}else if (key.compare("KMAX_MAP") == 0){
-				int n_k ;
-				conf >> n_k;
-				std::cout << "KMAX_MAP\t\t\t\t";
-				for (int i = 0; i < n_k; i++){
-					uint64_t rate;
-					uint32_t k;
-					conf >> rate >> k;
-					rate2kmax[rate] = k;
-					std::cout << ' ' << rate << ' ' << k;
-				}
-				std::cout<<'\n';
-			}else if (key.compare("KMIN_MAP") == 0){
-				int n_k ;
-				conf >> n_k;
-				std::cout << "KMIN_MAP\t\t\t\t";
-				for (int i = 0; i < n_k; i++){
-					uint64_t rate;
-					uint32_t k;
-					conf >> rate >> k;
-					rate2kmin[rate] = k;
-					std::cout << ' ' << rate << ' ' << k;
-				}
-				std::cout<<'\n';
-			}else if (key.compare("PMAX_MAP") == 0){
-				int n_k ;
-				conf >> n_k;
-				std::cout << "PMAX_MAP\t\t\t\t";
-				for (int i = 0; i < n_k; i++){
-					uint64_t rate;
-					double p;
-					conf >> rate >> p;
-					rate2pmax[rate] = p;
-					std::cout << ' ' << rate << ' ' << p;
-				}
-				std::cout<<'\n';
-			}else if (key.compare("BUFFER_SIZE") == 0){
-				conf >> buffer_size;
-				std::cout << "BUFFER_SIZE\t\t\t\t" << buffer_size << '\n';
-			}else if (key.compare("QLEN_MON_FILE") == 0){
-				conf >> qlen_mon_file;
-				std::cout << "QLEN_MON_FILE\t\t\t\t" << qlen_mon_file << '\n';
-			}else if (key.compare("QLEN_MON_START") == 0){
-				conf >> qlen_mon_start;
-				std::cout << "QLEN_MON_START\t\t\t\t" << qlen_mon_start << '\n';
-			}else if (key.compare("QLEN_MON_END") == 0){
-				conf >> qlen_mon_end;
-				std::cout << "QLEN_MON_END\t\t\t\t" << qlen_mon_end << '\n';
-			}else if (key.compare("MULTI_RATE") == 0){
-				int v;
-				conf >> v;
-				multi_rate = v;
-				std::cout << "MULTI_RATE\t\t\t\t" << multi_rate << '\n';
-			}else if (key.compare("SAMPLE_FEEDBACK") == 0){
-				int v;
-				conf >> v;
-				sample_feedback = v;
-				std::cout << "SAMPLE_FEEDBACK\t\t\t\t" << sample_feedback << '\n';
-			}else if(key.compare("PINT_LOG_BASE") == 0){
-				conf >> pint_log_base;
-				std::cout << "PINT_LOG_BASE\t\t\t\t" << pint_log_base << '\n';
-			}else if (key.compare("PINT_PROB") == 0){
-				conf >> pint_prob;
-				std::cout << "PINT_PROB\t\t\t\t" << pint_prob << '\n';
-			}
-			fflush(stdout);
+			uint32_t v;
+			conf >> v;
+			enable_qcn = v;
+			if (enable_qcn)
+				std::cout << "ENABLE_QCN\t\t\t" << "Yes" << "\n";
+			else
+				std::cout << "ENABLE_QCN\t\t\t" << "No" << "\n";
 		}
-		conf.close();
-//	}
-//	else
-//	{
-//		std::cout << "Error: require a config file\n";
-//		fflush(stdout);
-//		return 1;
-//	}
+		else if (key.compare("USE_DYNAMIC_PFC_THRESHOLD") == 0)
+		{
+			uint32_t v;
+			conf >> v;
+			use_dynamic_pfc_threshold = v;
+			if (use_dynamic_pfc_threshold)
+				std::cout << "USE_DYNAMIC_PFC_THRESHOLD\t" << "Yes" << "\n";
+			else
+				std::cout << "USE_DYNAMIC_PFC_THRESHOLD\t" << "No" << "\n";
+		}
+		else if (key.compare("CLAMP_TARGET_RATE") == 0)
+		{
+			uint32_t v;
+			conf >> v;
+			clamp_target_rate = v;
+			if (clamp_target_rate)
+				std::cout << "CLAMP_TARGET_RATE\t\t" << "Yes" << "\n";
+			else
+				std::cout << "CLAMP_TARGET_RATE\t\t" << "No" << "\n";
+		}
+		else if (key.compare("PAUSE_TIME") == 0)
+		{
+			double v;
+			conf >> v;
+			pause_time = v;
+			std::cout << "PAUSE_TIME\t\t\t" << pause_time << "\n";
+		}
+		else if (key.compare("DATA_RATE") == 0)
+		{
+			std::string v;
+			conf >> v;
+			data_rate = v;
+			std::cout << "DATA_RATE\t\t\t" << data_rate << "\n";
+		}
+		else if (key.compare("LINK_DELAY") == 0)
+		{
+			std::string v;
+			conf >> v;
+			link_delay = v;
+			std::cout << "LINK_DELAY\t\t\t" << link_delay << "\n";
+		}
+		else if (key.compare("PACKET_PAYLOAD_SIZE") == 0)
+		{
+			uint32_t v;
+			conf >> v;
+			packet_payload_size = v;
+			std::cout << "PACKET_PAYLOAD_SIZE\t\t" << packet_payload_size << "\n";
+		}
+		else if (key.compare("L2_CHUNK_SIZE") == 0)
+		{
+			uint32_t v;
+			conf >> v;
+			l2_chunk_size = v;
+			std::cout << "L2_CHUNK_SIZE\t\t\t" << l2_chunk_size << "\n";
+		}
+		else if (key.compare("L2_ACK_INTERVAL") == 0)
+		{
+			uint32_t v;
+			conf >> v;
+			l2_ack_interval = v;
+			std::cout << "L2_ACK_INTERVAL\t\t\t" << l2_ack_interval << "\n";
+		}
+		else if (key.compare("L2_BACK_TO_ZERO") == 0)
+		{
+			uint32_t v;
+			conf >> v;
+			l2_back_to_zero = v;
+			if (l2_back_to_zero)
+				std::cout << "L2_BACK_TO_ZERO\t\t\t" << "Yes" << "\n";
+			else
+				std::cout << "L2_BACK_TO_ZERO\t\t\t" << "No" << "\n";
+		}
+		else if (key.compare("TOPOLOGY_FILE") == 0)
+		{
+			std::string v;
+			conf >> v;
+			topology_file = v;
+			std::cout << "TOPOLOGY_FILE\t\t\t" << topology_file << "\n";
+		}
+		else if (key.compare("FLOW_FILE") == 0)
+		{
+			std::string v;
+			conf >> v;
+			flow_file = v;
+			std::cout << "FLOW_FILE\t\t\t" << flow_file << "\n";
+		}
+		else if (key.compare("TRACE_FILE") == 0)
+		{
+			std::string v;
+			conf >> v;
+			trace_file = v;
+			std::cout << "TRACE_FILE\t\t\t" << trace_file << "\n";
+		}
+		else if (key.compare("TRACE_OUTPUT_FILE") == 0)
+		{
+			std::string v;
+			conf >> v;
+			trace_output_file = v;
+			if (argc > 2)
+			{
+				trace_output_file = trace_output_file + std::string(argv[2]);
+			}
+			std::cout << "TRACE_OUTPUT_FILE\t\t" << trace_output_file << "\n";
+		}
+		else if (key.compare("SIMULATOR_STOP_TIME") == 0)
+		{
+			double v;
+			conf >> v;
+			simulator_stop_time = v;
+			std::cout << "SIMULATOR_STOP_TIME\t\t" << simulator_stop_time << "\n";
+		}
+		else if (key.compare("ALPHA_RESUME_INTERVAL") == 0)
+		{
+			double v;
+			conf >> v;
+			alpha_resume_interval = v;
+			std::cout << "ALPHA_RESUME_INTERVAL\t\t" << alpha_resume_interval << "\n";
+		}
+		else if (key.compare("RP_TIMER") == 0)
+		{
+			double v;
+			conf >> v;
+			rp_timer = v;
+			std::cout << "RP_TIMER\t\t\t" << rp_timer << "\n";
+		}
+		else if (key.compare("EWMA_GAIN") == 0)
+		{
+			double v;
+			conf >> v;
+			ewma_gain = v;
+			std::cout << "EWMA_GAIN\t\t\t" << ewma_gain << "\n";
+		}
+		else if (key.compare("FAST_RECOVERY_TIMES") == 0)
+		{
+			uint32_t v;
+			conf >> v;
+			fast_recovery_times = v;
+			std::cout << "FAST_RECOVERY_TIMES\t\t" << fast_recovery_times << "\n";
+		}
+		else if (key.compare("RATE_AI") == 0)
+		{
+			std::string v;
+			conf >> v;
+			rate_ai = v;
+			std::cout << "RATE_AI\t\t\t\t" << rate_ai << "\n";
+		}
+		else if (key.compare("RATE_HAI") == 0)
+		{
+			std::string v;
+			conf >> v;
+			rate_hai = v;
+			std::cout << "RATE_HAI\t\t\t" << rate_hai << "\n";
+		}
+		else if (key.compare("ERROR_RATE_PER_LINK") == 0)
+		{
+			double v;
+			conf >> v;
+			error_rate_per_link = v;
+			std::cout << "ERROR_RATE_PER_LINK\t\t" << error_rate_per_link << "\n";
+		}
+		else if (key.compare("CC_MODE") == 0) {
+			conf >> cc_mode;
+			std::cout << "CC_MODE\t\t" << cc_mode << '\n';
+		} else if (key.compare("RATE_DECREASE_INTERVAL") == 0) {
+			double v;
+			conf >> v;
+			rate_decrease_interval = v;
+			std::cout << "RATE_DECREASE_INTERVAL\t\t" << rate_decrease_interval << "\n";
+		} else if (key.compare("MIN_RATE") == 0) {
+			conf >> min_rate;
+			std::cout << "MIN_RATE\t\t" << min_rate << "\n";
+		} else if (key.compare("FCT_OUTPUT_FILE") == 0) {
+			conf >> fct_output_file;
+			std::cout << "FCT_OUTPUT_FILE\t\t" << fct_output_file << '\n';
+		} else if (key.compare("HAS_WIN") == 0) {
+			conf >> has_win;
+			std::cout << "HAS_WIN\t\t" << has_win << "\n";
+		} else if (key.compare("GLOBAL_T") == 0) {
+			conf >> global_t;
+			std::cout << "GLOBAL_T\t\t" << global_t << '\n';
+		} else if (key.compare("MI_THRESH") == 0) {
+			conf >> mi_thresh;
+			std::cout << "MI_THRESH\t\t" << mi_thresh << '\n';
+		} else if (key.compare("VAR_WIN") == 0) {
+			uint32_t v;
+			conf >> v;
+			var_win = v;
+			std::cout << "VAR_WIN\t\t" << v << '\n';
+		} else if (key.compare("FAST_REACT") == 0) {
+			uint32_t v;
+			conf >> v;
+			fast_react = v;
+			std::cout << "FAST_REACT\t\t" << v << '\n';
+		} else if (key.compare("U_TARGET") == 0) {
+			conf >> u_target;
+			std::cout << "U_TARGET\t\t" << u_target << '\n';
+		} else if (key.compare("INT_MULTI") == 0) {
+			conf >> int_multi;
+			std::cout << "INT_MULTI\t\t\t\t" << int_multi << '\n';
+		} else if (key.compare("RATE_BOUND") == 0) {
+			uint32_t v;
+			conf >> v;
+			rate_bound = v;
+			std::cout << "RATE_BOUND\t\t" << rate_bound << '\n';
+		} else if (key.compare("ACK_HIGH_PRIO") == 0) {
+			conf >> ack_high_prio;
+			std::cout << "ACK_HIGH_PRIO\t\t" << ack_high_prio << '\n';
+		} else if (key.compare("DCTCP_RATE_AI") == 0) {
+			conf >> dctcp_rate_ai;
+			std::cout << "DCTCP_RATE_AI\t\t\t\t" << dctcp_rate_ai << "\n";
+		} else if (key.compare("PFC_OUTPUT_FILE") == 0) {
+			conf >> pfc_output_file;
+			std::cout << "PFC_OUTPUT_FILE\t\t\t\t" << pfc_output_file << '\n';
+		} else if (key.compare("LINK_DOWN") == 0) {
+			conf >> link_down_time >> link_down_A >> link_down_B;
+			std::cout << "LINK_DOWN\t\t\t\t" << link_down_time << ' ' << link_down_A << ' ' << link_down_B << '\n';
+		} else if (key.compare("ENABLE_TRACE") == 0) {
+			conf >> enable_trace;
+			std::cout << "ENABLE_TRACE\t\t\t\t" << enable_trace << '\n';
+		} else if (key.compare("KMAX_MAP") == 0) {
+			int n_k ;
+			conf >> n_k;
+			std::cout << "KMAX_MAP\t\t\t\t";
+			for (int i = 0; i < n_k; i++) {
+				uint64_t rate;
+				uint32_t k;
+				conf >> rate >> k;
+				rate2kmax[rate] = k;
+				std::cout << ' ' << rate << ' ' << k;
+			}
+			std::cout << '\n';
+		} else if (key.compare("KMIN_MAP") == 0) {
+			int n_k ;
+			conf >> n_k;
+			std::cout << "KMIN_MAP\t\t\t\t";
+			for (int i = 0; i < n_k; i++) {
+				uint64_t rate;
+				uint32_t k;
+				conf >> rate >> k;
+				rate2kmin[rate] = k;
+				std::cout << ' ' << rate << ' ' << k;
+			}
+			std::cout << '\n';
+		} else if (key.compare("PMAX_MAP") == 0) {
+			int n_k ;
+			conf >> n_k;
+			std::cout << "PMAX_MAP\t\t\t\t";
+			for (int i = 0; i < n_k; i++) {
+				uint64_t rate;
+				double p;
+				conf >> rate >> p;
+				rate2pmax[rate] = p;
+				std::cout << ' ' << rate << ' ' << p;
+			}
+			std::cout << '\n';
+		} else if (key.compare("BUFFER_SIZE") == 0) {
+			conf >> buffer_size;
+			std::cout << "BUFFER_SIZE\t\t\t\t" << buffer_size << '\n';
+		} else if (key.compare("QLEN_MON_FILE") == 0) {
+			conf >> qlen_mon_file;
+			std::cout << "QLEN_MON_FILE\t\t\t\t" << qlen_mon_file << '\n';
+		} else if (key.compare("QLEN_MON_START") == 0) {
+			conf >> qlen_mon_start;
+			std::cout << "QLEN_MON_START\t\t\t\t" << qlen_mon_start << '\n';
+		} else if (key.compare("QLEN_MON_END") == 0) {
+			conf >> qlen_mon_end;
+			std::cout << "QLEN_MON_END\t\t\t\t" << qlen_mon_end << '\n';
+		} else if (key.compare("MULTI_RATE") == 0) {
+			int v;
+			conf >> v;
+			multi_rate = v;
+			std::cout << "MULTI_RATE\t\t\t\t" << multi_rate << '\n';
+		} else if (key.compare("SAMPLE_FEEDBACK") == 0) {
+			int v;
+			conf >> v;
+			sample_feedback = v;
+			std::cout << "SAMPLE_FEEDBACK\t\t\t\t" << sample_feedback << '\n';
+		} else if (key.compare("PINT_LOG_BASE") == 0) {
+			conf >> pint_log_base;
+			std::cout << "PINT_LOG_BASE\t\t\t\t" << pint_log_base << '\n';
+		} else if (key.compare("PINT_PROB") == 0) {
+			conf >> pint_prob;
+			std::cout << "PINT_PROB\t\t\t\t" << pint_prob << '\n';
+		}
+		fflush(stdout);
+	}
+	conf.close();
 
-
-		// overriding config file. I prefer to use cmd arguments
-		cc_mode = algorithm; // overrides configuration file
-		has_win=windowCheck; // overrides configuration file
-		FAN=incast;
+	// overriding config file. I prefer to use cmd arguments
+	cc_mode = algorithm; // overrides configuration file
+	has_win = windowCheck; // overrides configuration file
+	FAN = incast;
 
 	bool dynamicth = use_dynamic_pfc_threshold;
 
@@ -1241,7 +933,7 @@ int main(int argc, char *argv[])
 	// IntHeader::mode
 	if (cc_mode == 7) // timely, use ts
 		IntHeader::mode = IntHeader::TS;
-	else if (cc_mode == 3) // hpcc, use int
+	else if (cc_mode == 3) // hpcc, powertcp, use int
 		IntHeader::mode = IntHeader::NORMAL;
 	else if (cc_mode == 10) // hpcc-pint
 		IntHeader::mode = IntHeader::PINT;
@@ -1249,121 +941,59 @@ int main(int argc, char *argv[])
 		IntHeader::mode = IntHeader::NONE;
 
 	// Set Pint
-	if (cc_mode == 10){
+	if (cc_mode == 10) {
 		Pint::set_log_base(pint_log_base);
 		IntHeader::pint_bytes = Pint::get_n_bytes();
 		printf("PINT bits: %d bytes: %d\n", Pint::get_n_bits(), Pint::get_n_bytes());
 	}
 
-	//SeedManager::SetSeed(time(NULL));
-
-//	////////////////// Vamsi //////////////////////////////////////////
-//	uint32_t servers=10;
-//	uint32_t tors=2;
-//	uint32_t spines=1; // Be careful, spine must be non-blocking for this experiment.
-//
-//	uint32_t node_num, switch_num, link_num, trace_num;
-//	node_num=servers*tors+tors;
-//	switch_num=tors;
-//	link_num=servers*tors+tors*spines;
-//
-//	CommandLine cmd;
-//	cmd.AddValue("servers","number of servers per ToR",servers);
-//	cmd.AddValue("tors","number of ToR switches",tors);
-//	cmd.Parse (argc,argv);
-//	////////////////// Vamsi //////////////////////////////////////////
-
 	topof.open(topology_file.c_str());
 	flowf.open(flow_file.c_str());
-//	tracef.open(trace_file.c_str());
 	uint32_t node_num, switch_num, tors, link_num, trace_num;
 	topof >> node_num >> switch_num >> tors >> link_num ; // changed here. The previous order was node, switch, link // tors is not used. switch_num=tors for now.
-//	topof >> node_num >> switch_num >> link_num; // changed here. The previous order was node, switch, link // tors is not used. switch_num=tors for now.
-//	tors=switch_num;
 	std::cout << node_num << " " << switch_num << " " << tors <<  " " << link_num << std::endl;
 	flowf >> flow_num;
 
-//	tracef >> trace_num;
-
-	//n.Create(node_num);
-
 	NodeContainer serverNodes;
-//	serverNodes.Create(servers*tors);
 	NodeContainer torNodes;
-//	for (uint32_t i=0;i<tors;i++){
-//		Ptr<SwitchNode> sw = CreateObject<SwitchNode>();
-//		torNodes.Add(sw);
-//		sw->SetAttribute("EcnEnabled", BooleanValue(enable_qcn));
-//	}
 	NodeContainer spineNodes;
-//	for (uint32_t i=0;i<spines;i++){
-//		Ptr<SwitchNode> sw = CreateObject<SwitchNode>();
-//		spineNodes.Add(sw);
-//		sw->SetAttribute("EcnEnabled", BooleanValue(enable_qcn));
-//	}
 	NodeContainer switchNodes;
-//	switchNodes.Add(torNodes);
-//	switchNodes.Add(spineNodes);
-
 	NodeContainer allNodes;
-	// first tors, then spines then servers
-//	allNodes.Add(switchNodes);
-//	allNodes.Add(serverNodes);
-//	n.Add(switchNodes);
-//	n.Add(serverNodes);
-
-
 
 	std::vector<uint32_t> node_type(node_num, 0);
 
-
-
-	std::cout << "switch_num "<< switch_num << std::endl;
-	for (uint32_t i=0;i<switch_num;i++){
+	std::cout << "switch_num " << switch_num << std::endl;
+	for (uint32_t i = 0; i < switch_num; i++) {
 		uint32_t sid;
 		topof >> sid;
 		std::cout << "sid " << sid << std::endl;
-		switchNumToId[i]=sid;
-		switchIdToNum[sid]=i;
-		if(i<LEAF_COUNT){
-			node_type[sid]=1;
+		switchNumToId[i] = sid;
+		switchIdToNum[sid] = i;
+		if (i < LEAF_COUNT) {
+			node_type[sid] = 1;
 		}
 		else
-			node_type[sid]=2;
+			node_type[sid] = 2;
 
 	}
-//
-//	for (uint32_t i = 0; i < switch_num; i++)
-//	{
-//		uint32_t sid;
-//		topof >> sid;
-//		node_type[sid] = 1;
-//	}
 
-	for (uint32_t i = 0; i < node_num; i++){
-		if (node_type[i] == 0){
+	for (uint32_t i = 0; i < node_num; i++) {
+		if (node_type[i] == 0) {
 			Ptr<Node> node = CreateObject<Node>();
 			n.Add(node);
 			allNodes.Add(node);
 			serverNodes.Add(node);
-//			n.Add(CreateObject<Node>());
 		}
-		else{
+		else {
 			Ptr<SwitchNode> sw = CreateObject<SwitchNode>();
 			n.Add(sw);
 			switchNodes.Add(sw);
 			allNodes.Add(sw);
 			sw->SetAttribute("EcnEnabled", BooleanValue(enable_qcn));
 			sw->SetNodeType(1);
-			if (node_type[i]==1){
+			if (node_type[i] == 1) {
 				torNodes.Add(sw);
-//				sw->SetNodeType(1);
 			}
-//			else{
-//				spineNodes.Add(sw);
-//				sw->SetNodeType(2);
-//			}
-
 		}
 	}
 
@@ -1376,8 +1006,8 @@ int main(int argc, char *argv[])
 	//
 	// Assign IP to each server
 	//
-	for (uint32_t i = 0; i < node_num; i++){
-		if (n.Get(i)->GetNodeType() == 0){ // is server
+	for (uint32_t i = 0; i < node_num; i++) {
+		if (n.Get(i)->GetNodeType() == 0) { // is server
 			serverAddress.resize(i + 1);
 			serverAddress[i] = node_id_to_ip(i);
 		}
@@ -1407,7 +1037,7 @@ int main(int argc, char *argv[])
 		double error_rate;
 		topof >> src >> dst >> data_rate >> link_delay >> error_rate;
 
-		std::cout << src << " " << dst << " " << n.GetN()<< std::endl;
+		std::cout << src << " " << dst << " " << n.GetN() << std::endl;
 		Ptr<Node> snode = n.Get(src), dnode = n.Get(dst);
 
 
@@ -1436,28 +1066,28 @@ int main(int argc, char *argv[])
 		// because we want our IP to be the primary IP (first in the IP address list),
 		// so that the global routing is based on our IP
 		NetDeviceContainer d = qbb.Install(snode, dnode);
-		if (snode->GetNodeType() == 0){
+		if (snode->GetNodeType() == 0) {
 			Ptr<Ipv4> ipv4 = snode->GetObject<Ipv4>();
 			ipv4->AddInterface(d.Get(0));
 			ipv4->AddAddress(1, Ipv4InterfaceAddress(serverAddress[src], Ipv4Mask(0xff000000)));
 		}
-		if (dnode->GetNodeType() == 0){
+		if (dnode->GetNodeType() == 0) {
 			Ptr<Ipv4> ipv4 = dnode->GetObject<Ipv4>();
 			ipv4->AddInterface(d.Get(1));
 			ipv4->AddAddress(1, Ipv4InterfaceAddress(serverAddress[dst], Ipv4Mask(0xff000000)));
 		}
 
 
-		if (!snode->GetNodeType()){
+		if (!snode->GetNodeType()) {
 			sourceNodes[src].Add(DynamicCast<QbbNetDevice>(d.Get(0)));
 		}
 
-		if (!snode->GetNodeType() && dnode->GetNodeType()){
+		if (!snode->GetNodeType() && dnode->GetNodeType()) {
 			switchDown[switchIdToNum[dst]].Add(DynamicCast<QbbNetDevice>(d.Get(1)));
 		}
 
 
-		if(snode->GetNodeType()&& dnode->GetNodeType()){
+		if (snode->GetNodeType() && dnode->GetNodeType()) {
 			switchToSwitchInterfaces.Add(d);
 			switchUp[switchIdToNum[src]].Add(DynamicCast<QbbNetDevice>(d.Get(0)));
 			switchUp[switchIdToNum[dst]].Add(DynamicCast<QbbNetDevice>(d.Get(1)));
@@ -1478,7 +1108,7 @@ int main(int argc, char *argv[])
 		// This is just to set up the connectivity between nodes. The IP addresses are useless
 		// char ipstring[16];
 		std::stringstream ipstring;
-		ipstring << "10."<< i / 254 + 1 << "." << i % 254 + 1 << ".0";
+		ipstring << "10." << i / 254 + 1 << "." << i % 254 + 1 << ".0";
 		// sprintf(ipstring, "10.%d.%d.0", i / 254 + 1, i % 254 + 1);
 		ipv4.SetBase(ipstring.str().c_str(), "255.255.255.0");
 		// ipv4.SetBase(ipstring, "255.255.255.0");
@@ -1496,12 +1126,12 @@ int main(int argc, char *argv[])
 		if (n.Get(i)->GetNodeType()) { // is switch
 			Ptr<SwitchNode> sw = DynamicCast<SwitchNode>(n.Get(i));
 			uint32_t shift = 3; // by default 1/8
-			double alpha = 1.0/8;
+			double alpha = 1.0 / 8;
 			sw->m_mmu->SetAlphaIngress(alpha);
 			uint64_t totalHeadroom = 0;
 			for (uint32_t j = 1; j < sw->GetNDevices(); j++) {
-				
-				for (uint32_t qu = 0; qu < 8; qu++){
+
+				for (uint32_t qu = 0; qu < 8; qu++) {
 					Ptr<QbbNetDevice> dev = DynamicCast<QbbNetDevice>(sw->GetDevice(j));
 					// set ecn
 					uint64_t rate = dev->GetDataRate().GetBitRate();
@@ -1512,7 +1142,7 @@ int main(int argc, char *argv[])
 					// set pfc
 					uint64_t delay = DynamicCast<QbbChannel>(dev->GetChannel())->GetDelay().GetTimeStep();
 					uint32_t headroom = rate * delay / 8 / 1000000000 * 3;
-					
+
 					sw->m_mmu->SetHeadroom(headroom, j, qu);
 					totalHeadroom += headroom;
 				}
@@ -1525,13 +1155,13 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	#if ENABLE_QP
+#if ENABLE_QP
 	FILE *fct_output = fopen(fct_output_file.c_str(), "w");
 	//
 	// install RDMA driver
 	//
-	for (uint32_t i = 0; i < node_num; i++){
-		if (n.Get(i)->GetNodeType() == 0){ // is server
+	for (uint32_t i = 0; i < node_num; i++) {
+		if (n.Get(i)->GetNodeType() == 0) { // is server
 			// create RdmaHw
 			Ptr<RdmaHw> rdmaHw = CreateObject<RdmaHw>();
 			rdmaHw->SetAttribute("ClampTargetRate", BooleanValue(clamp_target_rate));
@@ -1571,7 +1201,7 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	#endif
+#endif
 
 	// set ACK priority on hosts
 	if (ack_high_prio)
@@ -1581,36 +1211,33 @@ int main(int argc, char *argv[])
 
 	// setup routing
 	CalculateRoutes(n);
-	std::cout << "yeah " << 0<<  std::endl;
 	SetRoutingEntries();
-	std::cout << "yeah " << 1<<  std::endl;
-
 	//
 	// get BDP and delay
 	//
 	maxRtt = maxBdp = 0;
 	uint64_t minRtt = 1e9;
-	for (uint32_t i = 0; i < node_num; i++){
+	for (uint32_t i = 0; i < node_num; i++) {
 		if (n.Get(i)->GetNodeType() != 0)
 			continue;
-		for (uint32_t j = 0; j < node_num; j++){
+		for (uint32_t j = 0; j < node_num; j++) {
 			if (n.Get(j)->GetNodeType() != 0)
 				continue;
-			if (i==j)
+			if (i == j)
 				continue;
 			uint64_t delay = pairDelay[n.Get(i)][n.Get(j)];
 			uint64_t txDelay = pairTxDelay[n.Get(i)][n.Get(j)];
 			uint64_t rtt = delay * 2 + txDelay;
 			uint64_t bw = pairBw[i][j];
-			uint64_t bdp = rtt * bw / 1000000000/8; 
+			uint64_t bdp = rtt * bw / 1000000000 / 8;
 			pairBdp[n.Get(i)][n.Get(j)] = bdp;
 			pairRtt[i][j] = rtt;
 			if (bdp > maxBdp)
 				maxBdp = bdp;
 			if (rtt > maxRtt)
 				maxRtt = rtt;
-			if (rtt<minRtt)
-				minRtt=rtt;
+			if (rtt < minRtt)
+				minRtt = rtt;
 		}
 	}
 	printf("maxRtt=%lu maxBdp=%lu minRtt=%lu\n", maxRtt, maxBdp, minRtt);
@@ -1618,48 +1245,14 @@ int main(int argc, char *argv[])
 	//
 	// setup switch CC
 	//
-	for (uint32_t i = 0; i < node_num; i++){
-		if (n.Get(i)->GetNodeType()){ // switch
+	for (uint32_t i = 0; i < node_num; i++) {
+		if (n.Get(i)->GetNodeType()) { // switch
 			Ptr<SwitchNode> sw = DynamicCast<SwitchNode>(n.Get(i));
 			sw->SetAttribute("CcMode", UintegerValue(cc_mode));
 			sw->SetAttribute("MaxRtt", UintegerValue(maxRtt));
 			sw->SetAttribute("PowerEnabled", BooleanValue(wien));
 		}
 	}
-
-	//
-	// add trace
-	//
-
-//	NodeContainer trace_nodes;
-//	for (uint32_t i = 0; i < trace_num; i++)
-//	{
-//		uint32_t nid;
-//		tracef >> nid;
-//		if (nid >= n.GetN()){
-//			continue;
-//		}
-//		trace_nodes = NodeContainer(trace_nodes, n.Get(nid));
-//	}
-
-//	FILE *trace_output = fopen(trace_output_file.c_str(), "w");
-//	if (enable_trace)
-//		qbb.EnableTracing(trace_output, trace_nodes);
-
-	// dump link speed to trace file
-//	{
-//		SimSetting sim_setting;
-//		for (auto i: nbr2if){
-//			for (auto j : i.second){
-//				uint16_t node = i.first->GetId();
-//				uint8_t intf = j.second.idx;
-//				uint64_t bps = DynamicCast<QbbNetDevice>(i.first->GetDevice(j.second.idx))->GetDataRate().GetBitRate();
-//				sim_setting.port_speed[node][intf] = bps;
-//			}
-//		}
-//		sim_setting.win = maxBdp;
-//		sim_setting.Serialize(trace_output);
-//	}
 
 	Ipv4GlobalRoutingHelper::PopulateRoutingTables();
 
@@ -1669,124 +1262,95 @@ int main(int argc, char *argv[])
 
 
 	// maintain port number for each host
-	for (uint32_t i = 0; i < node_num; i++){
+	for (uint32_t i = 0; i < node_num; i++) {
 		if (n.Get(i)->GetNodeType() == 0)
-			for (uint32_t j = 0; j < node_num; j++){
+			for (uint32_t j = 0; j < node_num; j++) {
 				if (n.Get(j)->GetNodeType() == 0)
-					portNumder[i][j] = rand_range(10000,11000); // each host pair use port number from 10000
+					portNumder[i][j] = rand_range(10000, 11000); // each host pair use port number from 10000
 			}
 	}
 	DestportNumder = portNumder;
 
-
-	// flow_input.idx = 0;
-	// if (flow_num > 0){
-	// 	ReadFlowInput();
-	// 	std::cout << flow_input.start_time << std::endl;
-	// 	Simulator::Schedule(Seconds(flow_input.start_time)-Simulator::Now(), ScheduleFlowInputs);
-	// }
-
-
-
-
-		double oversubRatio = double(SERVER_COUNT * LEAF_SERVER_CAPACITY) / (SPINE_LEAF_CAPACITY * SPINE_COUNT);
-        std::cout << "Over-subscription ratio: " << oversubRatio << " numerator " << double(SERVER_COUNT * LEAF_SERVER_CAPACITY) << " denom " <<  (SPINE_LEAF_CAPACITY * SPINE_COUNT)  << std::endl;
-        NS_LOG_INFO ("Initialize CDF table");
-        struct cdf_table* cdfTable = new cdf_table ();
-        init_cdf (cdfTable);
-        load_cdf (cdfTable, cdfFileName.c_str ());
-        NS_LOG_INFO ("Calculating request rate");
+	double oversubRatio = double(SERVER_COUNT * LEAF_SERVER_CAPACITY) / (SPINE_LEAF_CAPACITY * SPINE_COUNT);
+	std::cout << "Over-subscription ratio: " << oversubRatio << " numerator " << double(SERVER_COUNT * LEAF_SERVER_CAPACITY) << " denom " <<  (SPINE_LEAF_CAPACITY * SPINE_COUNT)  << std::endl;
+	NS_LOG_INFO ("Initialize CDF table");
+	struct cdf_table* cdfTable = new cdf_table ();
+	init_cdf (cdfTable);
+	load_cdf (cdfTable, cdfFileName.c_str ());
+	NS_LOG_INFO ("Calculating request rate");
 //        double requestRate =0;
-        double requestRate = load * LEAF_SERVER_CAPACITY * SERVER_COUNT / oversubRatio / (8 * avg_cdf (cdfTable)) / SERVER_COUNT;
+	double requestRate = load * LEAF_SERVER_CAPACITY * SERVER_COUNT / oversubRatio / (8 * avg_cdf (cdfTable)) / SERVER_COUNT;
 //       double requestRate = load * LEAF_SERVER_CAPACITY * SERVER_COUNT  / (8 * avg_cdf (cdfTable)) / SERVER_COUNT;
-        NS_LOG_INFO ("Average request rate: " << requestRate << " per second");
-        std::cout << "Average request rate: " << requestRate << " per second" << std::endl;
-        NS_LOG_INFO ("Initialize random seed: " << randomSeed);
-        if (randomSeed == 0)
-        {
-            srand ((unsigned)time (NULL));
-        }
-        else
-        {
-            srand (randomSeed);
-        }
+	NS_LOG_INFO ("Average request rate: " << requestRate << " per second");
+	std::cout << "Average request rate: " << requestRate << " per second" << std::endl;
+	NS_LOG_INFO ("Initialize random seed: " << randomSeed);
+	if (randomSeed == 0)
+	{
+		srand ((unsigned)time (NULL));
+	}
+	else
+	{
+		srand (randomSeed);
+	}
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/* Applications Background*/
-        NS_LOG_INFO ("Create background applications");
+	/* Applications Background*/
+	NS_LOG_INFO ("Create background applications");
 
-        long flowCount = 1;
-        long totalFlowSize = 0;
+	long flowCount = 1;
+	long totalFlowSize = 0;
 
-        for (int fromLeafId = 0; fromLeafId < LEAF_COUNT; fromLeafId ++)
-        {
-            install_applications(fromLeafId, requestRate, cdfTable, flowCount, totalFlowSize, SERVER_COUNT, LEAF_COUNT, START_TIME, END_TIME, FLOW_LAUNCH_END_TIME);
-        }
+	for (int fromLeafId = 0; fromLeafId < LEAF_COUNT; fromLeafId ++)
+	{
+		install_applications(fromLeafId, requestRate, cdfTable, flowCount, totalFlowSize, SERVER_COUNT, LEAF_COUNT, START_TIME, END_TIME, FLOW_LAUNCH_END_TIME);
+	}
 
-        NS_LOG_INFO ("Total flow: " << flowCount);
-        std::cout << "Total flow: " << flowCount << std::endl;
-        NS_LOG_INFO ("Actual average flow size: " << static_cast<double> (totalFlowSize) / flowCount);
-        std::cout << "Actual average flow size: " << static_cast<double> (totalFlowSize) / flowCount << std::endl;
-        NS_LOG_INFO ("Create applications");
+	NS_LOG_INFO ("Total flow: " << flowCount);
+	std::cout << "Total flow: " << flowCount << std::endl;
+	NS_LOG_INFO ("Actual average flow size: " << static_cast<double> (totalFlowSize) / flowCount);
+	std::cout << "Actual average flow size: " << static_cast<double> (totalFlowSize) / flowCount << std::endl;
+	NS_LOG_INFO ("Create applications");
 
 
 
-/* Applications Foreground*/
-        NS_LOG_INFO ("Create foreground applications");
-        long flowCountQ = flowCount;
-        long totalFlowSizeQ = 0;
-        double QUERY_START_TIME=0.0;
-        requestRate=queryRequestRate;//1;//10;
-        if (requestSize==0){
-        	requestRate=0;
-        }
-        if (requestRate>0 && requestSize>0){
-        	for (int fromLeafId = 0; fromLeafId < LEAF_COUNT; fromLeafId ++)
-        	{
-            	install_applications_queryNew(fromLeafId, requestRate,requestSize, cdfTable, flowCountQ, totalFlowSizeQ, SERVER_COUNT, LEAF_COUNT, QUERY_START_TIME, END_TIME, FLOW_LAUNCH_END_TIME);
-        	}
-    	}
+	/* Applications Foreground*/
+	NS_LOG_INFO ("Create foreground applications");
+	long flowCountQ = flowCount;
+	long totalFlowSizeQ = 0;
+	double QUERY_START_TIME = 0.0;
+	requestRate = queryRequestRate; //1;//10;
+	if (requestSize == 0) {
+		requestRate = 0;
+	}
+	if (requestRate > 0 && requestSize > 0) {
+		for (int fromLeafId = 0; fromLeafId < LEAF_COUNT; fromLeafId ++)
+		{
+			install_applications_queryNew(fromLeafId, requestRate, requestSize, cdfTable, flowCountQ, totalFlowSizeQ, SERVER_COUNT, LEAF_COUNT, QUERY_START_TIME, END_TIME, FLOW_LAUNCH_END_TIME);
+		}
+	}
 
-        NS_LOG_INFO ("Total Query: " << flowCountQ-flowCount);
-        std::cout << "Total Query: " << flowCountQ-flowCount << std::endl;
+	NS_LOG_INFO ("Total Query: " << flowCountQ - flowCount);
+	std::cout << "Total Query: " << flowCountQ - flowCount << std::endl;
 
-        NS_LOG_INFO ("Actual average QuerySize: " << static_cast<double> (totalFlowSizeQ) / (flowCountQ-flowCount));
-        std::cout << "Actual average QuerySize: " << static_cast<double> (totalFlowSizeQ) / (flowCountQ-flowCount) << std::endl;
+	NS_LOG_INFO ("Actual average QuerySize: " << static_cast<double> (totalFlowSizeQ) / (flowCountQ - flowCount));
+	std::cout << "Actual average QuerySize: " << static_cast<double> (totalFlowSizeQ) / (flowCountQ - flowCount) << std::endl;
 
 
 
 
 	topof.close();
 	tracef.close();
-	 double delay = 1.5*minRtt*1e-9; // 10 micro seconds
-	// Simulator::Schedule(Seconds(delay),PrintResults,switchDown,1,delay);
-	// Simulator::Schedule(Seconds(delay),PrintResultsFlow,sourceNodes,flow_num,delay);
-//	Simulator::Schedule(Seconds(0.3),invokeReconfiguration,switchUp,tors);
+	double delay = 1.5 * minRtt * 1e-9; // 10 micro seconds
+	Simulator::Schedule(Seconds(delay), printBuffer, torNodes, delay);
 
-	// schedule link down
-//	if (link_down_time > 0){
-//		Simulator::Schedule(Seconds(2) + MicroSeconds(link_down_time), &TakeDownLink, n, n.Get(link_down_A), n.Get(link_down_B));
-//	}
-
-	// schedule buffer monitor
-//	FILE* qlen_output = fopen(qlen_mon_file.c_str(), "w");
-//	Simulator::Schedule(NanoSeconds(qlen_mon_start), &monitor_buffer, qlen_output, &n);
-	Simulator::Schedule(Seconds(delay), printBuffer, torNodes,delay);
-	//
-	// Now, do the actual simulation.
-	//
-
-	 Ipv4GlobalRoutingHelper::PopulateRoutingTables();
+	Ipv4GlobalRoutingHelper::PopulateRoutingTables();
 	std::cout << "Running Simulation.\n";
-//	fflush(stdout);
 	NS_LOG_INFO("Run Simulation.");
 	Simulator::Stop(Seconds(END_TIME));
 	Simulator::Run();
 	Simulator::Destroy();
 	NS_LOG_INFO("Done.");
-//	fclose(trace_output);
 
 	endt = clock();
 	std::cout << (double)(endt - begint) / CLOCKS_PER_SEC << "\n";
-
 }
