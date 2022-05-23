@@ -36,62 +36,61 @@ REQ_SIZE=(1000000 2000000 4000000 6000000 8000000 1000000)
 #####################################
 
 N=1
-# echo "start"
 
-# for req in ${REQ_RATE[@]};do
-# 	for load in ${LOADS[@]};do
-# 		for algorithm in ${algs[@]};do
+################################################
 
-# 			echo "evaluation-${algNames[$algorithm]}-$load-$req.out $N"
-# 			N=$(( $N+1 ))
-# 			RESULT_FILE="$RES_DUMP/evaluation-${algNames[$algorithm]}-$load-$req.out"
-# 			# echo "time ./waf --run "evaluation-fairness --algorithm=${CCMODE[$algorithm]} --wien=$wien --delayWien=$delay --windowCheck=$window""
-# 			# time ./waf --run "evaluation-workload --algorithm=${CCMODE[$algorithm]} --wien=$wien --delayWien=$delay --windowCheck=$window --queryRequestRate=$req --load=$load --START_TIME=$START --END_TIME=$END --FLOW_LAUNCH_END_TIME=$FLOWEND --incast=5" > $RESULT_FILE  2> $RESULT_FILE &
-# 			cat $RESULT_FILE | grep 'FCT' | grep 'flowSize' > $RES_RESULTS/result-${algNames[$algorithm]}-$load-$req.fct
-# 			cat $RESULT_FILE | grep 'switch 0' | grep 'time' > $RES_RESULTS/result-${algNames[$algorithm]}-$load-$req.buf
-# 		done
-# 	done
-# done
+# Varying Load. No Incast traffic.
 
+################################################
+req=0
+query=0
+for load in ${LOADS[@]};do
+	for algorithm in ${algs[@]};do
 
-
-# req=0
-# query=0
-# for load in ${LOADS[@]};do
-# 	for algorithm in ${algs[@]};do
-
-# 		echo "evaluation-${algNames[$algorithm]}-$load-$req-$query.out $N"
-# 		N=$(( $N+1 ))
-# 		RESULT_FILE="$RES_DUMP/evaluation-${algNames[$algorithm]}-$load-$req-$query.out"
+		echo "evaluation-${algNames[$algorithm]}-$load-$req-$query.out $N"
+		N=$(( $N+1 ))
+		RESULT_FILE="$RES_DUMP/evaluation-${algNames[$algorithm]}-$load-$req-$query.out"
 		
-# 		cat $RESULT_FILE | grep 'FCT' | grep 'size' > $RES_RESULTS/result-${algNames[$algorithm]}-$load-$req-$query.fct
-# 		cat $RESULT_FILE | grep 'switch 0'| grep 'qlen' > $RES_RESULTS/result-${algNames[$algorithm]}-$load-$req-$query.buf
-# 	done
-# done
+		cat $RESULT_FILE | grep 'FCT' | grep 'size' > $RES_RESULTS/result-${algNames[$algorithm]}-$load-$req-$query.fct
+		cat $RESULT_FILE | grep 'switch 0'| grep 'qlen' > $RES_RESULTS/result-${algNames[$algorithm]}-$load-$req-$query.buf
+	done
+done
 
-# echo "#######################################"
-# echo "#      FINISHED LOAD EXPERIMENTS      #"
-# echo "#######################################"
+echo "#######################################"
+echo "#      FINISHED LOAD EXPERIMENTS      #"
+echo "#######################################"
 
-# query=$(( 2*1000*1000 ))
-# load="0.8"
-# for req in ${REQ_RATE[@]};do
-# 	for algorithm in ${algs[@]};do
 
-# 		echo "evaluation-${algNames[$algorithm]}-$load-$req-$query.out $N"
-# 		N=$(( $N+1 ))
-# 		RESULT_FILE="$RES_DUMP/evaluation-${algNames[$algorithm]}-$load-$req-$query.out"
+################################################
+
+# 0.8 Load. Incast traffic @2MB Size, varying request rate (frequency of incast scenarios)
+
+################################################
+
+query=$(( 2*1000*1000 ))
+load="0.8"
+for req in ${REQ_RATE[@]};do
+	for algorithm in ${algs[@]};do
+
+		echo "evaluation-${algNames[$algorithm]}-$load-$req-$query.out $N"
+		N=$(( $N+1 ))
+		RESULT_FILE="$RES_DUMP/evaluation-${algNames[$algorithm]}-$load-$req-$query.out"
 		
-# 		cat $RESULT_FILE | grep 'FCT' | grep 'size' > $RES_RESULTS/result-${algNames[$algorithm]}-$load-$req-$query.fct
-# 		cat $RESULT_FILE | grep 'switch 0'| grep 'qlen' > $RES_RESULTS/result-${algNames[$algorithm]}-$load-$req-$query.buf
-# 	done
-# done
+		cat $RESULT_FILE | grep 'FCT' | grep 'size' > $RES_RESULTS/result-${algNames[$algorithm]}-$load-$req-$query.fct
+		cat $RESULT_FILE | grep 'switch 0'| grep 'qlen' > $RES_RESULTS/result-${algNames[$algorithm]}-$load-$req-$query.buf
+	done
+done
 
-# echo "#######################################"
-# echo "#      FINISHED RATE EXPERIMENTS      #"
-# echo "#######################################"
+echo "#######################################"
+echo "#      FINISHED RATE EXPERIMENTS      #"
+echo "#######################################"
 
 
+################################################
+
+# 0.8 Load. Incast traffic @ 4/second Rate, varying request size (total bytes requested in an incast scenario)
+
+################################################
 
 req="4"
 load="0.8"
@@ -111,21 +110,3 @@ echo "##########################################"
 echo "#      FINISHED BURST-4 EXPERIMENTS      #"
 echo "##########################################"
 
-
-req="1"
-load="0.8"
-for query in ${REQ_SIZE[@]};do
-	for algorithm in ${algs[@]};do
-
-		echo "evaluation-${algNames[$algorithm]}-$load-$req-$query.out $N"
-		N=$(( $N+1 ))
-		RESULT_FILE="$RES_DUMP/evaluation-${algNames[$algorithm]}-$load-$req-$query.out"
-		
-		cat $RESULT_FILE | grep 'FCT' | grep 'size' > $RES_RESULTS/result-${algNames[$algorithm]}-$load-$req-$query.fct
-		cat $RESULT_FILE | grep 'switch 0'| grep 'qlen' > $RES_RESULTS/result-${algNames[$algorithm]}-$load-$req-$query.buf
-	done
-done
-
-echo "##########################################"
-echo "#      FINISHED BURST-1 EXPERIMENTS      #"
-echo "##########################################"
