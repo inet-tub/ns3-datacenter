@@ -16,6 +16,7 @@ from matplotlib.lines import Line2D
 
 NS3="/home/vamsi/lakewood/src/phd/ns3-datacenter/simulator/ns-3.35/"
 plots_dir="/home/vamsi/Powertcp-NSDI/"
+results=NS3+"examples/PowerTCP/results_burst/"
 
 # plots_dir="/home/vamsi/Powertcp-NSDI/"
 plt.rcParams.update({'font.size': 18})
@@ -36,7 +37,6 @@ algnames["DCTCP"]="DCTCP"
 
 ######### BURST ###############
 
-results=NS3+"examples/PowerTCP/results_burst/"
 plt.rcParams.update({'font.size': 22})
 
 
