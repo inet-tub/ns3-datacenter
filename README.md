@@ -52,7 +52,7 @@ cd $REPO/simulator/ns-3.35/
 
 # Running PowerTCP
 
-Checkout [this folder](https://github.com/inet-tub/ns3-datacenter/tree/master/simulator/ns-3.35/examples/PowerTCP) - `simulator/ns-3.35/examples/PowerTCP` for various simulation files and scripts to run PowerTCP. More documentation will be added in the upcoming days.
+Checkout [`simulator/ns-3.35/examples/PowerTCP`](https://github.com/inet-tub/ns3-datacenter/tree/master/simulator/ns-3.35/examples/PowerTCP) for various simulation files and scripts to run PowerTCP. More documentation will be added in the upcoming days.
 
 # Changes to NS-3.35
 
