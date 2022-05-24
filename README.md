@@ -3,6 +3,8 @@
 
 This repository contains the source code used for [PowerTCP (NSDI 2022)](https://www.usenix.org/conference/nsdi22/presentation/addanki) and ABM (SIGCOMM 2022).
 
+**This is a beta release. Please raise issues if you encounter any.**
+
 We extend ns-3.35 to support some of the recent advancements in the datacenter context.
 - Various datacenter congestion control algorithms including PowerTCP over both TCP/IP and RDMA stacks can be used simulataneously. 
 - The switch MMU is based on SONIC buffer model (purely based on our understanding only). 
