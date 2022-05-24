@@ -5,3 +5,6 @@
  *      Author: vamsi
  */
 
+main(){
+	return 0;
+}
