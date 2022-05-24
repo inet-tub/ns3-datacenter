@@ -373,7 +373,7 @@ main (int argc, char *argv[])
 	
 	std::string alphasFile="/home/vamsi/src/phd/ns3-datacenter/simulator/ns-3.35/examples/ABM/abm-evaluation/alphas"; // On lakewood
 	// std::string cdfFileName = "/home/vamsi/FB_Simulations/ns-allinone-3.33/ns-3.33/examples/plasticine/DCTCP_CDF.txt";
-	std::string cdfFileName = "/home/vamsi/src/phd/ns3-datacenter/simulator/ns-3.35/examples/ABM/DCTCP_CDF.txt";
+	std::string cdfFileName = "/home/vamsi/src/phd/ns3-datacenter/simulator/ns-3.35/examples/ABM/websearch.txt";
 	std::string cdfName = "WS";
 	cmd.AddValue ("alphasFile", "alpha values file (should be exactly nPrior lines)", alphasFile);
 	cmd.AddValue ("cdfFileName", "File name for flow distribution", cdfFileName);
