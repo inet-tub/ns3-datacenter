@@ -571,13 +571,13 @@ main (int argc, char *argv[])
 
 			// specificNode = "$ns3::NodeListPriv/NodeList/" + nodeId.str () + "/$ns3::TcpSocketBase/Sack";
 			// Config::Set (specificNode, BooleanValue(false));
-			specificNode = "$ns3::NodeListPriv/NodeList/" + nodeId.str () + "/$ns3::TcpSocketState/initWienRate";
+			specificNode = "$ns3::NodeListPriv/NodeList/" + nodeId.str () + "/$ns3::TcpSocketState/initCCRate";
 			Config::Set (specificNode, DataRateValue(DataRate(LEAF_SERVER_CAPACITY)));
-			specificNode = "$ns3::NodeListPriv/NodeList/" + nodeId.str () + "/$ns3::TcpSocketState/minWienRate";
+			specificNode = "$ns3::NodeListPriv/NodeList/" + nodeId.str () + "/$ns3::TcpSocketState/minCCRate";
 			Config::Set (specificNode, DataRateValue(DataRate("100Mbps")));
-			specificNode = "$ns3::NodeListPriv/NodeList/" + nodeId.str () + "/$ns3::TcpSocketState/maxWienRate";
+			specificNode = "$ns3::NodeListPriv/NodeList/" + nodeId.str () + "/$ns3::TcpSocketState/maxCCRate";
 			Config::Set (specificNode, DataRateValue(DataRate(LEAF_SERVER_CAPACITY)));
-			specificNode = "$ns3::NodeListPriv/NodeList/" + nodeId.str () + "/$ns3::TcpSocketState/AIWien";
+			specificNode = "$ns3::NodeListPriv/NodeList/" + nodeId.str () + "/$ns3::TcpSocketState/AI";
 			Config::Set (specificNode, DataRateValue(DataRate("100Mbps")));
 			specificNode = "$ns3::NodeListPriv/NodeList/" + nodeId.str () + "/$ns3::TcpSocketState/mThreshHpcc";
 			Config::Set (specificNode, UintegerValue(5));
@@ -585,7 +585,7 @@ main (int argc, char *argv[])
 			Config::Set (specificNode, BooleanValue(true));
 			specificNode = "$ns3::NodeListPriv/NodeList/" + nodeId.str () + "/$ns3::TcpSocketState/sampleFeedbackHpcc";
 			Config::Set (specificNode, BooleanValue(false));
-			specificNode = "$ns3::NodeListPriv/NodeList/" + nodeId.str () + "/$ns3::TcpSocketState/useThetaPower";
+			specificNode = "$ns3::NodeListPriv/NodeList/" + nodeId.str () + "/$ns3::TcpSocketState/useThetaPowerTcp";
 			Config::Set (specificNode, BooleanValue(true));
 			specificNode = "$ns3::NodeListPriv/NodeList/" + nodeId.str () + "/$ns3::TcpSocketState/multipleRateHpcc";
 			Config::Set (specificNode, BooleanValue(false));

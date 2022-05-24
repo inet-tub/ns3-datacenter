@@ -571,10 +571,10 @@ main (int argc, char *argv[])
 	case HPCC:
 		Config::SetDefault("ns3::TcpL4Protocol::SocketType", TypeIdValue (ns3::TcpAdvanced::GetTypeId()));
 		// Config::SetDefault("ns3::TcpSocketBase::Sack", BooleanValue(false));
-		Config::SetDefault("ns3::TcpSocketState::initWienRate", DataRateValue(DataRate(LEAF_SERVER_CAPACITY)));
-		Config::SetDefault("ns3::TcpSocketState::minWienRate", DataRateValue(DataRate("100Mbps")));
-		Config::SetDefault("ns3::TcpSocketState::maxWienRate", DataRateValue(DataRate(LEAF_SERVER_CAPACITY)));
-		Config::SetDefault("ns3::TcpSocketState::AIWien", DataRateValue(DataRate("100Mbps")));
+		Config::SetDefault("ns3::TcpSocketState::initCCRate", DataRateValue(DataRate(LEAF_SERVER_CAPACITY)));
+		Config::SetDefault("ns3::TcpSocketState::minCCRate", DataRateValue(DataRate("100Mbps")));
+		Config::SetDefault("ns3::TcpSocketState::maxCCRate", DataRateValue(DataRate(LEAF_SERVER_CAPACITY)));
+		Config::SetDefault("ns3::TcpSocketState::AI", DataRateValue(DataRate("100Mbps")));
 		Config::SetDefault("ns3::TcpSocketState::mThreshHpcc", UintegerValue(5));
 		Config::SetDefault("ns3::TcpSocketState::fastReactHpcc", BooleanValue(true));
 		Config::SetDefault("ns3::TcpSocketState::sampleFeedbackHpcc", BooleanValue(false));
@@ -595,11 +595,11 @@ main (int argc, char *argv[])
 	case TIMELY:
 		Config::SetDefault("ns3::TcpL4Protocol::SocketType", TypeIdValue (ns3::TcpAdvanced::GetTypeId()));
 		// Config::SetDefault("ns3::TcpSocketBase::Sack", BooleanValue(false));
-		Config::SetDefault("ns3::TcpSocketState::initWienRate", DataRateValue(DataRate(LEAF_SERVER_CAPACITY)));
-		Config::SetDefault("ns3::TcpSocketState::minWienRate", DataRateValue(DataRate("100Mbps")));
-		Config::SetDefault("ns3::TcpSocketState::maxWienRate", DataRateValue(DataRate(LEAF_SERVER_CAPACITY)));
-		Config::SetDefault("ns3::TcpSocketState::AIWien", DataRateValue(DataRate("100Mbps")));
-		Config::SetDefault("ns3::TcpSocketState::HighAIWien", DataRateValue(DataRate("150Mbps")));
+		Config::SetDefault("ns3::TcpSocketState::initCCRate", DataRateValue(DataRate(LEAF_SERVER_CAPACITY)));
+		Config::SetDefault("ns3::TcpSocketState::minCCRate", DataRateValue(DataRate("100Mbps")));
+		Config::SetDefault("ns3::TcpSocketState::maxCCRate", DataRateValue(DataRate(LEAF_SERVER_CAPACITY)));
+		Config::SetDefault("ns3::TcpSocketState::AI", DataRateValue(DataRate("100Mbps")));
+		Config::SetDefault("ns3::TcpSocketState::HighAI", DataRateValue(DataRate("150Mbps")));
 		Config::SetDefault("ns3::TcpSocketState::useTimely", BooleanValue(true));
 		Config::SetDefault("ns3::TcpSocketState::baseRtt", TimeValue(MicroSeconds(linkLatency * 4 * 2 + 2 * double(PACKET_SIZE * 8) / (LEAF_SERVER_CAPACITY))));
 		// Config::SetDefault("ns3::TcpSocketState::TimelyTlow", UintegerValue((linkLatency*4*2*1.5)*1000)); // in nanoseconds
@@ -616,14 +616,14 @@ main (int argc, char *argv[])
 	case POWERTCP:
 		Config::SetDefault("ns3::TcpL4Protocol::SocketType", TypeIdValue (ns3::TcpAdvanced::GetTypeId()));
 		// Config::SetDefault("ns3::TcpSocketBase::Sack", BooleanValue(false));
-		Config::SetDefault("ns3::TcpSocketState::initWienRate", DataRateValue(DataRate(LEAF_SERVER_CAPACITY)));
-		Config::SetDefault("ns3::TcpSocketState::minWienRate", DataRateValue(DataRate("100Mbps")));
-		Config::SetDefault("ns3::TcpSocketState::maxWienRate", DataRateValue(DataRate(LEAF_SERVER_CAPACITY)));
-		Config::SetDefault("ns3::TcpSocketState::AIWien", DataRateValue(DataRate("100Mbps")));
+		Config::SetDefault("ns3::TcpSocketState::initCCRate", DataRateValue(DataRate(LEAF_SERVER_CAPACITY)));
+		Config::SetDefault("ns3::TcpSocketState::minCCRate", DataRateValue(DataRate("100Mbps")));
+		Config::SetDefault("ns3::TcpSocketState::maxCCRate", DataRateValue(DataRate(LEAF_SERVER_CAPACITY)));
+		Config::SetDefault("ns3::TcpSocketState::AI", DataRateValue(DataRate("100Mbps")));
 		Config::SetDefault("ns3::TcpSocketState::mThreshHpcc", UintegerValue(5));
 		Config::SetDefault("ns3::TcpSocketState::fastReactHpcc", BooleanValue(true));
 		Config::SetDefault("ns3::TcpSocketState::sampleFeedbackHpcc", BooleanValue(false));
-		Config::SetDefault("ns3::TcpSocketState::useHpcc", BooleanValue(false)); // This parameter is critical. Pay attention. Both HPCC and PowerTCP are implemented in the same file tcp-wien.
+		Config::SetDefault("ns3::TcpSocketState::usePowerTcp", BooleanValue(true));
 		Config::SetDefault("ns3::TcpSocketState::multipleRateHpcc", BooleanValue(false));
 		Config::SetDefault("ns3::TcpSocketState::targetUtil", DoubleValue(0.95));
 		Config::SetDefault("ns3::TcpSocketState::baseRtt", TimeValue(MicroSeconds(linkLatency * 4 * 2 + 2 * double(PACKET_SIZE * 8) / (LEAF_SERVER_CAPACITY))));
@@ -640,14 +640,14 @@ main (int argc, char *argv[])
 	case THETAPOWERTCP:
 		Config::SetDefault("ns3::TcpL4Protocol::SocketType", TypeIdValue (ns3::TcpAdvanced::GetTypeId()));
 		// Config::SetDefault("ns3::TcpSocketBase::Sack", BooleanValue(false));
-		Config::SetDefault("ns3::TcpSocketState::initWienRate", DataRateValue(DataRate(LEAF_SERVER_CAPACITY)));
-		Config::SetDefault("ns3::TcpSocketState::minWienRate", DataRateValue(DataRate("100Mbps")));
-		Config::SetDefault("ns3::TcpSocketState::maxWienRate", DataRateValue(DataRate(LEAF_SERVER_CAPACITY)));
-		Config::SetDefault("ns3::TcpSocketState::AIWien", DataRateValue(DataRate("100Mbps")));
+		Config::SetDefault("ns3::TcpSocketState::initCCRate", DataRateValue(DataRate(LEAF_SERVER_CAPACITY)));
+		Config::SetDefault("ns3::TcpSocketState::minCCRate", DataRateValue(DataRate("100Mbps")));
+		Config::SetDefault("ns3::TcpSocketState::maxCCRate", DataRateValue(DataRate(LEAF_SERVER_CAPACITY)));
+		Config::SetDefault("ns3::TcpSocketState::AI", DataRateValue(DataRate("100Mbps")));
 		Config::SetDefault("ns3::TcpSocketState::mThreshHpcc", UintegerValue(5));
 		Config::SetDefault("ns3::TcpSocketState::fastReactHpcc", BooleanValue(false));
 		Config::SetDefault("ns3::TcpSocketState::sampleFeedbackHpcc", BooleanValue(false));
-		Config::SetDefault("ns3::TcpSocketState::useThetaPower", BooleanValue(true)); // This parameter is critical. Pay attention. Both HPCC and PowerTCP are implemented in the same file tcp-wien.
+		Config::SetDefault("ns3::TcpSocketState::useThetaPowerTcp", BooleanValue(true));
 		Config::SetDefault("ns3::TcpSocketState::multipleRateHpcc", BooleanValue(false));
 		Config::SetDefault("ns3::TcpSocketState::targetUtil", DoubleValue(0.95));
 		Config::SetDefault("ns3::TcpSocketState::baseRtt", TimeValue(MicroSeconds(linkLatency * 4 * 2 + 2 * double(PACKET_SIZE * 8) / (LEAF_SERVER_CAPACITY))));
