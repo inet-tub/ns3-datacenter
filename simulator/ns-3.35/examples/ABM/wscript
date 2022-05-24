@@ -4,12 +4,9 @@ def build(bld):
     obj = bld.create_ns3_program('abm-evaluation',
                                  ['point-to-point', 'traffic-control', 'internet', 'applications'])
     obj.source = ['abm-evaluation.cc', 'cdf.c']
-    obj = bld.create_ns3_program('abm-evaluation-burst',
-                                 ['point-to-point', 'traffic-control', 'internet', 'applications'])
-    obj.source = ['abm-evaluation-burst.cc', 'cdf.c']
     obj = bld.create_ns3_program('abm-evaluation-multi',
                                  ['point-to-point', 'traffic-control', 'internet', 'applications'])
     obj.source = ['abm-evaluation-multi.cc', 'cdf.c']
-    obj = bld.create_ns3_program('abm-evaluation-unimulti',
+    obj = bld.create_ns3_program('abm-evaluation-nprio',
                                  ['point-to-point', 'traffic-control', 'internet', 'applications'])
-    obj.source = ['abm-evaluation-unimulti.cc', 'cdf.c']
+    obj.source = ['abm-evaluation-nprio.cc', 'cdf.c']

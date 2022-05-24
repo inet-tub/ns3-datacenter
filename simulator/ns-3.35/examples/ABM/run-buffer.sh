@@ -73,6 +73,11 @@ BURST_SIZES=0.25
 BURST_SIZE=$(python3 -c "print($BURST_SIZES*$BUFFER)")
 
 
+################################################################
+# DT, ABM and IB under different Buffer Sizes. 
+# Using Cubic and DCTCP, at 40% websearch load and incast workload at Burst size of 25% of initial buffer size and request rate = 2
+###############################################################
+
 for BUFFER_PER_PORT_PER_GBPS in 9.6 8 7 6 5.12 3.44;do
 	BUFFER=$(python3 -c "print(int($BUFFER_PER_PORT_PER_GBPS*1024*($SERVERS+$LINKS*$SPINES)*$SERVER_LEAF_CAP))")
 	for ALG in $DT $ABM $IB;do

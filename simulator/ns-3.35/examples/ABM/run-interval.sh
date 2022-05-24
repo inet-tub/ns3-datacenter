@@ -70,9 +70,15 @@ BURST_FREQ=2
 BURST_SIZES=0.75
 BURST_SIZE=$(python3 -c "print($BURST_SIZES*$BUFFER)")
 
+################################################################
+# Approx ABM: Using DT and changing alpha values periodically.
+# At different update intervals.
+###############################################################
+
+
 for ALPHA_UPDATE_INT in 1 10 100 1000 10000;do
 	FLOW_END_TIME=13 #$(python3 -c "print(10+3*0.8/$LOAD)")
-	while [[ $(( $(ps aux | grep evaluation-multi-optimized | wc -l)+$(ps aux | grep evaluation-optimized | wc -l) )) -gt 37 ]];do
+	while [[ $(( $(ps aux | grep abm-evaluation-optimized | wc -l)+$(ps aux | grep evaluation-optimized | wc -l) )) -gt 37 ]];do
 		sleep 30;
 		echo "waiting for cores, $N running..."
 	done
@@ -84,9 +90,12 @@ for ALPHA_UPDATE_INT in 1 10 100 1000 10000;do
 	sleep 3
 done
 
+#####################
+# Just DT with the same setup as above.
+#####################
 ALG=$DT
 FLOW_END_TIME=13 #$(python3 -c "print(10+3*0.8/$LOAD)")
-while [[ $(( $(ps aux | grep evaluation-multi-optimized | wc -l)+$(ps aux | grep evaluation-optimized | wc -l) )) -gt 37 ]];do
+while [[ $(( $(ps aux | grep abm-evaluation-optimized | wc -l)+$(ps aux | grep evaluation-optimized | wc -l) )) -gt 37 ]];do
 	sleep 30;
 	echo "waiting for cores, $N running..."
 done
@@ -97,4 +106,11 @@ N=$(( $N+1 ))
 (time ./waf --run "abm-evaluation --load=$LOAD --StartTime=$START_TIME --EndTime=$END_TIME --FlowLaunchEndTime=$FLOW_END_TIME --serverCount=$SERVERS --spineCount=$SPINES --leafCount=$LEAVES --linkCount=$LINKS --spineLeafCapacity=$LEAF_SPINE_CAP --leafServerCapacity=$SERVER_LEAF_CAP --linkLatency=$LATENCY --TcpProt=$TCP --BufferSize=$BUFFER --statBuf=$STATIC_BUFFER --algorithm=$ALG --RedMinTh=$RED_MIN --RedMaxTh=$RED_MAX --request=$BURST_SIZE --queryRequestRate=$BURST_FREQ --nPrior=$N_PRIO --alphasFile=$ALPHAFILE --cdfFileName=$CDFFILE --alphaUpdateInterval=$ALPHA_UPDATE_INT --fctOutFile=$FLOWFILE --torOutFile=$TORFILE" ; echo "$FLOWFILE")&
 sleep 3
 
-echo "### DONE ###"
+while [[ $(ps aux|grep "abm-evaluation-optimized"|wc -l) -gt 1 ]];do
+	echo "Waiting for simulations to finish..."
+	sleep 5
+done
+
+echo "##################################"
+echo "#      FINISHED EXPERIMENTS      #"
+echo "##################################"

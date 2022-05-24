@@ -58,9 +58,15 @@ cd $NS3
 
 N=0
 
-# #MULTI 12 
+##################################################################################
+# Cubic, DCTCP run websearch workload, and Theta-PowerTCP runs incast workload@ 30% buffer size and request rate of 2.
+# Cubic, DCTCP and Theta-PowerTCP are separated to 3 different queues.
+# The idea is to observe how Cubic load effects DCTCP and PowerTCP even though they do not share queues. They do share the same buffer though.
+##################################################################################
+
+# Total simulations =  12 
 SERVERS=32
-LEAVES=5
+LEAVES=2
 SPINES=2
 LINKS=4
 SERVER_LEAF_CAP=10
@@ -79,7 +85,7 @@ for CUBICLOAD in 0.1 0.2 0.3 0.4 0.5 0.6;do
 		FLOW_END_TIME=13 #$(python3 -c "print(10+3*0.8/$LOAD)")
 		FLOWFILE="$DUMP_DIR/fcts-multi-$TCP-$ALG-$CUBICLOAD-$BURST_SIZES-$BURST_FREQ.fct"
 		TORFILE="$DUMP_DIR/tor-multi-$TCP-$ALG-$CUBICLOAD-$BURST_SIZES-$BURST_FREQ.stat"
-		while [[ $(( $(ps aux | grep evaluation-multi-optimized | wc -l)+$(ps aux | grep evaluation-optimized | wc -l) )) -gt 37 ]];do
+		while [[ $(( $(ps aux | grep abm-evaluation-multi-optimized | wc -l)+$(ps aux | grep evaluation-optimized | wc -l) )) -gt 37 ]];do
 			sleep 30;
 			echo "waiting for cores, $N running..."
 		done
@@ -89,7 +95,11 @@ for CUBICLOAD in 0.1 0.2 0.3 0.4 0.5 0.6;do
 	done
 done
 
-# 30
+##################################################################################
+# Performance of DCTCP, TIMELY and PowerTCP under Incast workload at different request sizes (burst size) and request rate of 2. 
+##################################################################################
+
+# Total simulations = 30
 SERVERS=32
 LEAVES=2
 SPINES=2
@@ -106,7 +116,7 @@ for TCP in $DCTCP $TIMELY $POWERTCP;do
 	for BURST_SIZES in 0.125 0.25 0.375 0.5 0.75;do
 		for ALG in $DT $ABM;do
 			FLOW_END_TIME=13 #$(python3 -c "print(10+3*0.8/$LOAD)")
-			while [[ $(( $(ps aux | grep evaluation-multi-optimized | wc -l)+$(ps aux | grep evaluation-optimized | wc -l) )) -gt 37 ]];do
+			while [[ $(( $(ps aux | grep abm-evaluation-multi-optimized | wc -l)+$(ps aux | grep evaluation-optimized | wc -l) )) -gt 37 ]];do
 				sleep 30;
 				echo "waiting for cores, $N running..."
 			done
@@ -120,7 +130,12 @@ for TCP in $DCTCP $TIMELY $POWERTCP;do
 	done
 done
 
-# 20 exps
+##################################################################################
+# Cubic at various loads under different buffer management schemes 
+# DT, FAB, CS, IB and ABM.
+##################################################################################
+
+# Total simulations = 20
 BURST_SIZES=0.3
 BURST_SIZE=$(python3 -c "print($BURST_SIZES*$BUFFER)")
 BURST_FREQ=2
@@ -129,7 +144,7 @@ for ALG in ${BUF_ALGS[@]};do
 		FLOW_END_TIME=13 #$(python3 -c "print(10+3*0.8/$LOAD)")
 		FLOWFILE="$DUMP_DIR/fcts-single-$TCP-$ALG-$LOAD-$BURST_SIZES-$BURST_FREQ.fct"
 		TORFILE="$DUMP_DIR/tor-single-$TCP-$ALG-$LOAD-$BURST_SIZES-$BURST_FREQ.stat"
-		while [[ $(ps aux | grep evaluation-optimized | wc -l) -gt 36 ]];do
+		while [[ $(ps aux | grep abm-evaluation-optimized | wc -l) -gt 36 ]];do
 			sleep 30;
 			echo "waiting for cores, $N running..."
 		done
@@ -139,13 +154,18 @@ for ALG in ${BUF_ALGS[@]};do
 	done
 done
 
-# 25
+##################################################################################
+# Cubic at 40% load, at various incast request sizes (burst size) under different buffer management schemes.
+#  DT, FAB, CS, IB and ABM.
+##################################################################################
+
+# Total simulations = 25
 LOAD=0.4
 BURST_FREQ=2
 for BURST_SIZES in 0.125 0.25 0.375 0.5 0.75;do
 	for ALG in ${BUF_ALGS[@]};do
 		FLOW_END_TIME=13 #$(python3 -c "print(10+3*0.8/$LOAD)")
-		while [[ $(ps aux | grep evaluation-optimized | wc -l) -gt 36 ]];do
+		while [[ $(ps aux | grep abm-evaluation-optimized | wc -l) -gt 36 ]];do
 			sleep 30;
 			echo "waiting for cores, $N running..."
 		done
@@ -157,3 +177,14 @@ for BURST_SIZES in 0.125 0.25 0.375 0.5 0.75;do
 		sleep 2
 	done
 done
+
+while [[ $(ps aux|grep "abm-evaluation-optimized"|wc -l) -gt 1 ]];do
+	echo "Waiting for simulations to finish..."
+	sleep 5
+done
+
+
+echo "##################################"
+echo "#      FINISHED EXPERIMENTS      #"
+echo "##################################"
+
