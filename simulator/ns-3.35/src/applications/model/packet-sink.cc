@@ -99,6 +99,9 @@ PacketSink::GetTypeId (void)
                      "A packet with SeqTsSize header has been received",
                      MakeTraceSourceAccessor (&PacketSink::m_rxTraceWithSeqTsSize),
                      "ns3::PacketSink::SeqTsSizeCallback")
+    .AddTraceSource ("FlowFinish", "end of flow ",
+                     MakeTraceSourceAccessor (&PacketSink::m_flowFinishTrace),
+                     "ns3::Packet::TracedCallback")
   ;
   return tid;
 }
