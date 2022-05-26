@@ -111,9 +111,7 @@ SwitchMmu::SetEgressLosslessPool(uint64_t b) {
 void
 SwitchMmu::SetReserved(uint64_t b, uint32_t port, uint32_t q, std::string inout) {
 	if (inout == "ingress"){
-		xoffTotal -= reserveIngress[port][q];
 		reserveIngress[port][q] = b;
-		xoffTotal += reserveIngress[port][q];
 	}
 	else if (inout == "egress"){
 		reserveEgress[port][q] = b;
@@ -125,9 +123,7 @@ SwitchMmu::SetReserved(uint64_t b, std::string inout) {
 	if (inout == "ingress"){
 		for (uint32_t port = 0; port<pCnt; port++){
 			for(uint32_t q=0; q < qCnt ; q++){
-				xoffTotal -= reserveIngress[port][q];
 				reserveIngress[port][q] = b;
-				xoffTotal += reserveIngress[port][q];
 			}
 		}
 	}
@@ -170,14 +166,18 @@ SwitchMmu::SetAlphaEgress(double value) {
 
 void
 SwitchMmu::SetHeadroom(uint64_t b, uint32_t port, uint32_t q) {
+	xoffTotal -= xoff[port][q];
 	xoff[port][q] = b;
+	xoffTotal += xoff[port][q];
 }
 
 void
 SwitchMmu::SetHeadroom(uint64_t b) {
 	for (uint32_t port = 0; port< pCnt; port++){
 		for (uint32_t q = 0; q < qCnt; q++){
+			xoffTotal -= xoff[port][q];
 			xoff[port][q] = b;
+			xoffTotal += xoff[port][q];
 		}
 	}
 }

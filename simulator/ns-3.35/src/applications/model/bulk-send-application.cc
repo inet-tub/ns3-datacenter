@@ -53,7 +53,7 @@ BulkSendApplication::GetTypeId (void)
     .AddAttribute ("SendSize", "The amount of data to send each time.",
                    UintegerValue (512),
                    MakeUintegerAccessor (&BulkSendApplication::m_sendSize),
-                   MakeUintegerChecker<uint32_t> (1))
+                   MakeUintegerChecker<uint64_t> (1))
     .AddAttribute ("Remote", "The address of the destination",
                    AddressValue (),
                    MakeAddressAccessor (&BulkSendApplication::m_peer),

@@ -1,1 +1,1 @@
-time flowsize fct basefct slowdown basertt flowstart priority incast 
+FCT 28072 size 10000 baseFCT 28153

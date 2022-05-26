@@ -128,7 +128,7 @@ private:
   Address         m_peer;         //!< Peer address
   Address         m_local;        //!< Local address to bind to
   bool            m_connected;    //!< True if connected
-  uint32_t        m_sendSize;     //!< Size of data to send each time
+  uint64_t        m_sendSize;     //!< Size of data to send each time
   uint64_t        m_maxBytes;     //!< Limit total number of bytes sent
   uint64_t        m_totBytes;     //!< Total bytes sent so far
   TypeId          m_tid;          //!< The type of protocol to use.

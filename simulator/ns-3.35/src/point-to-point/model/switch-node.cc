@@ -136,7 +136,7 @@ void SwitchNode::SendToDev(Ptr<Packet>p, CustomHeader &ch) {
 		}
 		else if (found) {
 			qIndex = priotag.GetPriority();
-			std::cout << "using queue " << qIndex << std::endl;
+			// std::cout << "using queue " << qIndex << std::endl;
 		}
 		else {
 			qIndex = (ch.l3Prot == 0x06 ? 1 : ch.udp.pg); // if the stack did not attach MyPriorityTag, put to queue 1.
