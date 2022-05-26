@@ -211,47 +211,6 @@ void get_pfc(FILE* fout, Ptr<QbbNetDevice> dev, uint32_t type) {
     fprintf(fout, "%lu %u %u %u %u\n", Simulator::Now().GetTimeStep(), dev->GetNode()->GetId(), dev->GetNode()->GetNodeType(), dev->GetIfIndex(), type);
 }
 
-struct QlenDistribution {
-    vector<uint32_t> cnt; // cnt[i] is the number of times that the queue len is i KB
-
-    void add(uint32_t qlen) {
-        uint32_t kb = qlen / 1000;
-        if (cnt.size() < kb + 1)
-            cnt.resize(kb + 1);
-        cnt[kb]++;
-    }
-};
-map<uint32_t, map<uint32_t, QlenDistribution> > queue_result;
-void monitor_buffer(FILE* qlen_output, NodeContainer *n) {
-    for (uint32_t i = 0; i < n->GetN(); i++) {
-        if (n->Get(i)->GetNodeType() == 1) { // is switch
-            Ptr<SwitchNode> sw = DynamicCast<SwitchNode>(n->Get(i));
-            if (queue_result.find(i) == queue_result.end())
-                queue_result[i];
-            for (uint32_t j = 1; j < sw->GetNDevices(); j++) {
-                uint32_t size = 0;
-                for (uint32_t k = 0; k < SwitchMmu::qCnt; k++)
-                    size += sw->m_mmu->egress_bytes[j][k];
-                queue_result[i][j].add(size);
-            }
-        }
-    }
-    if (Simulator::Now().GetTimeStep() % qlen_dump_interval == 0) {
-        fprintf(qlen_output, "time: %lu\n", Simulator::Now().GetTimeStep());
-        for (auto &it0 : queue_result)
-            for (auto &it1 : it0.second) {
-                fprintf(qlen_output, "%u %u", it0.first, it1.first);
-                auto &dist = it1.second.cnt;
-                for (uint32_t i = 0; i < dist.size(); i++)
-                    fprintf(qlen_output, " %u", dist[i]);
-                fprintf(qlen_output, "\n");
-            }
-        fflush(qlen_output);
-    }
-    if (Simulator::Now().GetTimeStep() < qlen_mon_end)
-        Simulator::Schedule(NanoSeconds(qlen_mon_interval), &monitor_buffer, qlen_output, n);
-}
-
 void CalculateRoute(Ptr<Node> host) {
     // queue for the BFS.
     vector<Ptr<Node> > q;
@@ -548,8 +507,8 @@ int main(int argc, char *argv[])
     clock_t begint, endt;
     begint = clock();
     std::ifstream conf;
-    bool wien = true;
-    bool delayWien = false;
+    bool powertcp = true;
+    bool thetapowertcp = false;
 
 
     uint32_t SERVER_COUNT = 32;
@@ -582,8 +541,8 @@ int main(int argc, char *argv[])
     std::cout << confFile;
     CommandLine cmd;
     cmd.AddValue("conf", "config file path", confFile);
-    cmd.AddValue("wien", "enable wien", wien);
-    cmd.AddValue("delayWien", "enable wien delay", delayWien);
+    cmd.AddValue("powertcp", "enable powertcp", powertcp);
+    cmd.AddValue("thetapowertcp", "enable theta-powertcp, delay version", thetapowertcp);
     cmd.AddValue ("randomSeed", "Random seed, 0 for random generated", randomSeed);
 
     cmd.AddValue ("SERVER_COUNT", "servers per tor. Please specify the correct value according to the topology file information", SERVER_COUNT);
@@ -1149,8 +1108,8 @@ int main(int argc, char *argv[])
             rdmaHw->SetAttribute("TargetUtil", DoubleValue(u_target));
             rdmaHw->SetAttribute("RateBound", BooleanValue(rate_bound));
             rdmaHw->SetAttribute("DctcpRateAI", DataRateValue(DataRate(dctcp_rate_ai)));
-            rdmaHw->SetAttribute("PowerTCPEnabled", BooleanValue(wien));
-            rdmaHw->SetAttribute("PowerTCPdelay", BooleanValue(delayWien));
+            rdmaHw->SetAttribute("PowerTCPEnabled", BooleanValue(powertcp));
+            rdmaHw->SetAttribute("PowerTCPdelay", BooleanValue(thetapowertcp));
             rdmaHw->SetPintSmplThresh(pint_prob);
             // create and install RdmaDriver
             Ptr<RdmaDriver> rdma = CreateObject<RdmaDriver>();
@@ -1213,7 +1172,7 @@ int main(int argc, char *argv[])
             Ptr<SwitchNode> sw = DynamicCast<SwitchNode>(n.Get(i));
             sw->SetAttribute("CcMode", UintegerValue(cc_mode));
             sw->SetAttribute("MaxRtt", UintegerValue(maxRtt));
-            sw->SetAttribute("PowerEnabled", BooleanValue(wien));
+            sw->SetAttribute("PowerEnabled", BooleanValue(powertcp));
         }
     }
 
