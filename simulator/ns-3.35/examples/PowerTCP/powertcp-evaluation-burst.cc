@@ -44,7 +44,7 @@ using namespace std;
 NS_LOG_COMPONENT_DEFINE("GENERIC_SIMULATION");
 
 uint32_t cc_mode = 1;
-bool enable_qcn = true, use_dynamic_pfc_threshold = true;
+bool enable_qcn = true;
 uint32_t packet_payload_size = 1000, l2_chunk_size = 0, l2_ack_interval = 0;
 double pause_time = 5, simulator_stop_time = 3.01;
 std::string data_rate, link_delay, topology_file, flow_file, trace_file, trace_output_file;
@@ -435,16 +435,6 @@ int main(int argc, char *argv[])
 			else
 				std::cout << "ENABLE_QCN\t\t\t" << "No" << "\n";
 		}
-		else if (key.compare("USE_DYNAMIC_PFC_THRESHOLD") == 0)
-		{
-			uint32_t v;
-			conf >> v;
-			use_dynamic_pfc_threshold = v;
-			if (use_dynamic_pfc_threshold)
-				std::cout << "USE_DYNAMIC_PFC_THRESHOLD\t" << "Yes" << "\n";
-			else
-				std::cout << "USE_DYNAMIC_PFC_THRESHOLD\t" << "No" << "\n";
-		}
 		else if (key.compare("CLAMP_TARGET_RATE") == 0)
 		{
 			uint32_t v;
@@ -729,11 +719,8 @@ int main(int argc, char *argv[])
 	var_win = windowCheck; // overrides configuration file
 
 
-	bool dynamicth = use_dynamic_pfc_threshold;
-
 	Config::SetDefault("ns3::QbbNetDevice::PauseTime", UintegerValue(pause_time));
 	Config::SetDefault("ns3::QbbNetDevice::QcnEnabled", BooleanValue(enable_qcn));
-	Config::SetDefault("ns3::QbbNetDevice::DynamicThreshold", BooleanValue(dynamicth));
 
 	// set int_multi
 	IntHop::multi = int_multi;
@@ -931,6 +918,7 @@ int main(int argc, char *argv[])
 
 	nic_rate = get_nic_rate(n);
 	// config switch
+	// The switch mmu runs Dynamic Thresholds (DT) by default.
 	for (uint32_t i = 0; i < node_num; i++) {
 		if (n.Get(i)->GetNodeType()) { // is switch
 			Ptr<SwitchNode> sw = DynamicCast<SwitchNode>(n.Get(i));

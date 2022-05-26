@@ -915,6 +915,9 @@ main (int argc, char *argv[])
 
 	long flowCount = 0;
 
+	for (uint32_t i = 0; i < SERVER_COUNT * LEAF_COUNT; i++)
+		PORT_START[i] = 4444;
+
 	for (int fromLeafId = 0; fromLeafId < LEAF_COUNT; fromLeafId ++)
 	{
 		install_applications(fromLeafId, servers, requestRate, cdfTable, flowCount, SERVER_COUNT, LEAF_COUNT, START_TIME, END_TIME, FLOW_LAUNCH_END_TIME, nPrior);
@@ -922,6 +925,7 @@ main (int argc, char *argv[])
 			install_applications_incast(fromLeafId, servers, queryRequestRate, requestSize, cdfTable, flowCount, SERVER_COUNT, LEAF_COUNT, QUERY_START_TIME, END_TIME, FLOW_LAUNCH_END_TIME, nPrior);
 		}
 	}
+	// std::cout << "Total flows: " << flowCount/2 << std::endl;
 
 	if (!torPrintall) {
 		Simulator::Schedule(Seconds(START_TIME), InvokeToRStats, torStats, BufferSize, 0, printDelay);

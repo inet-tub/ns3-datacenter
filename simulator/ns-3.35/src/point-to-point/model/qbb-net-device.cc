@@ -205,11 +205,6 @@ QbbNetDevice::GetTypeId(void)
 	                                  BooleanValue(false),
 	                                  MakeBooleanAccessor(&QbbNetDevice::m_qcnEnabled),
 	                                  MakeBooleanChecker())
-	                    .AddAttribute("DynamicThreshold",
-	                                  "Enable dynamic threshold.",
-	                                  BooleanValue(false),
-	                                  MakeBooleanAccessor(&QbbNetDevice::m_dynamicth),
-	                                  MakeBooleanChecker())
 	                    .AddAttribute("PauseTime",
 	                                  "Number of microseconds to pause upon congestion",
 	                                  UintegerValue(5),
@@ -220,11 +215,6 @@ QbbNetDevice::GetTypeId(void)
 	                                   PointerValue (),
 	                                   MakePointerAccessor (&QbbNetDevice::m_queue),
 	                                   MakePointerChecker<Queue<Packet>>())
-	                    .AddAttribute ("TxFifoQueue",
-	                                   "A queue to use as the transmit queue in the device.",
-	                                   PointerValue (),
-	                                   MakePointerAccessor (&QbbNetDevice::m_queueFifo),
-	                                   MakePointerChecker<Queue<Packet>> ())
 	                    .AddAttribute ("RdmaEgressQueue",
 	                                   "A queue to use as the transmit queue in the device.",
 	                                   PointerValue (),
@@ -257,8 +247,6 @@ QbbNetDevice::QbbNetDevice()
 		dummy_paused[i] = false;
 		m_rdmaEQ->dummy_paused[i] = dummy_paused[i];
 	}
-
-	m_queueFifo = CreateObject<DropTailQueue<Packet>>();
 	hostDequeueIndex = 0;
 }
 

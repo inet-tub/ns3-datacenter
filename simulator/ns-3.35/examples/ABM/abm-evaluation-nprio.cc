@@ -881,6 +881,9 @@ main (int argc, char *argv[])
 
 	long flowCount = 0;
 
+	for (uint32_t i = 0; i < SERVER_COUNT * LEAF_COUNT; i++)
+		PORT_START[i] = 4444;
+
 	for (int fromLeafId = 0; fromLeafId < LEAF_COUNT; fromLeafId ++)
 	{
 		install_applications(fromLeafId, servers, requestRate, cdfTable, flowCount, SERVER_COUNT, LEAF_COUNT, START_TIME, END_TIME, FLOW_LAUNCH_END_TIME, nPrior - 1);
