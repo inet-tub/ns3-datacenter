@@ -506,7 +506,7 @@ void printBuffer(Ptr<OutputStreamWrapper> fout, NodeContainer switches, double d
             << " buffer " << sw->m_mmu->totalSharedUsed 
             << " egressOccupancyLossless " << sw->m_mmu->egressPoolUsed[0]
             << " egressOccupancyLossy " << sw->m_mmu->egressPoolUsed[1]
-            << " ingressOccupancy "<< sw->m_mmu->ingressPoolUsed  
+            << " ingressOccupancy "<< sw->m_mmu->ingressTotalUsed  
             <<  " time " << Simulator::Now().GetSeconds() << std::endl;
         }
     }
