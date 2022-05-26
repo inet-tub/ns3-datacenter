@@ -404,8 +404,8 @@ int main(int argc, char *argv[])
 	clock_t begint, endt;
 	begint = clock();
 	std::ifstream conf;
-	bool wien = true;
-	bool delayWien = false;
+	bool wien = true; // wien enables PowerTCP. 
+	bool delayWien = false; // delayWien enables Theta-PowerTCP (delaypowertcp) 
 
 	uint32_t algorithm = 3;
 	uint32_t windowCheck = 1;
@@ -413,8 +413,8 @@ int main(int argc, char *argv[])
 	std::cout << confFile;
 	CommandLine cmd;
 	cmd.AddValue("conf", "config file path", confFile);
-	cmd.AddValue("wien", "enable wien", wien);
-	cmd.AddValue("delayWien", "enable wien delay", delayWien);
+	cmd.AddValue("wien", "enable wien --> wien enables PowerTCP.", wien);
+	cmd.AddValue("delayWien", "enable wien delay --> delayWien enables Theta-PowerTCP (delaypowertcp) ", delayWien);
 
 	cmd.AddValue ("algorithm", "specify CC mode. This is added for my convinience. I prefer cmd rather than parsing files.", algorithm);
 	cmd.AddValue("windowCheck", "windowCheck", windowCheck);

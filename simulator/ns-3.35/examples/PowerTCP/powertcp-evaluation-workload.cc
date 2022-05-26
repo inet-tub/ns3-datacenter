@@ -549,8 +549,8 @@ int main(int argc, char *argv[])
 	clock_t begint, endt;
 	begint = clock();
 	std::ifstream conf;
-	bool wien = true;
-	bool delayWien = false;
+	bool wien = true; // wien enables PowerTCP. 
+	bool delayWien = false; // delayWien enables Theta-PowerTCP (delaypowertcp) 
 
 
 	uint32_t SERVER_COUNT = 32;
@@ -583,8 +583,8 @@ int main(int argc, char *argv[])
 	std::cout << confFile;
 	CommandLine cmd;
 	cmd.AddValue("conf", "config file path", confFile);
-	cmd.AddValue("wien", "enable wien", wien);
-	cmd.AddValue("delayWien", "enable wien delay", delayWien);
+	cmd.AddValue("wien", "enable wien --> wien enables PowerTCP.", wien);
+	cmd.AddValue("delayWien", "enable wien delay --> delayWien enables Theta-PowerTCP (delaypowertcp) ", delayWien);
 	cmd.AddValue ("randomSeed", "Random seed, 0 for random generated", randomSeed);
 
 	cmd.AddValue ("SERVER_COUNT", "servers per tor. Please specify the correct value according to the topology file information", SERVER_COUNT);
@@ -1174,8 +1174,8 @@ int main(int argc, char *argv[])
 			rdmaHw->SetAttribute("TargetUtil", DoubleValue(u_target));
 			rdmaHw->SetAttribute("RateBound", BooleanValue(rate_bound));
 			rdmaHw->SetAttribute("DctcpRateAI", DataRateValue(DataRate(dctcp_rate_ai)));
-			rdmaHw->SetAttribute("TcpWienEnabled", BooleanValue(wien));
-			rdmaHw->SetAttribute("TcpWiendelay", BooleanValue(delayWien));
+			rdmaHw->SetAttribute("PowerTCPEnabled", BooleanValue(wien));
+			rdmaHw->SetAttribute("PowerTCPdelay", BooleanValue(delayWien));
 			rdmaHw->SetPintSmplThresh(pint_prob);
 			// create and install RdmaDriver
 			Ptr<RdmaDriver> rdma = CreateObject<RdmaDriver>();
