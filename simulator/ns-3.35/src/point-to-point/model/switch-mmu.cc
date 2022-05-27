@@ -324,7 +324,7 @@ bool SwitchMmu::CheckIngressAdmission(uint32_t port, uint32_t qIndex, uint32_t p
 		break;
 	case LOSSLESS:
 		if ( ( (psize + ingress_bytes[port][qIndex] > reserveIngress[port][qIndex]) // if reserved is used up
-		        && (psize + GetHdrmBytes(port,q) > xoff[port][qIndex]) && GetHdrmBytes(port,q)>0 ) // and if per queue headroom is used up.
+		        && (psize + GetHdrmBytes(port,qIndex) > xoff[port][qIndex]) && GetHdrmBytes(port,qIndex)>0 ) // and if per queue headroom is used up.
 		        || (xoffTotalUsed >= xoffTotal ) // or if the headroom pool is full
 		        || (psize + totalUsed > ingressPool + xoffTotal) // if the ingresspool+headroom is full. With DT, this condition is redundant. This is just to account for any badly configured buffer or buffer sharing if any.
 		        || (psize + totalSharedUsed > bufferPool)  ) // if the shared buffer is full
