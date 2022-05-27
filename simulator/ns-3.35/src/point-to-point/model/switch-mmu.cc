@@ -67,11 +67,11 @@ SwitchMmu::SwitchMmu(void) {
 
 
 	// aggregate run time
-	totalUsed = 0;  // IMPORTANT TO NOTE: THIS IS NOT bytes in the "ingress pool". This is the Total bytes in the ingress, which includes occupied buffer in reserved + headroom + ingresspool.
-	egressPoolUsed[LOSSLESS] = 0; // Total bytes in the egress lossless pool
-	egressPoolUsed[LOSSY] = 0; // Total bytes in the egress lossy pool
-	totalSharedUsed = 0; // Total bytes in the shared buffer.
-	xoffTotalUsed = 0; // Total headroom bytes used so far. Updated at runtime.
+	totalUsed = 0;  // IMPORTANT TO NOTE: THIS IS NOT bytes in the "ingress pool". This is the Total bytes USED in the ingress, which includes occupied buffer in reserved + headroom + ingresspool.
+	egressPoolUsed[LOSSLESS] = 0; // Total bytes USED in the egress lossless pool
+	egressPoolUsed[LOSSY] = 0; // Total bytes USED in the egress lossy pool
+	totalSharedUsed = 0; // Total bytes USED in the shared buffer.
+	xoffTotalUsed = 0; // Total headroom bytes USED so far. Updated at runtime.
 	// It is sometimes useful to keep track of total bytes used specifically from ingressPool. We don't need an additional variable. 
 	// This is equal to (totalUsed - xoffTotalUsed).
 
@@ -80,18 +80,18 @@ SwitchMmu::SwitchMmu(void) {
 			// buffer configuration.
 			reserveIngress[port][q] = 1248; // Per queue reserved buffer at ingress
 			reserveEgress[port][q] = 1248; // per queue reserved buffer at egress
-			alphaEgress[port][q] = 1; // per queue alpha value used by BM at egress/
-			alphaIngress[port][q] = 1; // per queue alpha value used by BM at ingress
-			xoff[port][q] = 96928; // per queue headroom used at ingress. This can be changed using SetHeadroom
-			xon[port][q] = 1248; // This is used for pfc resume. Can be changed using SetXon
-			xon_offset[port][q] = 2496; // This is also used for pfc resume. Can be changed using SetXonOffset/
+			alphaEgress[port][q] = 1; // per queue alpha value used by Buffer Management/PFC Threshold at egress/
+			alphaIngress[port][q] = 1; // per queue alpha value used by Buffer Management/PFC Threshold at ingress
+			xoff[port][q] = 96928; // per queue headroom LIMIT at ingress. This can be changed using SetHeadroom
+			xon[port][q] = 1248; // For pfc resume. Can be changed using SetXon
+			xon_offset[port][q] = 2496; // For pfc resume. Can be changed using SetXonOffset/
 
 
 			// per queue run time
-			ingress_bytes[port][q] = 0; // total ingress bytes at each queue. This includes, bytes from reserved, ingress pool as well as any headroom.
+			ingress_bytes[port][q] = 0; // total ingress bytes USED at each queue. This includes, bytes from reserved, ingress pool as well as any headroom.
 			paused[port][q] = 0; // This is a state to keep track of which queue is currently under pause, used at egress as check whether to send out packets.
-			egress_bytes[port][q] = 0; // Per queue egress bytes at each queue
-			xoffUsed[port][q] = 0; // The headroom buffer used by each queue. xoffUsed[port][q] = ingress_bytes[port][q] - its Threshold
+			egress_bytes[port][q] = 0; // Per queue egress bytes USED at each queue
+			xoffUsed[port][q] = 0; // The headroom buffer USED by each queue. xoffUsed[port][q] = ingress_bytes[port][q] - its Threshold
 		}
 	}
 
