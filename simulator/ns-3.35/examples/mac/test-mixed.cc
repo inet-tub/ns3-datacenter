@@ -503,10 +503,11 @@ void printBuffer(Ptr<OutputStreamWrapper> fout, NodeContainer switches, double d
         if (switches.Get(i)->GetNodeType()) { // switch
             Ptr<SwitchNode> sw = DynamicCast<SwitchNode>(switches.Get(i));
             *fout->GetStream() << "switch " << i  
-            << " buffer " << sw->m_mmu->totalSharedUsed 
+            << " buffer " << sw->m_mmu->totalUsed 
             << " egressOccupancyLossless " << sw->m_mmu->egressPoolUsed[0]
             << " egressOccupancyLossy " << sw->m_mmu->egressPoolUsed[1]
-            << " ingressOccupancy "<< sw->m_mmu->totalUsed  
+            << " ingressPoolOccupancy "<< sw->m_mmu->totalUsed - sw->m_mmu->xoffTotalUsed
+            << " headroomOccupancy " << sw->m_mmu->xoffTotalUsed
             <<  " time " << Simulator::Now().GetSeconds() << std::endl;
         }
     }

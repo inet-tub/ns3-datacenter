@@ -90,7 +90,6 @@ public:
 	// aggregate run time
 	uint64_t totalUsed;
 	uint64_t egressPoolUsed[2];
-	uint64_t totalSharedUsed;
 	uint64_t xoffTotalUsed;
 
 
