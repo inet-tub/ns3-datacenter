@@ -58,7 +58,7 @@ similarly `egressPool[LOSSLESS]` for lossless traffic.
 
 SwitchMmu::SwitchMmu(void) {
 
-	// Here we just initalize some default values. 
+	// Here we just initialize some default values. 
 	// The buffer can be configured using Set functions through the simulation file later.
 
 	/*Buffer pools*/
@@ -69,7 +69,7 @@ SwitchMmu::SwitchMmu(void) {
 	egressPoolAll = 24 * 1024 * 1024; // Not for now. For later use.
 	xoffTotal = 0; //6 * 1024 * 1024; // Total headroom space in the shared buffer pool. 
 	// xoffTotal value is incremented when SetHeadroom function is used. So setting it to zero initially. 
-	// Note: This would mean that headroom must be set explicity.
+	// Note: This would mean that headroom must be set explicitly.
 
 
 	/*aggregate run time*/
@@ -96,7 +96,9 @@ SwitchMmu::SwitchMmu(void) {
 
 			// per queue run time
 			ingress_bytes[port][q] = 0; // total ingress bytes USED at each queue. This includes, bytes from reserved, ingress pool as well as any headroom.
-			paused[port][q] = 0; // This is a state to keep track of which queue is currently under pause. Egress queues use this as a check for transmissting packets.
+			/*Ingress queues use this to keep track if this queue is currently pausing the peer (an egress queue on the other end of the link)
+			Egress queues use this as a check for transmitting packets. For example if (not paused) transmit else don't transmit*/
+			paused[port][q] = 0; // a state (see above). 
 			egress_bytes[port][q] = 0; // Per queue egress bytes USED at each queue
 			xoffUsed[port][q] = 0; // The headroom buffer USED by each queue.
 		}
