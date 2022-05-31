@@ -88,9 +88,9 @@ public:
 	uint64_t xoffTotal;
 
 	// aggregate run time
-	uint64_t ingressPoolUsed;
+	uint64_t totalUsed;
 	uint64_t egressPoolUsed[2];
-	uint64_t totalSharedUsed;
+	uint64_t xoffTotalUsed;
 
 
 	// buffer configuration.
@@ -107,6 +107,7 @@ public:
 	uint64_t hdrm_bytes[pCnt][qCnt];
 	uint32_t paused[pCnt][qCnt];
 	uint64_t egress_bytes[pCnt][qCnt];
+	uint64_t xoffUsed[pCnt][qCnt];
 
 	// Buffer Sharing algorithm
 	uint32_t ingressAlg[2];
