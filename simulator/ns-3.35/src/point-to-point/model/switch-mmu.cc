@@ -70,6 +70,8 @@ SwitchMmu::SwitchMmu(void) {
 	xoffTotal = 0; //6 * 1024 * 1024; // Total headroom space in the shared buffer pool.
 	// xoffTotal value is incremented when SetHeadroom function is used. So setting it to zero initially.
 	// Note: This would mean that headroom must be set explicitly.
+	totalIngressReserved = 0;
+	totalIngressReservedUsed = 0;
 
 
 	// aggregate run time
@@ -85,8 +87,8 @@ SwitchMmu::SwitchMmu(void) {
 	for (uint32_t port = 0; port < pCnt; port++) {
 		for (uint32_t q = 0; q < qCnt; q++) {
 			// buffer configuration.
-			reserveIngress[port][q] = 1248; // Per queue reserved buffer at ingress
-			reserveEgress[port][q] = 1248; // per queue reserved buffer at egress
+			reserveIngress[port][q] = 0; // Per queue reserved buffer at ingress. IMPORTANT: reserve SHOULD BE SET EXPLICITLY in a simulation.
+			reserveEgress[port][q] = 0; // per queue reserved buffer at egress. Not used at the moment. TODO.
 			alphaEgress[port][q] = 1; // per queue alpha value used by Buffer Management/PFC Threshold at egress
 			alphaIngress[port][q] = 1; // per queue alpha value used by Buffer Management/PFC Threshold at ingress
 			xoff[port][q] = 0; // per queue headroom LIMIT at ingress. This can be changed using SetHeadroom. IMPORTANT: xoff SHOULD BE SET EXPLICITLY in a simulation.
@@ -143,9 +145,16 @@ SwitchMmu::SetEgressLosslessPool(uint64_t b) {
 void
 SwitchMmu::SetReserved(uint64_t b, uint32_t port, uint32_t q, std::string inout) {
 	if (inout == "ingress") {
+		if (totalIngressReserved >= reserveIngress[port][q])
+			totalIngressReserved -= reserveIngress[port][q];
+		else
+			totalIngressReserved = 0;
 		reserveIngress[port][q] = b;
+		totalIngressReserved += reserveIngress[port][q];
 	}
 	else if (inout == "egress") {
+		std::cout << "setting headroom for egress is not supported. Exiting..!" << std::endl;
+		exit(1);
 		reserveEgress[port][q] = b;
 	}
 }
@@ -155,11 +164,18 @@ SwitchMmu::SetReserved(uint64_t b, std::string inout) {
 	if (inout == "ingress") {
 		for (uint32_t port = 0; port < pCnt; port++) {
 			for (uint32_t q = 0; q < qCnt ; q++) {
+				if (totalIngressReserved >= reserveIngress[port][q])
+					totalIngressReserved -= reserveIngress[port][q];
+				else
+					totalIngressReserved = 0;
 				reserveIngress[port][q] = b;
+				totalIngressReserved += reserveIngress[port][q];
 			}
 		}
 	}
 	else if (inout == "egress") {
+		std::cout << "setting headroom for egress is not supported. Exiting..!" << std::endl;
+		exit(1);
 		for (uint32_t port = 0; port < pCnt; port++) {
 			for (uint32_t q = 0; q < qCnt; q++) {
 				reserveEgress[port][q] = b;
@@ -264,19 +280,36 @@ SwitchMmu::SetEgressLosslessAlg(uint32_t alg) {
 	egressAlg[LOSSLESS] = alg;
 }
 
+uint64_t SwitchMmu::GetIngressReservedUsed(){
+	return totalIngressReservedUsed;
+}
+
+uint64_t SwitchMmu::GetIngressReservedUsed(uint32_t port, uint32_t qIndex){
+	if (ingress_bytes[port][qIndex] > reserveIngress[port][qIndex]){
+		return reserveIngress[port][qIndex];
+	}
+	else{
+		return ingress_bytes[port][qIndex];
+	}
+}
+
+uint64_t SwitchMmu::GetIngressSharedUsed(){
+	return (totalUsed - xoffTotalUsed - totalIngressReservedUsed);
+}
 
 // DT's threshold = Alpha x remaining.
 // A sky high threshold for a queue can be emulated by setting the corresponding alpha to a large value. eg., UINT32_MAX
 uint64_t SwitchMmu::DynamicThreshold(uint32_t port, uint32_t qIndex, std::string inout, uint32_t type) {
 	if (inout == "ingress") {
 		double remaining = 0;
-		uint64_t ingressPoolUsed = totalUsed - xoffTotalUsed; // Total bytes used from the ingress pool specifically.
-		if (ingressPool > ingressPoolUsed) {
-			uint64_t remaining = ingressPool - ingressPoolUsed;
+		uint64_t ingressPoolUsed = GetIngressSharedUsed(); // Total bytes used from the ingress pool specifically.
+		uint64_t ingressSharedPool = ingressPool - totalIngressReserved;
+		if (ingressSharedPool > ingressPoolUsed) {
+			uint64_t remaining = ingressSharedPool - ingressPoolUsed;
 			return std::min(uint64_t(alphaIngress[port][qIndex] * (remaining)), UINT64_MAX - 1024 * 1024);
 		}
 		else {
-			// ingressPool is full. There is no `remaining` buffer in ingressPool.
+			// ingressPoolShared is full. There is no `remaining` buffer in ingressPoolShared.
 			// DT's threshold returns zero in this case, but using if else just to avoid threshold computations even in the simple case.
 			return 0;
 		}
@@ -374,8 +407,9 @@ bool SwitchMmu::CheckEgressAdmission(uint32_t port, uint32_t qIndex, uint32_t ps
 	case LOSSY:
 		// if the egress queue length is greater than the threshold
 		if ( (psize + egress_bytes[port][qIndex] > Threshold(port, qIndex, "egress", type)
-		        // AND if the reserved is usedup
-		        && psize + egress_bytes[port][qIndex] > reserveEgress[port][qIndex])
+		        // AND if the reserved is usedup. THiS IS NOT SUPPORTED AT THE MOMENT. NO reserved at the egress.
+		        // && psize + egress_bytes[port][qIndex] > reserveEgress[port][qIndex]
+		        )
 		        // or if the egress pool is full
 		        || (psize + egressPoolUsed[LOSSY] > egressPool[LOSSY])
 		        // or if the switch buffer is full
@@ -390,8 +424,9 @@ bool SwitchMmu::CheckEgressAdmission(uint32_t port, uint32_t qIndex, uint32_t ps
 	case LOSSLESS:
 		// if threshold is exceeded
 		if ( ( (psize + egress_bytes[port][qIndex] > Threshold(port, qIndex, "egress", type))
-		        // AND reserved is used up
-		        && (psize + egress_bytes[port][qIndex] > reserveEgress[port][qIndex]) )
+		        // AND reserved is used up. THiS IS NOT SUPPORTED AT THE MOMENT. NO reserved at the egress.
+		        // && (psize + egress_bytes[port][qIndex] > reserveEgress[port][qIndex]) 
+		        )
 		        // or if the corresponding egress pool is used up
 		        || (psize + egressPoolUsed[LOSSLESS] > egressPool[LOSSLESS])
 		        // or if the switch buffer is full
@@ -415,10 +450,19 @@ bool SwitchMmu::CheckEgressAdmission(uint32_t port, uint32_t qIndex, uint32_t ps
 
 void SwitchMmu::UpdateIngressAdmission(uint32_t port, uint32_t qIndex, uint32_t psize, uint32_t type) {
 
+	// If else are simply unnecessary but its a safety check to avoid magic scenarios (if a packet vanishes in the buffer) where we 
+	// might assign negative value to unsigned intergers. 
+	if (totalIngressReservedUsed >= GetIngressReservedUsed(port, qIndex)) // removing the old reserved used (will be updated next)
+		totalIngressReservedUsed -= GetIngressReservedUsed(port, qIndex);
+	else
+		totalIngressReservedUsed = 0;
 	// NOTE: ingress_bytes simple counts total bytes occupied by port, qIndex,
-	// This includes bytes from ingresspool as well as from headroom. ingress_bytes[port][qIndex] - xoffUsed[port][qIndex] gives us the occupancy in ingressPool.
+	// This includes bytes from ingresspool as well as from headroom and also reserved. ingress_bytes[port][qIndex] - xoffUsed[port][qIndex] gives us the occupancy in ingressPool.
+	// ingress_bytes[port][qIndex] - xoffUsed[port][qIndex] - GetIngressReservedUsed(port,qIndex) gives us the occupancy in ingress shared pool.
 	ingress_bytes[port][qIndex] += psize;
 	totalUsed += psize; // IMPORTANT: totalUsed is only updated in the ingress. No need to update in egress. Avoid double counting.
+
+	totalIngressReservedUsed += GetIngressReservedUsed(port, qIndex); // updating with the new reserved used.
 
 	// Update the total headroom used.
 	if (type == LOSSLESS) {
@@ -448,13 +492,33 @@ void SwitchMmu::UpdateEgressAdmission(uint32_t port, uint32_t qIndex, uint32_t p
 }
 
 void SwitchMmu::RemoveFromIngressAdmission(uint32_t port, uint32_t qIndex, uint32_t psize, uint32_t type) {
-	ingress_bytes[port][qIndex] -= psize;
-	totalUsed -= psize;
+	// If else are simply unnecessary but its a safety check to avoid magic scenarios (if a packet vanishes in the buffer) where we 
+	// might assign negative value to unsigned intergers. 
+	
+	if (totalIngressReservedUsed >= GetIngressReservedUsed(port, qIndex)) // removing the old reserved used (will be updated next)
+		totalIngressReservedUsed -= GetIngressReservedUsed(port, qIndex);
+	else
+		totalIngressReservedUsed = 0;
+	
+	if (ingress_bytes[port][qIndex]>= psize)
+		ingress_bytes[port][qIndex] -= psize;
+	else
+		ingress_bytes[port][qIndex]=0;
+
+	if(totalUsed >= psize)
+		totalUsed -= psize;
+	else
+		totalUsed = 0;
+	
+	totalIngressReservedUsed += GetIngressReservedUsed(port, qIndex); // updating with the new reserved used.
 
 	// Update the total headroom used.
 	if (type == LOSSLESS) {
 		// First, remove the previously used headroom corresponding to queue: port, qIndex. This will be updated with current value next.
-		xoffTotalUsed -= xoffUsed[port][qIndex];
+		if (xoffTotalUsed >= xoffUsed[port][qIndex]) 
+			xoffTotalUsed -= xoffUsed[port][qIndex];
+		else
+			xoffTotalUsed = 0;
 		// Second, check whether we are currently using any headroom. If not, nothing to do here: headroom is zero.
 		if (xoffUsed[port][qIndex] > 0) {
 			// Depending on the value of headroom used, the following cases arise:
@@ -472,8 +536,15 @@ void SwitchMmu::RemoveFromIngressAdmission(uint32_t port, uint32_t qIndex, uint3
 	}
 }
 void SwitchMmu::RemoveFromEgressAdmission(uint32_t port, uint32_t qIndex, uint32_t psize, uint32_t type) {
-	egress_bytes[port][qIndex] -= psize;
-	egressPoolUsed[type] -= psize;
+	if (egress_bytes[port][qIndex] >= psize)
+		egress_bytes[port][qIndex] -= psize;
+	else
+		egress_bytes[port][qIndex] = 0;
+	
+	if (egressPoolUsed[type] >= psize)
+		egressPoolUsed[type] -= psize;
+	else
+		egressPoolUsed[type] = 0;
 }
 
 

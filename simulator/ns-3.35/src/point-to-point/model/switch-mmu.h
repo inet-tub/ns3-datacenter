@@ -75,6 +75,12 @@ public:
 
 	uint64_t GetHdrmBytes(uint32_t port, uint32_t qIndex);
 
+	uint64_t GetIngressReservedUsed();
+
+	uint64_t GetIngressReservedUsed(uint32_t port, uint32_t qIndex);
+
+	uint64_t GetIngressSharedUsed();
+
 	// config
 	uint32_t node_id;
 	uint32_t kmin[pCnt], kmax[pCnt];
@@ -86,11 +92,13 @@ public:
 	uint64_t egressPool[2];
 	uint64_t egressPoolAll;
 	uint64_t xoffTotal;
+	uint64_t totalIngressReserved;
 
 	// aggregate run time
 	uint64_t totalUsed;
 	uint64_t egressPoolUsed[2];
 	uint64_t xoffTotalUsed;
+	uint64_t totalIngressReservedUsed;
 
 
 	// buffer configuration.
