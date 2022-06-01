@@ -302,10 +302,10 @@ uint64_t SwitchMmu::GetIngressSharedUsed(){
 uint64_t SwitchMmu::DynamicThreshold(uint32_t port, uint32_t qIndex, std::string inout, uint32_t type) {
 	if (inout == "ingress") {
 		double remaining = 0;
-		uint64_t ingressPoolUsed = GetIngressSharedUsed(); // Total bytes used from the ingress pool specifically.
+		uint64_t ingressPoolSharedUsed = GetIngressSharedUsed(); // Total bytes used from the ingress "shared" pool specifically.
 		uint64_t ingressSharedPool = ingressPool - totalIngressReserved;
-		if (ingressSharedPool > ingressPoolUsed) {
-			uint64_t remaining = ingressSharedPool - ingressPoolUsed;
+		if (ingressSharedPool > ingressPoolSharedUsed) {
+			uint64_t remaining = ingressSharedPool - ingressPoolSharedUsed;
 			return std::min(uint64_t(alphaIngress[port][qIndex] * (remaining)), UINT64_MAX - 1024 * 1024);
 		}
 		else {
