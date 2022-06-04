@@ -153,9 +153,9 @@ SwitchMmu::SetReserved(uint64_t b, uint32_t port, uint32_t q, std::string inout)
 		totalIngressReserved += reserveIngress[port][q];
 	}
 	else if (inout == "egress") {
-		std::cout << "setting headroom for egress is not supported. Exiting..!" << std::endl;
+		std::cout << "setting reserved for egress is not supported. Exiting..!" << std::endl;
 		exit(1);
-		reserveEgress[port][q] = b;
+		// reserveEgress[port][q] = b;
 	}
 }
 
@@ -174,13 +174,13 @@ SwitchMmu::SetReserved(uint64_t b, std::string inout) {
 		}
 	}
 	else if (inout == "egress") {
-		std::cout << "setting headroom for egress is not supported. Exiting..!" << std::endl;
+		std::cout << "setting reserved for egress is not supported. Exiting..!" << std::endl;
 		exit(1);
-		for (uint32_t port = 0; port < pCnt; port++) {
-			for (uint32_t q = 0; q < qCnt; q++) {
-				reserveEgress[port][q] = b;
-			}
-		}
+		// for (uint32_t port = 0; port < pCnt; port++) {
+		// 	for (uint32_t q = 0; q < qCnt; q++) {
+		// 		reserveEgress[port][q] = b;
+		// 	}
+		// }
 	}
 }
 
