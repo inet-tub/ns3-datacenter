@@ -167,12 +167,12 @@ uint32_t flow_num;
 void ReadFlowInput() {
     if (flow_input.idx < flow_num) {
         flowf >> flow_input.src >> flow_input.dst >> flow_input.pg >> flow_input.dport >> flow_input.maxPacketCount >> flow_input.start_time;
-        std::cout << "Flow " << flow_input.src << " " << flow_input.dst << " " << flow_input.pg << " " << flow_input.dport << " " << flow_input.maxPacketCount << " " << flow_input.start_time << " " << Simulator::Now().GetSeconds() << std::endl;
         NS_ASSERT(n.Get(flow_input.src)->GetNodeType() == 0 && n.Get(flow_input.dst)->GetNodeType() == 0);
     }
 }
 void ScheduleFlowInputs() {
     while (flow_input.idx < flow_num && Seconds(flow_input.start_time) <= Simulator::Now()) {
+        std::cout << "Flow " << flow_input.src << " " << flow_input.dst << " " << flow_input.pg << " " << flow_input.dport << " " << flow_input.maxPacketCount << " " << flow_input.start_time << " " << Simulator::Now().GetSeconds() << std::endl;
         uint32_t port = portNumder[flow_input.src][flow_input.dst]++; // get a new port number
         RdmaClientHelper clientHelper(flow_input.pg, serverAddress[flow_input.src], serverAddress[flow_input.dst], port, flow_input.dport, flow_input.maxPacketCount, has_win ? (global_t == 1 ? maxBdp : pairBdp[n.Get(flow_input.src)][n.Get(flow_input.dst)]) : 0, global_t == 1 ? maxRtt : pairRtt[flow_input.src][flow_input.dst], Simulator::GetMaximumSimulationTime());
         ApplicationContainer appCon = clientHelper.Install(n.Get(flow_input.src));
@@ -525,15 +525,15 @@ int main(int argc, char *argv[])
     clock_t begint, endt;
     begint = clock();
     std::ifstream conf;
-    bool powertcp = true;
+    bool powertcp = false;
     bool thetapowertcp = false;
 
 
-    uint32_t SERVER_COUNT = 32;
-    uint32_t LEAF_COUNT = 2; // LEAF and SPINE correspond to a single pod. Leafs are ToR switches and Spine are AGG switches. Count is within a single pod.
-    uint32_t SPINE_COUNT = 2;
-    uint64_t LEAF_SERVER_CAPACITY = 25;
-    uint64_t SPINE_LEAF_CAPACITY = 100;
+    uint32_t SERVER_COUNT = 24;
+    uint32_t LEAF_COUNT = 32; // LEAF and SPINE correspond to a single pod. Leafs are ToR switches and Spine are AGG switches. Count is within a single pod.
+    uint32_t SPINE_COUNT = 8;
+    uint64_t LEAF_SERVER_CAPACITY = 50;
+    uint64_t SPINE_LEAF_CAPACITY = 50;
 
     double START_TIME = 0.1;
     double END_TIME = 0.13;
@@ -547,11 +547,11 @@ int main(int argc, char *argv[])
     double queryRequestRate = 1;
     uint32_t incast = 5;
 
-    uint32_t algorithm = 3;
-    uint32_t windowCheck = 1;
+    uint32_t algorithm = 1;
+    uint32_t windowCheck = 0;
 
-    std::string confFile = "/home/vamsi/src/phd/ns3-datacenter/simulator/ns-3.35/examples/mac/config-workload.txt";
-    std::string cdfFileName = "/home/vamsi/src/phd/ns3-datacenter/simulator/ns-3.35/examples/mac/websearch.txt";
+    std::string confFile = "/home/vamsi/src/phd/codebase/ns3-datacenter/simulator/ns-3.35/examples/mac/config-workload.txt";
+    std::string cdfFileName = "/home/vamsi/src/phd/codebase/ns3-datacenter/simulator/ns-3.35/examples/mac/websearch.txt";
 
     unsigned randomSeed = 7;
 
@@ -881,13 +881,19 @@ int main(int argc, char *argv[])
             if (node_type[i] == 1) {
                 torNodes.Add(sw);
             }
+            else if (node_type[i]==2){
+                spineNodes.Add(sw);
+            }
         }
     }
 
 
     NS_LOG_INFO("Create nodes.");
 
+    Config::SetDefault ("ns3::Ipv4GlobalRouting::FlowEcmpRouting", BooleanValue(true));
     InternetStackHelper internet;
+    Ipv4GlobalRoutingHelper globalRoutingHelper;
+    internet.SetRoutingHelper (globalRoutingHelper);
     internet.Install(n);
 
     //
@@ -1014,7 +1020,7 @@ int main(int argc, char *argv[])
         if (n.Get(i)->GetNodeType()) { // is switch
             Ptr<SwitchNode> sw = DynamicCast<SwitchNode>(n.Get(i));
             uint32_t shift = 3; // by default 1/8
-            double alpha = 1.0 / 8;
+            double alpha = 1.0;
 
             uint64_t totalHeadroom = 0;
             for (uint32_t j = 1; j < sw->GetNDevices(); j++) {
@@ -1036,19 +1042,19 @@ int main(int argc, char *argv[])
                     NS_ASSERT_MSG(rate2pmax.find(rate) != rate2pmax.end(), "must set pmax for each link speed");
                     sw->m_mmu->ConfigEcn(j, rate2kmin[rate], rate2kmax[rate], rate2pmax[rate]);
                     // set pfc
-                    uint64_t delay = DynamicCast<QbbChannel>(dev->GetChannel())->GetDelay().GetTimeStep();
-                    uint32_t headroom = rate * delay / 8 / 1000000000 * 3;
-
+                    double delay = DynamicCast<QbbChannel>(dev->GetChannel())->GetDelay().GetSeconds();
+                    uint32_t headroom = packet_payload_size*2 + 3840 + (2*rate*delay/8);
+                    // std::cout << headroom << std::endl;
                     sw->m_mmu->SetHeadroom(headroom, j, qu);
                     totalHeadroom += headroom;
                 }
 
             }
-            std::cout << "total headroom: " << totalHeadroom << std::endl;
+            std::cout << "total headroom: " << totalHeadroom << " ingressPool " << buffer_size*1024*1024 - totalHeadroom << " egressLosslessPool " << buffer_size*1024*1024 << " egressLossyPool " << (buffer_size * 1024 * 1024 - totalHeadroom)*0.8 <<  std::endl;
             sw->m_mmu->SetBufferPool(buffer_size * 1024 * 1024);
             sw->m_mmu->SetIngressPool(buffer_size * 1024 * 1024 - totalHeadroom);
             sw->m_mmu->SetEgressLosslessPool(buffer_size * 1024 * 1024);
-            sw->m_mmu->SetEgressLossyPool(0.5*buffer_size * 1024 * 1024);
+            sw->m_mmu->SetEgressLossyPool((buffer_size * 1024 * 1024 - totalHeadroom)*0.8);
             sw->m_mmu->node_id = sw->GetId();
         }
     }
@@ -1247,7 +1253,7 @@ int main(int argc, char *argv[])
     flow_input.idx = 0;
     if (flow_num > 0) {
         ReadFlowInput();
-        std::cout << flow_input.start_time << std::endl;
+        // std::cout << flow_input.start_time << std::endl;
         Simulator::Schedule(Seconds(flow_input.start_time) - Simulator::Now(), ScheduleFlowInputs);
     }
 
@@ -1270,48 +1276,52 @@ int main(int argc, char *argv[])
 
     Config::SetDefault ("ns3::TcpL4Protocol::SocketType", TypeIdValue (ns3::TcpCubic::GetTypeId()));
 
-    double startTime = 0.1;
+    double startTime = 0.001;
     uint32_t flowCount = 1;
     uint32_t prior = 1;
 
-    uint32_t rxServer = 36;
 
     uint16_t port = 4444;
 
     uint64_t flowSize = 1e9;
 
-    for (uint32_t i = 0; i < 4; i++){
+    for (uint32_t i = 0; i < 16; i++){
+        uint32_t rxServer = 17+i%7;
+        std::cout << "tx " << i << " rx " << rxServer << std::endl;
         Ptr<Node> rxNode = n.Get (rxServer);
         Ptr<Ipv4> ip = rxNode->GetObject<Ipv4> ();
         Ipv4InterfaceAddress rxInterface = ip->GetAddress (1, 0);
         Ipv4Address rxAddress = rxInterface.GetLocal ();
+        for (uint32_t j = 0; j<4 ; j++){
+            InetSocketAddress ad (rxAddress, port);
+            Address sinkAddress(ad);
+            Ptr<BulkSendApplication> bulksend = CreateObject<BulkSendApplication>();
+            bulksend->SetAttribute("Protocol", TypeIdValue(TcpSocketFactory::GetTypeId()));
+            bulksend->SetAttribute ("SendSize", UintegerValue (flowSize));
+            bulksend->SetAttribute ("MaxBytes", UintegerValue(flowSize));
+            bulksend->SetAttribute("FlowId", UintegerValue(flowCount++));
+            bulksend->SetAttribute("priorityCustom", UintegerValue(prior));
+            bulksend->SetAttribute("Remote", AddressValue(sinkAddress));
+            bulksend->SetAttribute("InitialCwnd", UintegerValue (10));
+            bulksend->SetAttribute("priority", UintegerValue(prior));
+            bulksend->SetStartTime (Seconds(startTime));
+            bulksend->SetStopTime (Seconds (END_TIME));
+            n.Get (i)->AddApplication(bulksend);
 
-        InetSocketAddress ad (rxAddress, port++);
-        Address sinkAddress(ad);
-        Ptr<BulkSendApplication> bulksend = CreateObject<BulkSendApplication>();
-        bulksend->SetAttribute("Protocol", TypeIdValue(TcpSocketFactory::GetTypeId()));
-        bulksend->SetAttribute ("SendSize", UintegerValue (flowSize));
-        bulksend->SetAttribute ("MaxBytes", UintegerValue(flowSize));
-        bulksend->SetAttribute("FlowId", UintegerValue(flowCount++));
-        bulksend->SetAttribute("priorityCustom", UintegerValue(prior));
-        bulksend->SetAttribute("Remote", AddressValue(sinkAddress));
-        bulksend->SetAttribute("InitialCwnd", UintegerValue (10));
-        bulksend->SetAttribute("priority", UintegerValue(prior));
-        bulksend->SetStartTime (Seconds(startTime));
-        bulksend->SetStopTime (Seconds (END_TIME));
-        n.Get (i)->AddApplication(bulksend);
+            PacketSinkHelper sink ("ns3::TcpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), port));
+            ApplicationContainer sinkApp = sink.Install (n.Get(rxServer));
+            sinkApp.Get(0)->SetAttribute("TotalQueryBytes", UintegerValue(flowSize));
+            sinkApp.Get(0)->SetAttribute("priority", UintegerValue(prior)); 
+            sinkApp.Get(0)->SetAttribute("priorityCustom", UintegerValue(prior));
+            sinkApp.Get(0)->SetAttribute("flowId", UintegerValue(flowCount));
+            sinkApp.Get(0)->SetAttribute("senderPriority", UintegerValue(prior));
+            flowCount += 1;
+            sinkApp.Start (Seconds(startTime));
+            sinkApp.Stop (Seconds (END_TIME));
+            sinkApp.Get(0)->TraceConnectWithoutContext("FlowFinish", MakeBoundCallback(&TraceMsgFinish, fctOutput));
 
-        PacketSinkHelper sink ("ns3::TcpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), port));
-        ApplicationContainer sinkApp = sink.Install (n.Get(rxServer));
-        sinkApp.Get(0)->SetAttribute("TotalQueryBytes", UintegerValue(flowSize));
-        sinkApp.Get(0)->SetAttribute("priority", UintegerValue(prior)); 
-        sinkApp.Get(0)->SetAttribute("priorityCustom", UintegerValue(prior));
-        sinkApp.Get(0)->SetAttribute("flowId", UintegerValue(flowCount));
-        sinkApp.Get(0)->SetAttribute("senderPriority", UintegerValue(prior));
-        flowCount += 1;
-        sinkApp.Start (Seconds(startTime));
-        sinkApp.Stop (Seconds (END_TIME));
-        sinkApp.Get(0)->TraceConnectWithoutContext("FlowFinish", MakeBoundCallback(&TraceMsgFinish, fctOutput));
+            port++;
+        }
     }
 
     topof.close();
@@ -1320,8 +1330,8 @@ int main(int argc, char *argv[])
     Simulator::Schedule(Seconds(delay), printBuffer, torStats, torNodes, delay);
 
     Ipv4GlobalRoutingHelper::PopulateRoutingTables();
-        AsciiTraceHelper ascii;
-        qbb.EnableAsciiAll (ascii.CreateFileStream ("eval.tr"));
+        // AsciiTraceHelper ascii;
+        // qbb.EnableAsciiAll (ascii.CreateFileStream ("eval.tr"));
     std::cout << "Running Simulation.\n";
     NS_LOG_INFO("Run Simulation.");
     Simulator::Stop(Seconds(END_TIME));

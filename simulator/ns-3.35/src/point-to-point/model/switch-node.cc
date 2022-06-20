@@ -103,6 +103,7 @@ int SwitchNode::GetOutDev(Ptr<const Packet> p, CustomHeader &ch) {
 		buf.u32[2] = ch.ack.sport | ((uint32_t)ch.ack.dport << 16);
 
 	uint32_t idx = EcmpHash(buf.u8, 12, m_ecmpSeed) % nexthops.size();
+	// if (nexthops.size()>1){ std::cout << "selected " << idx << std::endl; }
 	return nexthops[idx];
 }
 

@@ -58,6 +58,8 @@ public:
 				lineRate=5;break;
 			case 100lu:
 				lineRate=6;break;
+			case 40000000000lu:
+				lineRate=7;break;
 			default:
 				printf("Error: IntHeader unknown rate: %lu\n", _rate);
 				break;
