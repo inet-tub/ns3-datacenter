@@ -78,7 +78,7 @@ BURST_SIZE=$(python3 -c "print($BURST_SIZES*$BUFFER)")
 
 for ALPHA_UPDATE_INT in 1 10 100 1000 10000;do
 	FLOW_END_TIME=13 #$(python3 -c "print(10+3*0.8/$LOAD)")
-	while [[ $(( $(ps aux | grep abm-evaluation-optimized | wc -l)+$(ps aux | grep evaluation-optimized | wc -l) )) -gt 37 ]];do
+	while [[ $(( $(ps aux | grep abm-evaluation-optimized | wc -l)+$(ps aux | grep evaluation-optimized | wc -l) )) -gt $N_CORES ]];do
 		sleep 30;
 		echo "waiting for cores, $N running..."
 	done
@@ -95,7 +95,7 @@ done
 #####################
 ALG=$DT
 FLOW_END_TIME=13 #$(python3 -c "print(10+3*0.8/$LOAD)")
-while [[ $(( $(ps aux | grep abm-evaluation-optimized | wc -l)+$(ps aux | grep evaluation-optimized | wc -l) )) -gt 37 ]];do
+while [[ $(( $(ps aux | grep abm-evaluation-optimized | wc -l)+$(ps aux | grep evaluation-optimized | wc -l) )) -gt $N_CORES ]];do
 	sleep 30;
 	echo "waiting for cores, $N running..."
 done

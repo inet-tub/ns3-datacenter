@@ -1,1 +1,2 @@
-NS3=/home/vamsi/src/phd/ns3-datacenter/simulator/ns-3.35
+NS3=$(pwd)/../..
+N_CORES=37

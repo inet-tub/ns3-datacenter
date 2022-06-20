@@ -85,7 +85,7 @@ for CUBICLOAD in 0.1 0.2 0.3 0.4 0.5 0.6;do
 		FLOW_END_TIME=13 #$(python3 -c "print(10+3*0.8/$LOAD)")
 		FLOWFILE="$DUMP_DIR/fcts-multi-$TCP-$ALG-$CUBICLOAD-$BURST_SIZES-$BURST_FREQ.fct"
 		TORFILE="$DUMP_DIR/tor-multi-$TCP-$ALG-$CUBICLOAD-$BURST_SIZES-$BURST_FREQ.stat"
-		while [[ $(( $(ps aux | grep abm-evaluation-multi-optimized | wc -l)+$(ps aux | grep evaluation-optimized | wc -l) )) -gt 37 ]];do
+		while [[ $(( $(ps aux | grep abm-evaluation-multi-optimized | wc -l)+$(ps aux | grep evaluation-optimized | wc -l) )) -gt $N_CORES ]];do
 			sleep 30;
 			echo "waiting for cores, $N running..."
 		done
@@ -116,7 +116,7 @@ for TCP in $DCTCP $TIMELY $POWERTCP;do
 	for BURST_SIZES in 0.125 0.25 0.375 0.5 0.75;do
 		for ALG in $DT $ABM;do
 			FLOW_END_TIME=13 #$(python3 -c "print(10+3*0.8/$LOAD)")
-			while [[ $(( $(ps aux | grep abm-evaluation-multi-optimized | wc -l)+$(ps aux | grep evaluation-optimized | wc -l) )) -gt 37 ]];do
+			while [[ $(( $(ps aux | grep abm-evaluation-multi-optimized | wc -l)+$(ps aux | grep evaluation-optimized | wc -l) )) -gt $N_CORES ]];do
 				sleep 30;
 				echo "waiting for cores, $N running..."
 			done
@@ -144,7 +144,7 @@ for ALG in ${BUF_ALGS[@]};do
 		FLOW_END_TIME=13 #$(python3 -c "print(10+3*0.8/$LOAD)")
 		FLOWFILE="$DUMP_DIR/fcts-single-$TCP-$ALG-$LOAD-$BURST_SIZES-$BURST_FREQ.fct"
 		TORFILE="$DUMP_DIR/tor-single-$TCP-$ALG-$LOAD-$BURST_SIZES-$BURST_FREQ.stat"
-		while [[ $(ps aux | grep abm-evaluation-optimized | wc -l) -gt 36 ]];do
+		while [[ $(ps aux | grep abm-evaluation-optimized | wc -l) -gt $N_CORES ]];do
 			sleep 30;
 			echo "waiting for cores, $N running..."
 		done
@@ -165,7 +165,7 @@ BURST_FREQ=2
 for BURST_SIZES in 0.125 0.25 0.375 0.5 0.75;do
 	for ALG in ${BUF_ALGS[@]};do
 		FLOW_END_TIME=13 #$(python3 -c "print(10+3*0.8/$LOAD)")
-		while [[ $(ps aux | grep abm-evaluation-optimized | wc -l) -gt 36 ]];do
+		while [[ $(ps aux | grep abm-evaluation-optimized | wc -l) -gt $N_CORES ]];do
 			sleep 30;
 			echo "waiting for cores, $N running..."
 		done

@@ -83,7 +83,7 @@ for BUFFER_PER_PORT_PER_GBPS in 9.6 8 7 6 5.12 3.44;do
 	for ALG in $DT $ABM $IB;do
 		for TCP in ${TCP_ALGS[@]};do
 			FLOW_END_TIME=13 #$(python3 -c "print(10+3*0.8/$LOAD)")
-			while [[ $(( $(ps aux | grep evaluation-multi-optimized | wc -l)+$(ps aux | grep evaluation-optimized | wc -l) )) -gt 37 ]];do
+			while [[ $(( $(ps aux | grep evaluation-multi-optimized | wc -l)+$(ps aux | grep evaluation-optimized | wc -l) )) -gt $N_CORES ]];do
 				sleep 30;
 				echo "waiting for cores, $N running..."
 			done
