@@ -2,14 +2,14 @@
 
 ## Config
 
-Edit (config.sh)[https://github.com/inet-tub/ns3-datacenter/tree/master/simulator/ns-3.35/examples/ABM/config.sh] to match your CPU. It is optimal to set `N_CORES` to a value lower than the number of CPU cores on your system. (run-main.sh)[https://github.com/inet-tub/ns3-datacenter/tree/master/simulator/ns-3.35/examples/ABM/run-main.sh] launches a total of `87` simulations, with `N_CORES` number of simulations running in parallel. The enters a waiting mode when N_CORES simulations are running, until a simulation finishes and then launches a new simulation. Each simulation takes about 9 to 10 hours and this duration may also depend on your CPU.
+Edit [config.sh](https://github.com/inet-tub/ns3-datacenter/tree/master/simulator/ns-3.35/examples/ABM/config.sh) to match your CPU. It is optimal to set `N_CORES` to a value lower than the number of CPU cores on your system. (run-main.sh)[https://github.com/inet-tub/ns3-datacenter/tree/master/simulator/ns-3.35/examples/ABM/run-main.sh] launches a total of `87` simulations, with `N_CORES` number of simulations running in parallel. The enters a waiting mode when N_CORES simulations are running, until a simulation finishes and then launches a new simulation. Each simulation takes about 9 to 10 hours and this duration may also depend on your CPU.
 
 
 ## Simulations from the paper
 
 Running the following four scripts essentially produces the results for all the simulations in the paper.
 
-- (run-main.sh)[./run-main.sh]
+- [run-main.sh](./run-main.sh)
 - `run-buffer.sh`
 - `run-interval.sh`
 - `run-nprio.sh`
