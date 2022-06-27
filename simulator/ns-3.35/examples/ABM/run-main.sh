@@ -139,6 +139,7 @@ done
 BURST_SIZES=0.3
 BURST_SIZE=$(python3 -c "print($BURST_SIZES*$BUFFER)")
 BURST_FREQ=2
+TCP=1
 for ALG in ${BUF_ALGS[@]};do
 	for LOAD in 0.2 0.4 0.6 0.8;do
 		FLOW_END_TIME=13 #$(python3 -c "print(10+3*0.8/$LOAD)")
@@ -162,6 +163,7 @@ done
 # Total simulations = 25
 LOAD=0.4
 BURST_FREQ=2
+TCP=1
 for BURST_SIZES in 0.125 0.25 0.375 0.5 0.75;do
 	for ALG in ${BUF_ALGS[@]};do
 		FLOW_END_TIME=13 #$(python3 -c "print(10+3*0.8/$LOAD)")
