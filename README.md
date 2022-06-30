@@ -67,7 +67,7 @@ Checkout [`simulator/ns-3.35/examples/ABM`](https://github.com/inet-tub/ns3-data
 
 [`simulator/ns-3.35/src/point-to-point/model/rdma-hw.cc`](https://github.com/inet-tub/ns3-datacenter/tree/master/simulator/ns-3.35/src/point-to-point/model/rdma-hw.cc): This file contains the core logic of PowerTCP and Theta-PowerTCP. The entire file is almost same as the one in HPCC simulator.
 
-[`simulator/ns-3.35/src/point-to-point/model/switch-node.cc`](https://github.com/inet-tub/ns3-datacenter/tree/master/simulator/ns-3.35/src/point-to-point/model/switch-node.cc): This file is also modified to support both RDMA and TCP/IP traffic. Minor change in INT, for PowerTCP, RXBytes is appended instead of TxBytes. This is since $\lambda(t) = \mu(t) + \dot{q}(t)$ i.e., RxRate is TxRate + Queue gradient where $\lambda$ is required for PowerTCP to calculate power.
+[`simulator/ns-3.35/src/point-to-point/model/switch-node.cc`](https://github.com/inet-tub/ns3-datacenter/tree/master/simulator/ns-3.35/src/point-to-point/model/switch-node.cc): This file is also modified to support both RDMA and TCP/IP traffic. Minor change in INT, for PowerTCP, RXBytes is appended instead of TxBytes. This is since $\lambda(t)=\mu(t)+\dot{q}(t) $ i.e., RxRate is TxRate + Queue gradient where $\lambda(t)$ is required for PowerTCP to calculate power.
 
 [`simulator/ns-3.35/src/point-to-point/model/switch-mmu.cc`](https://github.com/inet-tub/ns3-datacenter/tree/master/simulator/ns-3.35/src/point-to-point/model/switch-mmu.cc): This file has the core logic for buffer management. Currently only Dynamic Thresholds (DT) is supported. Note: This is not what we used for ABM in the paper. However, there is an ongoing effort to bring ABM to such a mixed stack.
 
