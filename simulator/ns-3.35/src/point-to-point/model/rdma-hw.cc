@@ -12,6 +12,7 @@
 #include "ppp-header.h"
 #include "qbb-header.h"
 #include "cn-header.h"
+#include "ns3/unsched-tag.h"
 
 namespace ns3 {
 
@@ -561,6 +562,18 @@ Ptr<Packet> RdmaHw::GetNxtPacket(Ptr<RdmaQueuePair> qp) {
 	if (m_mtu < payload_size)
 		payload_size = m_mtu;
 	Ptr<Packet> p = Create<Packet> (payload_size);
+	uint32_t sentBytes = qp->m_size - qp->GetBytesLeft();
+	uint32_t nic_idx = GetNicIdxOfQp(qp);
+	DataRate m_bps = m_nic[nic_idx].dev->GetDataRate();
+	double bdp = m_bps.GetBitRate() * 1 * qp->m_baseRtt * 1e-9 / 8;
+	UnSchedTag unschedtag;
+	if (sentBytes <= bdp){
+		unschedtag.SetValue(1);
+	}
+	else{
+		unschedtag.SetValue(0);
+	}
+	p->AddPacketTag(unschedtag);
 	// add SeqTsHeader
 	SeqTsHeader seqTs;
 	seqTs.SetSeq (qp->snd_nxt);

@@ -48,6 +48,7 @@
 #include "ns3/custom-header.h"
 #include "ns3/rdma-tag.h"
 #include "ns3/interface-tag.h"
+#include "ns3/unsched-tag.h"
 
 #include <iostream>
 
@@ -84,6 +85,10 @@ Ptr<Packet> RdmaEgressQueue::DequeueQindex(int qIndex) {
 		Ptr<Packet> p = m_ackQ->Dequeue();
 		m_qlast = -1;
 		m_traceRdmaDequeue(p, 0);
+		UnSchedTag tag;
+		bool found = p->PeekPacketTag(tag);
+		uint32_t unsched = tag.GetValue(); 
+		std::cout << "node" << this->GetNode().GetId() << " packetSize " << p->GetSize() << " time " << Simulator::Now().GetNanoSeconds() << " unsched " << unsched << std::endl; 
 		return p;
 	}
 	if (qIndex >= 0) { // qp
@@ -91,6 +96,10 @@ Ptr<Packet> RdmaEgressQueue::DequeueQindex(int qIndex) {
 		m_rrlast = qIndex;
 		m_qlast = qIndex;
 		m_traceRdmaDequeue(p, m_qpGrp->Get(qIndex)->m_pg);
+		UnSchedTag tag;
+		bool found = p->PeekPacketTag(tag);
+		uint32_t unsched = tag.GetValue(); 
+		std::cout << "node" << this->GetNode().GetId() << " packetSize " << p->GetSize() << " time " << Simulator::Now().GetNanoSeconds() << " unsched " << unsched << std::endl; 
 		return p;
 	}
 	return 0;

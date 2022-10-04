@@ -903,6 +903,9 @@ main (int argc, char *argv[])
 	double requestRate = load * LEAF_SERVER_CAPACITY * SERVER_COUNT / oversubRatio / (8 * avg_cdf (cdfTable)) / SERVER_COUNT;
 	NS_LOG_INFO ("Average request rate: " << requestRate << " per second");
 	NS_LOG_INFO ("Initialize random seed: " << randomSeed);
+
+	std::cout << "AVERAGE: " << avg_cdf(cdfTable) << std::endl;
+	std::cout << "VARIANCE: " << var_cdf(cdfTable) << std::endl;
 	if (randomSeed == 0)
 	{
 		srand ((unsigned)time (NULL));

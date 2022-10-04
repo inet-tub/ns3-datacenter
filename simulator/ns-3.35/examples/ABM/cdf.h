@@ -40,4 +40,6 @@ double avg_cdf(struct cdf_table *table);
 /* Generate a random value based on CDF distribution */
 double gen_random_cdf(struct cdf_table *table);
 
+double var_cdf(struct cdf_table *table);
+
 #endif

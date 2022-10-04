@@ -83,6 +83,7 @@ double avg_cdf(struct cdf_table *table)
     int i = 0;
     double avg = 0;
     double value, prob;
+    double sq = 0;
 
     if (!table)
         return 0;
@@ -100,10 +101,44 @@ double avg_cdf(struct cdf_table *table)
             prob = table->entries[i].cdf - table->entries[i-1].cdf;
         }
         avg += (value * prob);
+	sq += value*value*prob;
     }
+	double var = sq - avg*avg;
 
     return avg;
 }
+
+/* get average value of CDF distribution */
+double var_cdf(struct cdf_table *table)
+{
+    int i = 0;
+    double avg = 0;
+    double value, prob;
+    double sq = 0;
+
+    if (!table)
+        return 0;
+
+    for (i = 0; i < table->num_entry; i++)
+    {
+        if (i == 0)
+        {
+            value = table->entries[i].value / 2;
+            prob = table->entries[i].cdf;
+        }
+        else
+        {
+            value = (table->entries[i].value + table->entries[i-1].value) / 2;
+            prob = table->entries[i].cdf - table->entries[i-1].cdf;
+        }
+        avg += (value * prob);
+        sq += value*value*prob;
+    }
+        double var = sq - avg*avg;
+
+    return var;
+}
+
 
 double interpolate(double x, double x1, double y1, double x2, double y2)
 {
