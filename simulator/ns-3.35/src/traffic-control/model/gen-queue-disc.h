@@ -113,6 +113,9 @@ public:
   bool AcceptPacket(uint32_t priority, Ptr<Packet> packet);
 
   void TrimPacket(Ptr<Packet> packetCopy);
+ void setNode(uint32_t j){nodeId = j;}
+ void setNodetype(std::string j){nodetype = j;}
+
 
 private:
   virtual bool DoEnqueue (Ptr<QueueDiscItem> item);
@@ -149,6 +152,8 @@ private:
   Ptr<SharedMemoryBuffer> sharedMemory;
   uint32_t bufferalg;
   uint32_t portId;
+  uint32_t nodeId;
+  std::string nodetype="";
   uint32_t sat;
   std::string switchname; //optional
 

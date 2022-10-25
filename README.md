@@ -1,7 +1,7 @@
 
 # ns3-datacenter
 
-This repository contains the source code used for [PowerTCP (NSDI 2022)](https://www.usenix.org/conference/nsdi22/presentation/addanki) and ABM (SIGCOMM 2022).
+This repository contains the source code used for [PowerTCP (NSDI 2022)](https://www.usenix.org/conference/nsdi22/presentation/addanki) and [ABM (SIGCOMM 2022)](https://dl.acm.org/doi/10.1145/3544216.3544252).
 
 **This is a beta release. Please raise issues if you encounter any.**
 

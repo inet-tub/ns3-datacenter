@@ -447,13 +447,19 @@ GenQueueDisc::DoEnqueue (Ptr<QueueDiscItem> item)
   NS_LOG_FUNCTION (this << item);
 
   Ptr<Packet> packet = item->GetPacket();
-
   uint32_t p=0;
 
   bool found;
   MyPriorityTag a;
   found = packet->PeekPacketTag(a);
   if(found)p=a.GetPriority();
+
+  uint32_t unschedCheck = 0;
+  UnSchedTag b;
+  found = packet->PeekPacketTag(b);
+  if (found) unschedCheck = b.GetValue();
+ if (nodetype=="")
+   std::cout << "arrival timestamp " << Simulator::Now().GetNanoSeconds() << " size " << item->GetSize()  << " unsched " << unschedCheck << " node " << nodeId << " port " << portId << std::endl;
 
   if (uint32_t(p)>=nPrior)
     p = uint32_t(nPrior-1);
@@ -578,6 +584,12 @@ GenQueueDisc::DoDequeue (void)
               // std::cout << "found " << Int.getHopCount() << std::endl;
             }
             txBytesInt+=packet->GetSize();
+	    uint32_t unschedCheck = 0;
+	    UnSchedTag b;
+	    found = packet->PeekPacketTag(b);
+  	    if (found) unschedCheck = b.GetValue();
+	    if (nodetype=="")
+	      std::cout << "departure timestamp " << Simulator::Now().GetNanoSeconds() << " size " << item->GetSize()  << " unsched " << unschedCheck << " node " << nodeId << " port " << portId << std::endl;
             return item;
           }
         Deq[dequeueIndex]+=1472;

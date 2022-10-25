@@ -87,8 +87,7 @@ Ptr<Packet> RdmaEgressQueue::DequeueQindex(int qIndex) {
 		m_traceRdmaDequeue(p, 0);
 		UnSchedTag tag;
 		bool found = p->PeekPacketTag(tag);
-		uint32_t unsched = tag.GetValue(); 
-		std::cout << "node" << this->GetNode().GetId() << " packetSize " << p->GetSize() << " time " << Simulator::Now().GetNanoSeconds() << " unsched " << unsched << std::endl; 
+		uint32_t unsched = tag.GetValue();
 		return p;
 	}
 	if (qIndex >= 0) { // qp
@@ -98,8 +97,7 @@ Ptr<Packet> RdmaEgressQueue::DequeueQindex(int qIndex) {
 		m_traceRdmaDequeue(p, m_qpGrp->Get(qIndex)->m_pg);
 		UnSchedTag tag;
 		bool found = p->PeekPacketTag(tag);
-		uint32_t unsched = tag.GetValue(); 
-		std::cout << "node" << this->GetNode().GetId() << " packetSize " << p->GetSize() << " time " << Simulator::Now().GetNanoSeconds() << " unsched " << unsched << std::endl; 
+		uint32_t unsched = tag.GetValue();
 		return p;
 	}
 	return 0;

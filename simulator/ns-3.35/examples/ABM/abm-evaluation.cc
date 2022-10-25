@@ -379,8 +379,8 @@ main (int argc, char *argv[])
 	uint32_t nPrior = 2; // number queues in switch ports
 	cmd.AddValue ("nPrior", "number of priorities", nPrior);
 
-	std::string alphasFile = "/home/vamsi/src/phd/ns3-datacenter/simulator/ns-3.35/examples/ABM/alphas"; // On lakewood
-	std::string cdfFileName = "/home/vamsi/src/phd/ns3-datacenter/simulator/ns-3.35/examples/ABM/websearch.txt";
+	std::string alphasFile = "/home/vamsi/src/phd/codebase/ns3-datacenter/simulator/ns-3.35/examples/ABM/alphas"; // On lakewood
+	std::string cdfFileName = "/home/vamsi/src/phd/codebase/ns3-datacenter/simulator/ns-3.35/examples/ABM/websearch.txt";
 	std::string cdfName = "WS";
 	cmd.AddValue ("alphasFile", "alpha values file (should be exactly nPrior lines)", alphasFile);
 	cmd.AddValue ("cdfFileName", "File name for flow distribution", cdfFileName);
@@ -737,6 +737,7 @@ main (int argc, char *argv[])
 			ToRQueueDiscs[leaf].Add(queueDiscs.Get(0));
 			Ptr<GenQueueDisc> genDisc = DynamicCast<GenQueueDisc> (queueDiscs.Get (0));
 			genDisc->SetPortId(leafPortId[leaf]++);
+			genDisc->setNode(leaf);
 			switch (algorithm) {
 			case DT:
 				genDisc->setNPrior(nPrior); // IMPORTANT. This will also trigger "alphas = new ..."
@@ -830,6 +831,10 @@ main (int argc, char *argv[])
 				genDisc[1]->SetSharedMemory(sharedMemorySpine[spine]);
 				genDisc[0]->SetPortId(leafPortId[leaf]++);
 				genDisc[1]->SetPortId(spinePortId[spine]++);
+				genDisc[0]->setNode(leaf);
+				genDisc[0]->setNode(spine);
+				genDisc[0]->setNodetype("leaf");
+				genDisc[1]->setNodetype("spine");
 				for (uint32_t i = 0; i < 2; i++) {
 					switch (algorithm) {
 					case DT:
