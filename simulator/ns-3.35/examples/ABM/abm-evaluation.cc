@@ -737,7 +737,6 @@ main (int argc, char *argv[])
 			ToRQueueDiscs[leaf].Add(queueDiscs.Get(0));
 			Ptr<GenQueueDisc> genDisc = DynamicCast<GenQueueDisc> (queueDiscs.Get (0));
 			genDisc->SetPortId(leafPortId[leaf]++);
-			genDisc->setNode(leaf);
 			switch (algorithm) {
 			case DT:
 				genDisc->setNPrior(nPrior); // IMPORTANT. This will also trigger "alphas = new ..."
@@ -831,10 +830,6 @@ main (int argc, char *argv[])
 				genDisc[1]->SetSharedMemory(sharedMemorySpine[spine]);
 				genDisc[0]->SetPortId(leafPortId[leaf]++);
 				genDisc[1]->SetPortId(spinePortId[spine]++);
-				genDisc[0]->setNode(leaf);
-				genDisc[0]->setNode(spine);
-				genDisc[0]->setNodetype("leaf");
-				genDisc[1]->setNodetype("spine");
 				for (uint32_t i = 0; i < 2; i++) {
 					switch (algorithm) {
 					case DT:
@@ -909,8 +904,6 @@ main (int argc, char *argv[])
 	NS_LOG_INFO ("Average request rate: " << requestRate << " per second");
 	NS_LOG_INFO ("Initialize random seed: " << randomSeed);
 
-	std::cout << "AVERAGE: " << avg_cdf(cdfTable) << std::endl;
-	std::cout << "VARIANCE: " << var_cdf(cdfTable) << std::endl;
 	if (randomSeed == 0)
 	{
 		srand ((unsigned)time (NULL));

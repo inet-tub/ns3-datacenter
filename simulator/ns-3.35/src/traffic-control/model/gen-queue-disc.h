@@ -50,7 +50,7 @@ public:
 
   void setStrictPriority() {
     strict_priority = 1;
-    round_robin=0;//Just to avoid clash
+    round_robin = 0; //Just to avoid clash
   }
 
   void setRoundRobin() {
@@ -58,15 +58,15 @@ public:
     strict_priority = 0;//Just to avoid clash
   }
 
-  double GetThroughputQueue(uint32_t p,double nanodelay);
+  double GetThroughputQueue(uint32_t p, double nanodelay);
   double GetThroughputPort(double nanodelay);
-  double GetThroughputEnQueue(uint32_t p,double nanodelay);
+  double GetThroughputEnQueue(uint32_t p, double nanodelay);
 
   uint64_t GetBuffersize(uint32_t p);
 
   void setNPrior(uint32_t np) {
-     nPrior = np;
-     alphas = new double[nPrior];
+    nPrior = np;
+    alphas = new double[nPrior];
   }
   double *alphas;
 
@@ -75,21 +75,21 @@ public:
     return nPrior;
   }
 
-  void setPortBw(double bw){portBW = bw;}
+  void setPortBw(double bw) {portBW = bw;}
 
-  void SetSharedMemory(Ptr<SharedMemoryBuffer> sm){sharedMemory=sm;}
+  void SetSharedMemory(Ptr<SharedMemoryBuffer> sm) {sharedMemory = sm;}
 
-  void SetBufferAlgorithm(uint32_t alg){
-    bufferalg=alg;
+  void SetBufferAlgorithm(uint32_t alg) {
+    bufferalg = alg;
   }
 
-  void SetPortId(uint32_t port){portId=port;}
-  uint32_t getPortId(){return portId;}
+  void SetPortId(uint32_t port) {portId = port;}
+  uint32_t getPortId() {return portId;}
 
-  void SetFabWindow(Time t){FabWindow=t;}
-  void SetFabThreshold(uint32_t n){FabThreshold=n;}
+  void SetFabWindow(Time t) {FabWindow = t;}
+  void SetFabThreshold(uint32_t n) {FabThreshold = n;}
 
-  void SetName(std::string name){switchname=name;}
+  void SetName(std::string name) {switchname = name;}
 
   bool DynamicThresholds(uint32_t priority, Ptr<Packet> packet);
 
@@ -102,19 +102,20 @@ public:
 
   bool CompleteSharing(uint32_t priority, Ptr<Packet> packet);
 
-  int DropAfd(double prob,uint32_t priority);
-  void SetAfdWindow(Time t){AfdWindow=t;}
+  int DropAfd(double prob, uint32_t priority);
+  void SetAfdWindow(Time t) {AfdWindow = t;}
   void SetQrefAfd(uint32_t p, uint32_t ref);//{QRefAfd[p]=ref;}
   uint32_t GetQrefAfd(uint32_t p);//{return QRefAfd[p];}
-  void SetDppWindow(Time t){DppWindow=t;}
-  void SetDppThreshold(uint32_t n){DppThreshold=n;}
+  void SetDppWindow(Time t) {DppWindow = t;}
+  void SetDppThreshold(uint32_t n) {DppThreshold = n;}
   bool IntelligentBuffer(uint32_t priority, Ptr<Packet> packet);
 
   bool AcceptPacket(uint32_t priority, Ptr<Packet> packet);
 
   void TrimPacket(Ptr<Packet> packetCopy);
- void setNode(uint32_t j){nodeId = j;}
- void setNodetype(std::string j){nodetype = j;}
+
+  void setNodeId(uint32_t j) {nodeId = j;}
+  void setNodeType(std::string j) {nodetype = j;}
 
 
 private:
@@ -140,12 +141,12 @@ private:
   double Deq[11];
 
   uint32_t nPrior;
-  std::unordered_map<uint32_t,uint32_t> flowPrior;
+  std::unordered_map<uint32_t, uint32_t> flowPrior;
   Time window;
   Time timeSinceLastChange;
   uint32_t new_index = 0;
 
-  uint32_t dequeueIndex=0;
+  uint32_t dequeueIndex = 0;
   uint32_t strict_priority;
   uint32_t round_robin;
 
@@ -153,19 +154,19 @@ private:
   uint32_t bufferalg;
   uint32_t portId;
   uint32_t nodeId;
-  std::string nodetype="";
+  std::string nodetype = "ToRtoServer";
   uint32_t sat;
   std::string switchname; //optional
 
-  std::unordered_map<uint32_t,std::pair<uint32_t,Time>> FlowCount; // FlowId --> <packetcounter, LastSeen>
+  std::unordered_map<uint32_t, std::pair<uint32_t, Time>> FlowCount; // FlowId --> <packetcounter, LastSeen>
 
-  uint64_t bufferMax[11]={0};
-  
+  uint64_t bufferMax[11] = {0};
+
   uint64_t updateInterval;
   bool firstTimeUpdate = true;
 
   uint64_t staticBuffer;
-  uint64_t staticOccupancy=0;
+  uint64_t staticOccupancy = 0;
 
   double alphaUnsched;
 
@@ -176,14 +177,14 @@ private:
   Time DppWindow; // Needs to be set in experiment code.
   uint32_t DppThreshold; // Needs to be set in experiment code.
 
-  Time timeSinceLastChangeAdf=Seconds(0);
-  std::unordered_map<uint32_t,std::pair<uint32_t,uint32_t>> M; // FlowId --> <counterNow, Total count in last window>
-  double MFair[11]={0};
-  uint32_t Qold[11]={0};
-  uint32_t DPPQueue=1;
+  Time timeSinceLastChangeAdf = Seconds(0);
+  std::unordered_map<uint32_t, std::pair<uint32_t, uint32_t>> M; // FlowId --> <counterNow, Total count in last window>
+  double MFair[11] = {0};
+  uint32_t Qold[11] = {0};
+  uint32_t DPPQueue = 1;
 
-  double a1=1.8;
-  double a2=1.7;
+  double a1 = 1.8;
+  double a2 = 1.7;
 
   double portBW;// Needs to be set in experiment code via attribute.
 
@@ -191,7 +192,7 @@ private:
 
   bool is_homa;
 
-  uint64_t txBytesInt=0;
+  uint64_t txBytesInt = 0;
   bool enableDPPQueue;
 
 

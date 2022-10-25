@@ -51,49 +51,49 @@ NS_OBJECT_ENSURE_REGISTERED (GenQueueDisc);
 TypeId GenQueueDisc::GetTypeId (void)
 {
   static TypeId tid = TypeId ("ns3::GenQueueDisc")
-    .SetParent<QueueDisc> ()
-    .SetGroupName ("TrafficControl")
-    .AddConstructor<GenQueueDisc> ()
-    .AddAttribute ("nPrior","number of queues", UintegerValue (5),
+                      .SetParent<QueueDisc> ()
+                      .SetGroupName ("TrafficControl")
+                      .AddConstructor<GenQueueDisc> ()
+                      .AddAttribute ("nPrior", "number of queues", UintegerValue (5),
                                      MakeUintegerAccessor (&GenQueueDisc::nPrior),
-                                        MakeUintegerChecker<uint32_t> ())
-    .AddAttribute ("sat","saturation detection",
-                    UintegerValue (20*1400),
-                    MakeUintegerAccessor (&GenQueueDisc::sat),
-                    MakeUintegerChecker<uint32_t> ())
-    .AddAttribute ("BufferAlgorithm","BufferAlgorithm",
-                    UintegerValue (DT),
-                    MakeUintegerAccessor (&GenQueueDisc::bufferalg),
-                    MakeUintegerChecker<uint32_t> ())
-    .AddAttribute ("enableDPPQueue","whether to use extra priority queue or not. This concerns IB algorithm. Turn this off in single queue setting.",
-                    BooleanValue (false),
-                    MakeBooleanAccessor (&GenQueueDisc::enableDPPQueue),
-                    MakeBooleanChecker())
-    .AddAttribute ("alphaUnsched","alphaUnsched",
-                    DoubleValue (1024),
-                    MakeDoubleAccessor (&GenQueueDisc::alphaUnsched),
-                    MakeDoubleChecker<double> ())
-    .AddAttribute ("portBW","portBW in Gbps",
-                    DoubleValue (10),
-                    MakeDoubleAccessor (&GenQueueDisc::portBW),
-                    MakeDoubleChecker<double> ())
+                                     MakeUintegerChecker<uint32_t> ())
+                      .AddAttribute ("sat", "saturation detection",
+                                     UintegerValue (20 * 1400),
+                                     MakeUintegerAccessor (&GenQueueDisc::sat),
+                                     MakeUintegerChecker<uint32_t> ())
+                      .AddAttribute ("BufferAlgorithm", "BufferAlgorithm",
+                                     UintegerValue (DT),
+                                     MakeUintegerAccessor (&GenQueueDisc::bufferalg),
+                                     MakeUintegerChecker<uint32_t> ())
+                      .AddAttribute ("enableDPPQueue", "whether to use extra priority queue or not. This concerns IB algorithm. Turn this off in single queue setting.",
+                                     BooleanValue (false),
+                                     MakeBooleanAccessor (&GenQueueDisc::enableDPPQueue),
+                                     MakeBooleanChecker())
+                      .AddAttribute ("alphaUnsched", "alphaUnsched",
+                                     DoubleValue (1024),
+                                     MakeDoubleAccessor (&GenQueueDisc::alphaUnsched),
+                                     MakeDoubleChecker<double> ())
+                      .AddAttribute ("portBW", "portBW in Gbps",
+                                     DoubleValue (10),
+                                     MakeDoubleAccessor (&GenQueueDisc::portBW),
+                                     MakeDoubleChecker<double> ())
 
-    .AddAttribute ("updateInterval","NANOSECONDS update interval for dequeue rate and N in ActiveBufferManagement", UintegerValue(30000),
-                  MakeUintegerAccessor(&GenQueueDisc::updateInterval),
-                  MakeUintegerChecker<uint64_t>())
-    .AddAttribute ("staticBuffer","static buffer",
-                              UintegerValue (0),
-                              MakeUintegerAccessor (&GenQueueDisc::staticBuffer),
-                              MakeUintegerChecker<uint64_t> ())
-    .AddAttribute ("RoundRobin","round robin scheduling",
-                              UintegerValue (1),
-                              MakeUintegerAccessor (&GenQueueDisc::round_robin),
-                              MakeUintegerChecker<uint32_t> ())
-    .AddAttribute ("StrictPriority","strict priority scheduling",
-                              UintegerValue (0),
-                              MakeUintegerAccessor (&GenQueueDisc::strict_priority),
-                              MakeUintegerChecker<uint32_t> ())
-  ;
+                      .AddAttribute ("updateInterval", "NANOSECONDS update interval for dequeue rate and N in ActiveBufferManagement", UintegerValue(30000),
+                                     MakeUintegerAccessor(&GenQueueDisc::updateInterval),
+                                     MakeUintegerChecker<uint64_t>())
+                      .AddAttribute ("staticBuffer", "static buffer",
+                                     UintegerValue (0),
+                                     MakeUintegerAccessor (&GenQueueDisc::staticBuffer),
+                                     MakeUintegerChecker<uint64_t> ())
+                      .AddAttribute ("RoundRobin", "round robin scheduling",
+                                     UintegerValue (1),
+                                     MakeUintegerAccessor (&GenQueueDisc::round_robin),
+                                     MakeUintegerChecker<uint32_t> ())
+                      .AddAttribute ("StrictPriority", "strict priority scheduling",
+                                     UintegerValue (0),
+                                     MakeUintegerAccessor (&GenQueueDisc::strict_priority),
+                                     MakeUintegerChecker<uint32_t> ())
+                      ;
   return tid;
 }
 
@@ -102,18 +102,18 @@ GenQueueDisc::GenQueueDisc ()
 {
   NS_LOG_FUNCTION (this);
   alphas = nullptr;
-  for (uint32_t i=0;i<11;i++){
-    firstSeen[i]= Seconds(0);
-    lastAccepted[i]=ns3::Simulator::Now();
-    numBytesSent[i]=0;
-    firstSeenQueue[i]= Seconds(0);
-    lastAcceptedQueue[i]=ns3::Simulator::Now();
-    numBytesSentQueue[i]=0;
-    droppedBytes[i]=0;
-    DeqRate[i]=1;
-    Deq[i]=0;
-    MFair[i]=1000*1000*4;
-    QRefAfd[i]=1000*15;
+  for (uint32_t i = 0; i < 11; i++) {
+    firstSeen[i] = Seconds(0);
+    lastAccepted[i] = ns3::Simulator::Now();
+    numBytesSent[i] = 0;
+    firstSeenQueue[i] = Seconds(0);
+    lastAcceptedQueue[i] = ns3::Simulator::Now();
+    numBytesSentQueue[i] = 0;
+    droppedBytes[i] = 0;
+    DeqRate[i] = 1;
+    Deq[i] = 0;
+    MFair[i] = 1000 * 1000 * 4;
+    QRefAfd[i] = 1000 * 15;
     nofP[i] = 0;
     DPPQueue = 1;
   }
@@ -127,40 +127,40 @@ GenQueueDisc::~GenQueueDisc ()
 }
 
 uint64_t
-GenQueueDisc::GetBuffersize(uint32_t p){
+GenQueueDisc::GetBuffersize(uint32_t p) {
   uint64_t temp = bufferMax[p];
-  bufferMax[p]=0;
+  bufferMax[p] = 0;
   return temp;
 }
 
 double
-GenQueueDisc::GetThroughputEnQueue(uint32_t p, double nanodelay){
-    double th = 1e9*8*numBytesSent[p]/nanodelay;
-    numBytesSent[p]=0;
+GenQueueDisc::GetThroughputEnQueue(uint32_t p, double nanodelay) {
+  double th = 1e9 * 8 * numBytesSent[p] / nanodelay;
+  numBytesSent[p] = 0;
   return th;
 }
 
 
-bool GenQueueDisc::DynamicThresholds(uint32_t priority, Ptr<Packet> packet){
-  
+bool GenQueueDisc::DynamicThresholds(uint32_t priority, Ptr<Packet> packet) {
+
   double remaining = sharedMemory->GetRemainingBuffer();
-  uint64_t maxSize = alphas[priority]*remaining;
-  if (maxSize> UINT32_MAX)
-    maxSize = UINT32_MAX-1500;
+  uint64_t maxSize = alphas[priority] * remaining;
+  if (maxSize > UINT32_MAX)
+    maxSize = UINT32_MAX - 1500;
 
   uint32_t qSize = GetQueueDiscClass (priority)->GetQueueDisc ()->GetNBytes();
-  if ( ((qSize + packet->GetSize()) >  maxSize) || (sharedMemory->GetRemainingBuffer() < packet->GetSize())  ){
+  if ( ((qSize + packet->GetSize()) >  maxSize) || (sharedMemory->GetRemainingBuffer() < packet->GetSize())  ) {
     return false; // drop
   }
-  else{
+  else {
     return true;
   }
 
 }
 
 void
-GenQueueDisc::UpdateDequeueRate(double nanodelay){ // delay in NANOSECONDS. Pay attention here.
-  double num=0;
+GenQueueDisc::UpdateDequeueRate(double nanodelay) { // delay in NANOSECONDS. Pay attention here.
+  double num = 0;
   /* This is because of round-robin scheduling. More to be added soon. In general, its better to measure dequeue rate like PIE */
   // for (uint32_t p=0;p<nPrior;p++){
   //   if (GetQueueDiscClass (p)->GetQueueDisc ()->GetNBytes()>sat){
@@ -170,7 +170,7 @@ GenQueueDisc::UpdateDequeueRate(double nanodelay){ // delay in NANOSECONDS. Pay 
 
   // if (num==0)
   //   num=1;
-  
+
   // for (uint32_t p=0;p<nPrior;p++){
   //   if (GetQueueDiscClass (p)->GetQueueDisc ()->GetNBytes()>sat){
   //     DeqRate[p] = double(1.0/num);
@@ -179,9 +179,9 @@ GenQueueDisc::UpdateDequeueRate(double nanodelay){ // delay in NANOSECONDS. Pay 
   //     DeqRate[p]=1;
   //   }
   // }
-  for (uint32_t p=0;p<nPrior;p++){
-    double th = 8*Deq[p]/nanodelay/portBW; // portBW should be in Gbps
-    if (th < 1.0/double(nPrior) || th > 1){
+  for (uint32_t p = 0; p < nPrior; p++) {
+    double th = 8 * Deq[p] / nanodelay / portBW; // portBW should be in Gbps
+    if (th < 1.0 / double(nPrior) || th > 1) {
       th = 1;
     }
     DeqRate[p] = th;
@@ -189,20 +189,20 @@ GenQueueDisc::UpdateDequeueRate(double nanodelay){ // delay in NANOSECONDS. Pay 
   }
 }
 
-void GenQueueDisc::UpdateNofP(){
-  for (uint32_t i=0; i< nPrior; i++){
+void GenQueueDisc::UpdateNofP() {
+  for (uint32_t i = 0; i < nPrior; i++) {
     nofP[i] = sharedMemory->GetNofP(i);
   }
 }
 
 
-void GenQueueDisc::InvokeUpdates(double nanodelay){
+void GenQueueDisc::InvokeUpdates(double nanodelay) {
   UpdateDequeueRate(nanodelay);
   UpdateNofP();
-  Simulator::Schedule(NanoSeconds(nanodelay),&GenQueueDisc::InvokeUpdates,this,nanodelay);
+  Simulator::Schedule(NanoSeconds(nanodelay), &GenQueueDisc::InvokeUpdates, this, nanodelay);
 }
 
-bool GenQueueDisc::ActiveBufferManagement(uint32_t priority, Ptr<Packet> packet){
+bool GenQueueDisc::ActiveBufferManagement(uint32_t priority, Ptr<Packet> packet) {
 
   double alpha = 1;
 
@@ -211,51 +211,51 @@ bool GenQueueDisc::ActiveBufferManagement(uint32_t priority, Ptr<Packet> packet)
   uint32_t unsched = 0;
   UnSchedTag tag;
   found = packet->PeekPacketTag (tag);
-  if(found){
-    unsched=tag.GetValue();
+  if (found) {
+    unsched = tag.GetValue();
   }
 
   /* prioritize unscheduled packets */
-  if (unsched){
+  if (unsched) {
     alpha = alphaUnsched;
   }
-  else{
+  else {
     alpha = alphas[priority];
   }
 
-  uint64_t currentSize=GetQueueDiscClass (priority)->GetQueueDisc ()->GetNBytes();
+  uint64_t currentSize = GetQueueDiscClass (priority)->GetQueueDisc ()->GetNBytes();
 
-  double satLevel = double(currentSize)/sat; 
-  if (satLevel>1){
-    satLevel=1;
+  double satLevel = double(currentSize) / sat;
+  if (satLevel > 1) {
+    satLevel = 1;
   }
 
 
-  sharedMemory->setSaturated(portId,priority,satLevel);
-  
-  if (firstTimeUpdate){
-    firstTimeUpdate=false;
+  sharedMemory->setSaturated(portId, priority, satLevel);
+
+  if (firstTimeUpdate) {
+    firstTimeUpdate = false;
     InvokeUpdates(updateInterval);
   }
 
   double remaining = sharedMemory->GetRemainingBuffer();
   // std::cout << "alpha " << alpha << " n " << nofP[priority] << " deq " << DeqRate[priority] << std::endl;
-  uint64_t maxSize = double(alpha*(remaining)/nofP[priority])*DeqRate[priority];
+  uint64_t maxSize = double(alpha * (remaining) / nofP[priority]) * DeqRate[priority];
 
-  if (maxSize> UINT32_MAX)
-    maxSize = UINT32_MAX-1500;
+  if (maxSize > UINT32_MAX)
+    maxSize = UINT32_MAX - 1500;
 
   uint32_t qSize = GetQueueDiscClass (priority)->GetQueueDisc ()->GetNBytes();
-  if ( ((qSize + packet->GetSize()) >  maxSize) || (sharedMemory->GetRemainingBuffer() < packet->GetSize())  ){
+  if ( ((qSize + packet->GetSize()) >  maxSize) || (sharedMemory->GetRemainingBuffer() < packet->GetSize())  ) {
     return false; // drop
   }
-  else{
+  else {
     return true;
   }
 }
 
 
-bool GenQueueDisc::FlowAwareBuffer(uint32_t priority, Ptr<Packet> packet){
+bool GenQueueDisc::FlowAwareBuffer(uint32_t priority, Ptr<Packet> packet) {
 
   double alpha;
 
@@ -264,155 +264,155 @@ bool GenQueueDisc::FlowAwareBuffer(uint32_t priority, Ptr<Packet> packet){
   uint32_t flowId = 0;
   FlowIdTag tag;
   found = packet->PeekPacketTag (tag);
-  if(found){
-    flowId=tag.GetFlowId();
+  if (found) {
+    flowId = tag.GetFlowId();
   }
 
   /* Find the flow entry */
-  if(FlowCount.find(flowId) == FlowCount.end()){
-    FlowCount[flowId].first=0;
-    FlowCount[flowId].second=Simulator::Now();
+  if (FlowCount.find(flowId) == FlowCount.end()) {
+    FlowCount[flowId].first = 0;
+    FlowCount[flowId].second = Simulator::Now();
   }
 
   /* If the flow did not appear in the last FabWindow duration, reset its bytes counter to zero. */
-  if(Simulator::Now()-FlowCount[flowId].second>FabWindow){
-    FlowCount[flowId].first=0;
+  if (Simulator::Now() - FlowCount[flowId].second > FabWindow) {
+    FlowCount[flowId].first = 0;
   }
 
   /* Per-flow counters - increment bytes count and last updated time. */
-  FlowCount[flowId].first+=packet->GetSize();
-  FlowCount[flowId].second=Simulator::Now();
-  
+  FlowCount[flowId].first += packet->GetSize();
+  FlowCount[flowId].second = Simulator::Now();
+
   /* If the flow sent less than FabThreshold no.of bytes in the last FabWindow, then prioritize these packets */
-  if(FlowCount[flowId].first<FabThreshold){
+  if (FlowCount[flowId].first < FabThreshold) {
     alpha = alphaUnsched; // alphaUnsched is usually set to a high value i.e., these packets are prioritized.
   }
-  else{
-    alpha=alphas[priority];
+  else {
+    alpha = alphas[priority];
   }
-  
+
   double remaining = sharedMemory->GetRemainingBuffer();
-  uint64_t maxSize = alpha*remaining;
-  if (maxSize> UINT32_MAX)
-    maxSize = UINT32_MAX-1500;
+  uint64_t maxSize = alpha * remaining;
+  if (maxSize > UINT32_MAX)
+    maxSize = UINT32_MAX - 1500;
 
 
   uint32_t qSize = GetQueueDiscClass (priority)->GetQueueDisc ()->GetNBytes();
-  if ( ((qSize + packet->GetSize()) >  maxSize) || (sharedMemory->GetRemainingBuffer() < packet->GetSize())  ){
+  if ( ((qSize + packet->GetSize()) >  maxSize) || (sharedMemory->GetRemainingBuffer() < packet->GetSize())  ) {
     return false; // drop
   }
-  else{
+  else {
     return true;
   }
 
 }
 
-bool GenQueueDisc::CompleteSharing(uint32_t priority, Ptr<Packet> packet){
-  if(sharedMemory->GetRemainingBuffer() < packet->GetSize()){
+bool GenQueueDisc::CompleteSharing(uint32_t priority, Ptr<Packet> packet) {
+  if (sharedMemory->GetRemainingBuffer() < packet->GetSize()) {
     return false;// drop
   }
-  else{
+  else {
     return true;
   }
 }
 
 void
-GenQueueDisc::SetQrefAfd(uint32_t p, uint32_t ref){
-  QRefAfd[p]=ref;
+GenQueueDisc::SetQrefAfd(uint32_t p, uint32_t ref) {
+  QRefAfd[p] = ref;
 }
 uint32_t
-GenQueueDisc::GetQrefAfd(uint32_t p){
+GenQueueDisc::GetQrefAfd(uint32_t p) {
   return QRefAfd[p];
 }
 
 int
-GenQueueDisc::DropAfd(double prob,uint32_t priority){
+GenQueueDisc::DropAfd(double prob, uint32_t priority) {
   uint32_t qsize = GetQueueDiscClass (priority)->GetQueueDisc ()->GetNBytes();
-  double x = double(rand())/RAND_MAX;
+  double x = double(rand()) / RAND_MAX;
   // 150*1024 is the recommended value for 10Gbps links https://www.cisco.com/c/en/us/products/collateral/switches/nexus-9000-series-switches/white-paper-c11-738488.html
-  return ((x<prob) && (qsize>150*1024));
+  return ((x < prob) && (qsize > 150 * 1024));
 }
 
 
-bool GenQueueDisc::IntelligentBuffer(uint32_t priority, Ptr<Packet> packet){
+bool GenQueueDisc::IntelligentBuffer(uint32_t priority, Ptr<Packet> packet) {
   bool accept;
-  if(Simulator::Now() > AfdWindow + timeSinceLastChangeAdf){
-    for(auto it=M.begin();it!=M.end();++it){
-      it->second.first=it->second.second;
-      it->second.second=1; //1 just to avoid divide by zero errors
+  if (Simulator::Now() > AfdWindow + timeSinceLastChangeAdf) {
+    for (auto it = M.begin(); it != M.end(); ++it) {
+      it->second.first = it->second.second;
+      it->second.second = 1; //1 just to avoid divide by zero errors
     }
-    for(uint32_t i=0;i<nPrior;i++){
+    for (uint32_t i = 0; i < nPrior; i++) {
       uint32_t Qnow = GetQueueDiscClass (i)->GetQueueDisc ()->GetNBytes();
-      MFair[i]=MFair[i]-a1*((double)Qnow - (double)QRefAfd[i])+a2*((double)Qold[i] - (double)QRefAfd[i]); // a1 and a2 --> 1.8 and 1.7
-      if(MFair[i]<0)
-        MFair[i]=0;
+      MFair[i] = MFair[i] - a1 * ((double)Qnow - (double)QRefAfd[i]) + a2 * ((double)Qold[i] - (double)QRefAfd[i]); // a1 and a2 --> 1.8 and 1.7
+      if (MFair[i] < 0)
+        MFair[i] = 0;
 
-      Qold[i]=Qnow;
+      Qold[i] = Qnow;
     }
-    timeSinceLastChangeAdf=Simulator::Now();
+    timeSinceLastChangeAdf = Simulator::Now();
   }
 
   bool found;
   uint32_t flowId = 0;
   FlowIdTag tag;
   found = packet->PeekPacketTag (tag);
-  if(found){flowId=tag.GetFlowId();}
+  if (found) {flowId = tag.GetFlowId();}
 
-  if(FlowCount.find(flowId) == FlowCount.end()){
-      FlowCount[flowId].first=0;
-      FlowCount[flowId].second=Simulator::Now();
+  if (FlowCount.find(flowId) == FlowCount.end()) {
+    FlowCount[flowId].first = 0;
+    FlowCount[flowId].second = Simulator::Now();
   }
-  
+
   //DPP
-  if(Simulator::Now()-FlowCount[flowId].second>DppWindow)
-    FlowCount[flowId].first=0;
+  if (Simulator::Now() - FlowCount[flowId].second > DppWindow)
+    FlowCount[flowId].first = 0;
 
-  FlowCount[flowId].first+=1;
-  FlowCount[flowId].second=Simulator::Now();
+  FlowCount[flowId].first += 1;
+  FlowCount[flowId].second = Simulator::Now();
 
-  if(FlowCount[flowId].first<DppThreshold && enableDPPQueue){ // Short flows are sent to queue-0 which is a priority queue.
-    DPPQueue=0;
-    accept = DynamicThresholds(DPPQueue,packet);
+  if (FlowCount[flowId].first < DppThreshold && enableDPPQueue) { // Short flows are sent to queue-0 which is a priority queue.
+    DPPQueue = 0;
+    accept = DynamicThresholds(DPPQueue, packet);
   }
-  else{
+  else {
     M[priority].second += packet->GetSize();
 
-    if(!M[priority].first){
-      M[priority].first=1; // Just to avoid divide by zero.
+    if (!M[priority].first) {
+      M[priority].first = 1; // Just to avoid divide by zero.
     }
-    double dropP = 1.0-(double(std::min(15*M[priority].first,uint32_t(MFair[priority])))/(15*M[priority].first));
-    if(dropP<0){
-      dropP=0;
+    double dropP = 1.0 - (double(std::min(15 * M[priority].first, uint32_t(MFair[priority]))) / (15 * M[priority].first));
+    if (dropP < 0) {
+      dropP = 0;
     }
 
     DPPQueue = priority;
-    accept = (DynamicThresholds(DPPQueue,packet) && !DropAfd(DPPQueue,dropP));
+    accept = (DynamicThresholds(DPPQueue, packet) && !DropAfd(DPPQueue, dropP));
   }
   return accept;
 }
 
 
 
-bool GenQueueDisc::AcceptPacket(uint32_t priority, Ptr<Packet> packet){
+bool GenQueueDisc::AcceptPacket(uint32_t priority, Ptr<Packet> packet) {
   bool accept;
-  switch (bufferalg){
-    case DT:
-      accept = DynamicThresholds(priority,packet);
-      break;
-    case ABM:
-      accept = ActiveBufferManagement(priority,packet);
-      break;
-    case FAB:
-      accept = FlowAwareBuffer(priority,packet);
-      break;
-    case CS:
-      accept = CompleteSharing(priority,packet);
-      break;
-    case IB:
-      accept = IntelligentBuffer(priority,packet);
-      break;
-    default:
-      accept = DynamicThresholds(priority,packet);
+  switch (bufferalg) {
+  case DT:
+    accept = DynamicThresholds(priority, packet);
+    break;
+  case ABM:
+    accept = ActiveBufferManagement(priority, packet);
+    break;
+  case FAB:
+    accept = FlowAwareBuffer(priority, packet);
+    break;
+  case CS:
+    accept = CompleteSharing(priority, packet);
+    break;
+  case IB:
+    accept = IntelligentBuffer(priority, packet);
+    break;
+  default:
+    accept = DynamicThresholds(priority, packet);
   }
   return accept;
 }
@@ -447,75 +447,68 @@ GenQueueDisc::DoEnqueue (Ptr<QueueDiscItem> item)
   NS_LOG_FUNCTION (this << item);
 
   Ptr<Packet> packet = item->GetPacket();
-  uint32_t p=0;
+  uint32_t p = 0;
 
   bool found;
   MyPriorityTag a;
   found = packet->PeekPacketTag(a);
-  if(found)p=a.GetPriority();
+  if (found)p = a.GetPriority();
 
-  uint32_t unschedCheck = 0;
-  UnSchedTag b;
-  found = packet->PeekPacketTag(b);
-  if (found) unschedCheck = b.GetValue();
- if (nodetype=="")
-   std::cout << "arrival timestamp " << Simulator::Now().GetNanoSeconds() << " size " << item->GetSize()  << " unsched " << unschedCheck << " node " << nodeId << " port " << portId << std::endl;
-
-  if (uint32_t(p)>=nPrior)
-    p = uint32_t(nPrior-1);
+  if (uint32_t(p) >= nPrior)
+    p = uint32_t(nPrior - 1);
   /* Arrival Statistics*/
-  numBytesSent[p]+=item->GetSize();
+  numBytesSent[p] += item->GetSize();
   uint64_t sizenow = GetQueueDiscClass (p)->GetQueueDisc ()->GetNBytes();
-  if (bufferMax[p] < sizenow){
-    bufferMax[p]=sizenow;
+  if (bufferMax[p] < sizenow) {
+    bufferMax[p] = sizenow;
   }
   /*Check if we can use the reserved space*/
-  if (GetCurrentSize().GetValue() + item->GetSize() <= staticBuffer){
+  if (GetCurrentSize().GetValue() + item->GetSize() <= staticBuffer) {
     bool ret = GetQueueDiscClass (p)->GetQueueDisc ()->Enqueue (item);
 
-    if(firstSeen[p]==Seconds(0)){
-      firstSeen[p]=Simulator::Now();
+    if (firstSeen[p] == Seconds(0)) {
+      firstSeen[p] = Simulator::Now();
     }
-    lastAccepted[p]=Simulator::Now();
+    lastAccepted[p] = Simulator::Now();
     return ret;
   }
 
   /*Check if the packet can be put in the shared buffer*/
-  bool enqueue = AcceptPacket(p,packet); 
+  bool enqueue = AcceptPacket(p, packet);
   if (!enqueue) {
 
-      NS_LOG_LOGIC ("Queue disc limit exceeded -- dropping packet");
-      // std::cout << " maxSize " << maxSize << " remaining " << sharedMemory->GetRemainingBuffer() << " packetSize " << item->GetSize() << " priority " << uint32_t(p) << " alpha " << alphas[p] << " thresh " << uint64_t (alphas[p]*(sharedMemory->GetRemainingBuffer())) << " deq " << DeqRate[p] << " N " << sharedMemory->GetNofP(p) << std::endl;
+    NS_LOG_LOGIC ("Queue disc limit exceeded -- dropping packet");
+    // std::cout << " maxSize " << maxSize << " remaining " << sharedMemory->GetRemainingBuffer() << " packetSize " << item->GetSize() << " priority " << uint32_t(p) << " alpha " << alphas[p] << " thresh " << uint64_t (alphas[p]*(sharedMemory->GetRemainingBuffer())) << " deq " << DeqRate[p] << " N " << sharedMemory->GetNofP(p) << std::endl;
 
-      DropBeforeEnqueue (item, LIMIT_EXCEEDED_DROP);
-      return false;
+    DropBeforeEnqueue (item, LIMIT_EXCEEDED_DROP);
+    return false;
   }
 
   /*If algorithm is Intelligent Buffer, it may change the queue to zero (DPP prioritizes short flows to separate queue)*/
-  if (bufferalg==IB && enableDPPQueue){
+  if (bufferalg == IB && enableDPPQueue) {
     p = DPPQueue;
   }
 
   /*increment shared buffer occupancy*/
   bool retval;
-  if(!sharedMemory->EnqueueBuffer(item->GetSize())) {
+  if (!sharedMemory->EnqueueBuffer(item->GetSize())) {
     DropBeforeEnqueue (item, LIMIT_EXCEEDED_DROP);
     retval = false;
   }
-  else{
-    sharedMemory->PerPriorityStatEnq(item->GetSize(),p);
+  else {
+    sharedMemory->PerPriorityStatEnq(item->GetSize(), p);
     retval = GetQueueDiscClass (p)->GetQueueDisc ()->Enqueue (item);
   }
 
   if (!retval)
-    {
-      NS_LOG_WARN ("Packet enqueue failed. Check the size of the internal queues");
+  {
+    NS_LOG_WARN ("Packet enqueue failed. Check the size of the internal queues");
+  }
+  else {
+    if (firstSeen[p] == Seconds(0)) {
+      firstSeen[p] = Simulator::Now();
     }
-  else{
-    if(firstSeen[p]==Seconds(0)){
-      firstSeen[p]=Simulator::Now();
-    }
-    lastAccepted[p]=Simulator::Now();
+    lastAccepted[p] = Simulator::Now();
   }
 
   NS_LOG_LOGIC ("Number packets p " << p << ": " << GetQueueDiscClass (p)->GetQueueDisc ()->GetNPackets ());
@@ -525,120 +518,114 @@ GenQueueDisc::DoEnqueue (Ptr<QueueDiscItem> item)
 
 
 double
-GenQueueDisc::GetThroughputQueue(uint32_t p, double nanodelay){
-    double th = 8*numBytesSentQueue[p]/nanodelay/portBW;
-    numBytesSentQueue[p]=0;
-    return th;
+GenQueueDisc::GetThroughputQueue(uint32_t p, double nanodelay) {
+  double th = 8 * numBytesSentQueue[p] / nanodelay / portBW;
+  numBytesSentQueue[p] = 0;
+  return th;
 }
 
 double
-GenQueueDisc::GetThroughputPort(double nanodelay){ // delay must be in nanoseconds
-    double th = 8*numBytesSentQueue[10]/nanodelay/portBW;
-    numBytesSentQueue[10]=0;
-    return th;
+GenQueueDisc::GetThroughputPort(double nanodelay) { // delay must be in nanoseconds
+  double th = 8 * numBytesSentQueue[10] / nanodelay / portBW;
+  numBytesSentQueue[10] = 0;
+  return th;
 }
 
 Ptr<QueueDiscItem>
 GenQueueDisc::DoDequeue (void)
 {
   NS_LOG_FUNCTION (this);
-  
+
   Ptr<QueueDiscItem> item;
 
   /* Round robin scheduling. Nothing fancy here. More scheduling algorithms to be added later. */
-  if (round_robin){
+  if (round_robin) {
     for (uint32_t i = 0; i < GetNQueueDiscClasses(); i++)
+    {
+      if ((item = GetQueueDiscClass (dequeueIndex)->GetQueueDisc ()->Dequeue ()) != 0)
       {
-        if ((item = GetQueueDiscClass (dequeueIndex)->GetQueueDisc ()->Dequeue ()) != 0)
-          {
 
-            Ptr<Packet> packet = item->GetPacket();
+        Ptr<Packet> packet = item->GetPacket();
 
-            uint32_t p = dequeueIndex;
+        uint32_t p = dequeueIndex;
 
-            numBytesSentQueue[p]+=item->GetSize();
+        numBytesSentQueue[p] += item->GetSize();
 
-            // 10 is used for aggregate. Assuming that the actual number of queues are less than 10.
-            numBytesSentQueue[10]+=item->GetSize();
+        // 10 is used for aggregate. Assuming that the actual number of queues are less than 10.
+        numBytesSentQueue[10] += item->GetSize();
 
-            Deq[p]+=item->GetSize();
-            if (GetCurrentSize().GetValue() + packet->GetSize() > staticBuffer){
-              sharedMemory->DequeueBuffer(item->GetSize());
-              sharedMemory->PerPriorityStatDeq(item->GetSize(),p);
-            }
-
-            dequeueIndex++;
-            if (dequeueIndex>=GetNQueueDiscClasses())
-              dequeueIndex=0;
-
-            FeedbackTag Int;
-            bool found;
-            found = packet->PeekPacketTag(Int);
-            if(found){
-              Int.setTelemetryQlenDeq(Int.getHopCount(), GetQueueDiscClass (p)->GetQueueDisc ()->GetNBytes()); // queue length at dequeue
-              Int.setTelemetryTsDeq(Int.getHopCount(), Simulator::Now().GetNanoSeconds()); // timestamp at dequeue
-              Int.setTelemetryBw(Int.getHopCount(), portBW*1e9);
-              Int.setTelemetryTxBytes(Int.getHopCount(), txBytesInt);
-              Int.incrementHopCount(); // Incrementing hop count at Dequeue. Don't do this at enqueue.
-              packet->ReplacePacketTag(Int); // replacing the tag with new values
-              // std::cout << "found " << Int.getHopCount() << std::endl;
-            }
-            txBytesInt+=packet->GetSize();
-	    uint32_t unschedCheck = 0;
-	    UnSchedTag b;
-	    found = packet->PeekPacketTag(b);
-  	    if (found) unschedCheck = b.GetValue();
-	    if (nodetype=="")
-	      std::cout << "departure timestamp " << Simulator::Now().GetNanoSeconds() << " size " << item->GetSize()  << " unsched " << unschedCheck << " node " << nodeId << " port " << portId << std::endl;
-            return item;
-          }
-        Deq[dequeueIndex]+=1472;
+        Deq[p] += item->GetSize();
+        if (GetCurrentSize().GetValue() + packet->GetSize() > staticBuffer) {
+          sharedMemory->DequeueBuffer(item->GetSize());
+          sharedMemory->PerPriorityStatDeq(item->GetSize(), p);
+        }
 
         dequeueIndex++;
-        if (dequeueIndex>=GetNQueueDiscClasses())
-          dequeueIndex=0;
+        if (dequeueIndex >= GetNQueueDiscClasses())
+          dequeueIndex = 0;
+
+        FeedbackTag Int;
+        bool found;
+        found = packet->PeekPacketTag(Int);
+        if (found) {
+          Int.setTelemetryQlenDeq(Int.getHopCount(), GetQueueDiscClass (p)->GetQueueDisc ()->GetNBytes()); // queue length at dequeue
+          Int.setTelemetryTsDeq(Int.getHopCount(), Simulator::Now().GetNanoSeconds()); // timestamp at dequeue
+          Int.setTelemetryBw(Int.getHopCount(), portBW * 1e9);
+          Int.setTelemetryTxBytes(Int.getHopCount(), txBytesInt);
+          Int.incrementHopCount(); // Incrementing hop count at Dequeue. Don't do this at enqueue.
+          packet->ReplacePacketTag(Int); // replacing the tag with new values
+          // std::cout << "found " << Int.getHopCount() << std::endl;
+        }
+        txBytesInt += packet->GetSize();
+        return item;
       }
+      Deq[dequeueIndex] += 1472;
+
+      dequeueIndex++;
+      if (dequeueIndex >= GetNQueueDiscClasses())
+        dequeueIndex = 0;
+    }
   }
-  else{
+  else {
     /*Strict priority scheduling*/
     for (uint32_t i = 0; i < GetNQueueDiscClasses(); i++)
+    {
+      if ((item = GetQueueDiscClass (i)->GetQueueDisc ()->Dequeue ()) != 0)
       {
-        if ((item = GetQueueDiscClass (i)->GetQueueDisc ()->Dequeue ()) != 0)
-          {
 
-            Ptr<Packet> packet = item->GetPacket();
+        Ptr<Packet> packet = item->GetPacket();
 
-            uint32_t p = i;
+        uint32_t p = i;
 
-            numBytesSentQueue[p]+=item->GetSize();
+        numBytesSentQueue[p] += item->GetSize();
 
-            // 10 is used for aggregate. Assuming that the actual number of queues are less than 10.
-            numBytesSentQueue[10]+=item->GetSize();
+        // 10 is used for aggregate. Assuming that the actual number of queues are less than 10.
+        numBytesSentQueue[10] += item->GetSize();
 
-            Deq[p]+=item->GetSize();
-            if (GetCurrentSize().GetValue() + packet->GetSize() > staticBuffer){
-              sharedMemory->DequeueBuffer(item->GetSize());
-              sharedMemory->PerPriorityStatDeq(item->GetSize(),p);
-            }
+        Deq[p] += item->GetSize();
+        if (GetCurrentSize().GetValue() + packet->GetSize() > staticBuffer) {
+          sharedMemory->DequeueBuffer(item->GetSize());
+          sharedMemory->PerPriorityStatDeq(item->GetSize(), p);
+        }
 
-            FeedbackTag Int;
-            bool found;
-            found = packet->PeekPacketTag(Int);
-            if(found){
-              Int.setTelemetryQlenDeq(Int.getHopCount(), GetQueueDiscClass (p)->GetQueueDisc ()->GetNBytes()); // queue length at dequeue
-              Int.setTelemetryTsDeq(Int.getHopCount(), Simulator::Now().GetNanoSeconds()); // timestamp at dequeue
-              Int.setTelemetryBw(Int.getHopCount(), portBW*1e9);
-              Int.setTelemetryTxBytes(Int.getHopCount(), txBytesInt);
-              Int.incrementHopCount(); // Incrementing hop count at Dequeue. Don't do this at enqueue.
-              packet->ReplacePacketTag(Int); // replacing the tag with new values
-              // std::cout << "found " << Int.getHopCount() << std::endl;
-            }
-            txBytesInt+=packet->GetSize();
+        FeedbackTag Int;
+        bool found;
+        found = packet->PeekPacketTag(Int);
+        if (found) {
+          Int.setTelemetryQlenDeq(Int.getHopCount(), GetQueueDiscClass (p)->GetQueueDisc ()->GetNBytes()); // queue length at dequeue
+          Int.setTelemetryTsDeq(Int.getHopCount(), Simulator::Now().GetNanoSeconds()); // timestamp at dequeue
+          Int.setTelemetryBw(Int.getHopCount(), portBW * 1e9);
+          Int.setTelemetryTxBytes(Int.getHopCount(), txBytesInt);
+          Int.incrementHopCount(); // Incrementing hop count at Dequeue. Don't do this at enqueue.
+          packet->ReplacePacketTag(Int); // replacing the tag with new values
+          // std::cout << "found " << Int.getHopCount() << std::endl;
+        }
+        txBytesInt += packet->GetSize();
 
-            return item;
-          }
-        Deq[i]+=1472;
+        return item;
       }
+      Deq[i] += 1472;
+    }
   }
   NS_LOG_LOGIC ("Queue empty");
   return item;
@@ -652,14 +639,14 @@ GenQueueDisc::DoPeek (void)
   Ptr<const QueueDiscItem> item;
 
   for (uint32_t i = 0; i < GetNQueueDiscClasses (); i++)
+  {
+    if ((item = GetQueueDiscClass (i)->GetQueueDisc ()->Peek ()) != 0)
     {
-      if ((item = GetQueueDiscClass (i)->GetQueueDisc ()->Peek ()) != 0)
-        {
-          NS_LOG_LOGIC ("Peeked from band " << i << ": " << item);
-          NS_LOG_LOGIC ("Number packets band " << i << ": " << GetQueueDiscClass (i)->GetQueueDisc ()->GetNPackets ());
-          return item;
-        }
+      NS_LOG_LOGIC ("Peeked from band " << i << ": " << item);
+      NS_LOG_LOGIC ("Number packets band " << i << ": " << GetQueueDiscClass (i)->GetQueueDisc ()->GetNPackets ());
+      return item;
     }
+  }
 
   NS_LOG_LOGIC ("Queue empty");
   return item;
@@ -670,31 +657,31 @@ GenQueueDisc::CheckConfig (void)
 {
   NS_LOG_FUNCTION (this);
   if (GetNInternalQueues () > 0)
-    {
-      NS_LOG_ERROR ("GenQueueDisc cannot have internal queues");
-      return false;
-    }
+  {
+    NS_LOG_ERROR ("GenQueueDisc cannot have internal queues");
+    return false;
+  }
 
   if (GetNQueueDiscClasses () == 0)
+  {
+    // create 3 fifo queue discs
+    ObjectFactory factory;
+    factory.SetTypeId ("ns3::FifoQueueDisc");
+    for (uint8_t i = 0; i < 2; i++)
     {
-      // create 3 fifo queue discs
-      ObjectFactory factory;
-      factory.SetTypeId ("ns3::FifoQueueDisc");
-      for (uint8_t i = 0; i < 2; i++)
-        {
-          Ptr<QueueDisc> qd = factory.Create<QueueDisc> ();
-          qd->Initialize ();
-          Ptr<QueueDiscClass> c = CreateObject<QueueDiscClass> ();
-          c->SetQueueDisc (qd);
-          AddQueueDiscClass (c);
-        }
+      Ptr<QueueDisc> qd = factory.Create<QueueDisc> ();
+      qd->Initialize ();
+      Ptr<QueueDiscClass> c = CreateObject<QueueDiscClass> ();
+      c->SetQueueDisc (qd);
+      AddQueueDiscClass (c);
     }
+  }
 
   if (GetNQueueDiscClasses () < 2)
-    {
-      NS_LOG_ERROR ("GenQueueDisc needs at least 2 classes");
-      return false;
-    }
+  {
+    NS_LOG_ERROR ("GenQueueDisc needs at least 2 classes");
+    return false;
+  }
 
   return true;
 }
