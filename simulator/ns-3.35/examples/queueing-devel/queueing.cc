@@ -502,7 +502,7 @@ main (int argc, char *argv[])
 		}
 	}
 
-	if (rxOutFilex!=""){
+	if (rxOutFile!=""){
 		rxOutput = rxTraceHelper.CreateFileStream(rxOutFile);
 		*rxOutput->GetStream()
 		        << "time "
