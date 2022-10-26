@@ -69,6 +69,10 @@ TypeId GenQueueDisc::GetTypeId (void)
                                      BooleanValue (false),
                                      MakeBooleanAccessor (&GenQueueDisc::enableDPPQueue),
                                      MakeBooleanChecker())
+                      .AddAttribute ("enableINT", "enable telemetry. Enabled by default",
+                                     BooleanValue (true),
+                                     MakeBooleanAccessor (&GenQueueDisc::enableINT),
+                                     MakeBooleanChecker())
                       .AddAttribute ("alphaUnsched", "alphaUnsched",
                                      DoubleValue (1024),
                                      MakeDoubleAccessor (&GenQueueDisc::alphaUnsched),
@@ -77,7 +81,6 @@ TypeId GenQueueDisc::GetTypeId (void)
                                      DoubleValue (10),
                                      MakeDoubleAccessor (&GenQueueDisc::portBW),
                                      MakeDoubleChecker<double> ())
-
                       .AddAttribute ("updateInterval", "NANOSECONDS update interval for dequeue rate and N in ActiveBufferManagement", UintegerValue(30000),
                                      MakeUintegerAccessor(&GenQueueDisc::updateInterval),
                                      MakeUintegerChecker<uint64_t>())
@@ -93,6 +96,12 @@ TypeId GenQueueDisc::GetTypeId (void)
                                      UintegerValue (0),
                                      MakeUintegerAccessor (&GenQueueDisc::strict_priority),
                                      MakeUintegerChecker<uint32_t> ())
+                      .AddTraceSource ("genEnqueue", "trace enqueue events",
+                                       MakeTraceSourceAccessor (&GenQueueDisc::m_rxTrace),
+                                       "ns3::Packet::TracedCallback")
+                      .AddTraceSource ("genDequeue", "trace dequeue events",
+                                       MakeTraceSourceAccessor (&GenQueueDisc::m_txTrace),
+                                       "ns3::Packet::TracedCallback")
                       ;
   return tid;
 }
@@ -456,6 +465,9 @@ GenQueueDisc::DoEnqueue (Ptr<QueueDiscItem> item)
 
   if (uint32_t(p) >= nPrior)
     p = uint32_t(nPrior - 1);
+
+  m_rxTrace(packet, p, this); // trace packet arrival event at queue p
+
   /* Arrival Statistics*/
   numBytesSent[p] += item->GetSize();
   uint64_t sizenow = GetQueueDiscClass (p)->GetQueueDisc ()->GetNBytes();
@@ -538,46 +550,14 @@ GenQueueDisc::DoDequeue (void)
 
   Ptr<QueueDiscItem> item;
 
-  /* Round robin scheduling. Nothing fancy here. More scheduling algorithms to be added later. */
   if (round_robin) {
+  /* Round robin scheduling */
     for (uint32_t i = 0; i < GetNQueueDiscClasses(); i++)
     {
       if ((item = GetQueueDiscClass (dequeueIndex)->GetQueueDisc ()->Dequeue ()) != 0)
       {
-
-        Ptr<Packet> packet = item->GetPacket();
-
-        uint32_t p = dequeueIndex;
-
-        numBytesSentQueue[p] += item->GetSize();
-
-        // 10 is used for aggregate. Assuming that the actual number of queues are less than 10.
-        numBytesSentQueue[10] += item->GetSize();
-
-        Deq[p] += item->GetSize();
-        if (GetCurrentSize().GetValue() + packet->GetSize() > staticBuffer) {
-          sharedMemory->DequeueBuffer(item->GetSize());
-          sharedMemory->PerPriorityStatDeq(item->GetSize(), p);
-        }
-
-        dequeueIndex++;
-        if (dequeueIndex >= GetNQueueDiscClasses())
-          dequeueIndex = 0;
-
-        FeedbackTag Int;
-        bool found;
-        found = packet->PeekPacketTag(Int);
-        if (found) {
-          Int.setTelemetryQlenDeq(Int.getHopCount(), GetQueueDiscClass (p)->GetQueueDisc ()->GetNBytes()); // queue length at dequeue
-          Int.setTelemetryTsDeq(Int.getHopCount(), Simulator::Now().GetNanoSeconds()); // timestamp at dequeue
-          Int.setTelemetryBw(Int.getHopCount(), portBW * 1e9);
-          Int.setTelemetryTxBytes(Int.getHopCount(), txBytesInt);
-          Int.incrementHopCount(); // Incrementing hop count at Dequeue. Don't do this at enqueue.
-          packet->ReplacePacketTag(Int); // replacing the tag with new values
-          // std::cout << "found " << Int.getHopCount() << std::endl;
-        }
-        txBytesInt += packet->GetSize();
-        return item;
+        // return item;
+        break;
       }
       Deq[dequeueIndex] += 1472;
 
@@ -592,42 +572,55 @@ GenQueueDisc::DoDequeue (void)
     {
       if ((item = GetQueueDiscClass (i)->GetQueueDisc ()->Dequeue ()) != 0)
       {
-
-        Ptr<Packet> packet = item->GetPacket();
-
-        uint32_t p = i;
-
-        numBytesSentQueue[p] += item->GetSize();
-
-        // 10 is used for aggregate. Assuming that the actual number of queues are less than 10.
-        numBytesSentQueue[10] += item->GetSize();
-
-        Deq[p] += item->GetSize();
-        if (GetCurrentSize().GetValue() + packet->GetSize() > staticBuffer) {
-          sharedMemory->DequeueBuffer(item->GetSize());
-          sharedMemory->PerPriorityStatDeq(item->GetSize(), p);
-        }
-
-        FeedbackTag Int;
-        bool found;
-        found = packet->PeekPacketTag(Int);
-        if (found) {
-          Int.setTelemetryQlenDeq(Int.getHopCount(), GetQueueDiscClass (p)->GetQueueDisc ()->GetNBytes()); // queue length at dequeue
-          Int.setTelemetryTsDeq(Int.getHopCount(), Simulator::Now().GetNanoSeconds()); // timestamp at dequeue
-          Int.setTelemetryBw(Int.getHopCount(), portBW * 1e9);
-          Int.setTelemetryTxBytes(Int.getHopCount(), txBytesInt);
-          Int.incrementHopCount(); // Incrementing hop count at Dequeue. Don't do this at enqueue.
-          packet->ReplacePacketTag(Int); // replacing the tag with new values
-          // std::cout << "found " << Int.getHopCount() << std::endl;
-        }
-        txBytesInt += packet->GetSize();
-
-        return item;
+        // return item;
+        dequeueIndex = i;
+        break;
       }
       Deq[i] += 1472;
     }
   }
-  NS_LOG_LOGIC ("Queue empty");
+
+  // NS_LOG_LOGIC ("Queue empty"); // We break out of loop instead of returning. So it doesn't mean that the queue is empty if we arrive here.
+  if (item) {
+
+    Ptr<Packet> packet = item->GetPacket();
+    
+    m_txTrace(packet, dequeueIndex, this); // trace dequeue event from dequeueIndex queue
+
+    uint32_t p = dequeueIndex;
+
+    numBytesSentQueue[p] += item->GetSize();
+
+    // 10 is used for aggregate. Assuming that the actual number of queues are less than 10.
+    numBytesSentQueue[10] += item->GetSize();
+
+    Deq[p] += item->GetSize();
+    if (GetCurrentSize().GetValue() + packet->GetSize() > staticBuffer) {
+      sharedMemory->DequeueBuffer(item->GetSize());
+      sharedMemory->PerPriorityStatDeq(item->GetSize(), p);
+    }
+
+    if (enableINT) {
+      FeedbackTag Int;
+      bool found;
+      found = packet->PeekPacketTag(Int);
+      if (found) {
+        Int.setTelemetryQlenDeq(Int.getHopCount(), GetQueueDiscClass (p)->GetQueueDisc ()->GetNBytes()); // queue length at dequeue
+        Int.setTelemetryTsDeq(Int.getHopCount(), Simulator::Now().GetNanoSeconds()); // timestamp at dequeue
+        Int.setTelemetryBw(Int.getHopCount(), portBW * 1e9);
+        Int.setTelemetryTxBytes(Int.getHopCount(), txBytesInt);
+        Int.incrementHopCount(); // Incrementing hop count at Dequeue. Don't do this at enqueue.
+        packet->ReplacePacketTag(Int); // replacing the tag with new values
+        // std::cout << "found " << Int.getHopCount() << std::endl;
+      }
+      txBytesInt += packet->GetSize();
+    }
+
+    dequeueIndex++; // This increment is for the round-robin case.
+    if (dequeueIndex >= GetNQueueDiscClasses())
+      dequeueIndex = 0;
+
+  }
   return item;
 }
 

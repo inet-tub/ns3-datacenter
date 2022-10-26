@@ -85,6 +85,10 @@ public:
 
   void SetPortId(uint32_t port) {portId = port;}
   uint32_t getPortId() {return portId;}
+  void setNodeId(uint32_t j) {nodeId = j;}
+  uint32_t getNodeId(){return nodeId;}
+  void setNodeType(std::string j) {nodetype = j;}
+  std::string getNodeType(){return nodetype;}
 
   void SetFabWindow(Time t) {FabWindow = t;}
   void SetFabThreshold(uint32_t n) {FabThreshold = n;}
@@ -114,8 +118,6 @@ public:
 
   void TrimPacket(Ptr<Packet> packetCopy);
 
-  void setNodeId(uint32_t j) {nodeId = j;}
-  void setNodeType(std::string j) {nodetype = j;}
 
 
 private:
@@ -154,7 +156,7 @@ private:
   uint32_t bufferalg;
   uint32_t portId;
   uint32_t nodeId;
-  std::string nodetype = "ToRtoServer";
+  std::string nodetype = "ToRtoServer"; // this is just for logging purpose. set any string value, it doesn't effect the functionality of this queuedisc.
   uint32_t sat;
   std::string switchname; //optional
 
@@ -195,8 +197,10 @@ private:
   uint64_t txBytesInt = 0;
   bool enableDPPQueue;
 
+  bool enableINT;
 
-
+  TracedCallback<Ptr<const Packet>, uint32_t, Ptr<GenQueueDisc>> m_rxTrace; // trace enqueue events
+  TracedCallback<Ptr<const Packet>, uint32_t, Ptr<GenQueueDisc>> m_txTrace; // trace dequeue events
 };
 
 } // namespace ns3
