@@ -69,7 +69,7 @@ public:
 
 	void SetEgressLosslessAlg(uint32_t alg);
 
-	uint64_t Threshold(uint32_t port, uint32_t qIndex, std::string inout, uint32_t type);
+	uint64_t Threshold(uint32_t port, uint32_t qIndex, std::string inout, uint32_t type, uint32_t alphaPrio);
 
 	uint64_t DynamicThreshold(uint32_t port, uint32_t qIndex, std::string inout, uint32_t type);
 
@@ -80,6 +80,17 @@ public:
 	uint64_t GetIngressReservedUsed(uint32_t port, uint32_t qIndex);
 
 	uint64_t GetIngressSharedUsed();
+
+	void setCongested(uint32_t portId, uint32_t qIndex, std::string inout, double satLevel);
+
+	double GetNofP(std::string inout, uint32_t qIndex);
+
+	double getDequeueRate(uint32_t port, uint32_t qIndex, std::string inout);
+
+	void updateDequeueRates(double delayNanoSec);
+
+	uint64_t ActiveBufferManagement(uint32_t port, uint32_t qIndex, std::string inout, uint32_t type, uint32_t alphaPrio);
+
 
 	// config
 	uint32_t node_id;
@@ -120,6 +131,19 @@ public:
 	// Buffer Sharing algorithm
 	uint32_t ingressAlg[2];
 	uint32_t egressAlg[2];
+
+	// ABM realted variables
+	double NofPIngress[qCnt];
+	double NofPEgress[qCnt];
+	double congestedIngress[pCnt][qCnt];
+	double congestedEgress[pCnt][qCnt];
+	double dequeueRateIngress[pCnt][qCnt];
+	double dequeueRateEgress[pCnt][qCnt];
+	uint64_t txBytesIngress[pCnt][qCnt];
+	uint64_t txBytesEgress[pCnt][qCnt];
+	uint64_t bandwidth[pCnt];
+	uint32_t congestionIndicator;
+
 };
 
 } /* namespace ns3 */

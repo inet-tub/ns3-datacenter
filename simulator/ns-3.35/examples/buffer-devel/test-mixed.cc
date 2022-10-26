@@ -56,6 +56,16 @@
 using namespace ns3;
 using namespace std;
 
+#define LOSSLESS 0
+#define LOSSY 1
+#define DUMMY 2
+
+# define DT 101
+# define FAB 102
+# define CS 103
+# define IB 104
+# define ABM 110
+
 NS_LOG_COMPONENT_DEFINE("GENERIC_SIMULATION");
 
 extern "C"
@@ -502,13 +512,13 @@ void printBuffer(Ptr<OutputStreamWrapper> fout, NodeContainer switches, double d
     for (uint32_t i = 0; i < switches.GetN(); i++) {
         if (switches.Get(i)->GetNodeType()) { // switch
             Ptr<SwitchNode> sw = DynamicCast<SwitchNode>(switches.Get(i));
-            *fout->GetStream() << "switch " << i  
-            << " buffer " << sw->m_mmu->totalUsed 
-            << " egressOccupancyLossless " << sw->m_mmu->egressPoolUsed[0]
-            << " egressOccupancyLossy " << sw->m_mmu->egressPoolUsed[1]
-            << " ingressPoolOccupancy "<< sw->m_mmu->totalUsed - sw->m_mmu->xoffTotalUsed
-            << " headroomOccupancy " << sw->m_mmu->xoffTotalUsed
-            <<  " time " << Simulator::Now().GetSeconds() << std::endl;
+            *fout->GetStream() << "switch " << i
+                               << " buffer " << sw->m_mmu->totalUsed
+                               << " egressOccupancyLossless " << sw->m_mmu->egressPoolUsed[0]
+                               << " egressOccupancyLossy " << sw->m_mmu->egressPoolUsed[1]
+                               << " ingressPoolOccupancy " << sw->m_mmu->totalUsed - sw->m_mmu->xoffTotalUsed
+                               << " headroomOccupancy " << sw->m_mmu->xoffTotalUsed
+                               <<  " time " << Simulator::Now().GetSeconds() << std::endl;
         }
     }
     if (binBuffer == maxBin)
@@ -536,7 +546,7 @@ int main(int argc, char *argv[])
     uint64_t SPINE_LEAF_CAPACITY = 50;
 
     double START_TIME = 0.1;
-    double END_TIME = 0.13;
+    double END_TIME = 0.010;
     double FLOW_LAUNCH_END_TIME = 5;
 
     double load = 0.2;
@@ -550,8 +560,11 @@ int main(int argc, char *argv[])
     uint32_t algorithm = 1;
     uint32_t windowCheck = 0;
 
-    std::string confFile = "/home/vamsi/src/phd/codebase/ns3-datacenter/simulator/ns-3.35/examples/mac/config-workload.txt";
-    std::string cdfFileName = "/home/vamsi/src/phd/codebase/ns3-datacenter/simulator/ns-3.35/examples/mac/websearch.txt";
+    uint32_t bufferalgIngress = DT;
+    uint32_t bufferalgEgress = DT;
+
+    std::string confFile = "/home/vamsi/src/phd/codebase/ns3-datacenter/simulator/ns-3.35/examples/buffer-devel/config-workload.txt";
+    std::string cdfFileName = "/home/vamsi/src/phd/codebase/ns3-datacenter/simulator/ns-3.35/examples/buffer-devel/websearch.txt";
 
     unsigned randomSeed = 7;
 
@@ -580,12 +593,15 @@ int main(int argc, char *argv[])
     cmd.AddValue ("algorithm", "specify CC mode. This is added for my convinience since I prefer cmd rather than parsing files.", algorithm);
     cmd.AddValue("windowCheck", "windowCheck", windowCheck);
 
+    cmd.AddValue ("bufferalgIngress", "specify buffer management algorithm to be used at the ingress", bufferalgIngress);
+    cmd.AddValue ("bufferalgEgress", "specify buffer management algorithm to be used at the egress", bufferalgEgress);
+
     cmd.AddValue("incast", "incast", incast);
 
     std::string fctOutFile = "./fcts.txt";
     cmd.AddValue ("fctOutFile", "File path for FCTs", fctOutFile);
 
-    std::string torOutFile = "./tor.txt";
+    std::string torOutFile = "examples/buffer-devel/losslesssecondDT.txt";
     cmd.AddValue ("torOutFile", "File path for ToR statistic", torOutFile);
 
     cmd.Parse (argc, argv);
@@ -881,7 +897,7 @@ int main(int argc, char *argv[])
             if (node_type[i] == 1) {
                 torNodes.Add(sw);
             }
-            else if (node_type[i]==2){
+            else if (node_type[i] == 2) {
                 spineNodes.Add(sw);
             }
         }
@@ -1016,48 +1032,56 @@ int main(int argc, char *argv[])
 
     // config switch
     // The switch mmu runs Dynamic Thresholds (DT) by default.
+    uint64_t totalHeadroom;
     for (uint32_t i = 0; i < node_num; i++) {
         if (n.Get(i)->GetNodeType()) { // is switch
             Ptr<SwitchNode> sw = DynamicCast<SwitchNode>(n.Get(i));
             uint32_t shift = 3; // by default 1/8
             double alpha = 1.0;
 
-            uint64_t totalHeadroom = 0;
-            for (uint32_t j = 1; j < sw->GetNDevices(); j++) {
+            totalHeadroom = 0;
+            sw->m_mmu->SetIngressLossyAlg(bufferalgIngress);
+            sw->m_mmu->SetIngressLosslessAlg(bufferalgIngress);
+            sw->m_mmu->SetEgressLossyAlg(bufferalgEgress);
+            sw->m_mmu->SetEgressLosslessAlg(bufferalgEgress);
 
+            for (uint32_t j = 1; j < sw->GetNDevices(); j++) {
+                Ptr<QbbNetDevice> dev = DynamicCast<QbbNetDevice>(sw->GetDevice(j));
+                uint64_t rate = dev->GetDataRate().GetBitRate();
+                // set port bandwidth in the mmu, used by ABM.
+                sw->m_mmu->bandwidth[j] = rate;
                 for (uint32_t qu = 0; qu < 8; qu++) {
-                    if (qu!=1){ // lossless
-                        sw->m_mmu->SetAlphaIngress(alpha,j,qu);
-                        sw->m_mmu->SetAlphaEgress(10000,j,qu);
+                    if (qu != 1) { // lossless
+                        sw->m_mmu->SetAlphaIngress(alpha, j, qu);
+                        sw->m_mmu->SetAlphaEgress(10000, j, qu);
                     }
-                    else{ // lossy
-                        sw->m_mmu->SetAlphaIngress(10000,j,qu);
-                        sw->m_mmu->SetAlphaEgress(alpha,j,qu);
+                    else { // lossy
+                        sw->m_mmu->SetAlphaIngress(10000, j, qu);
+                        sw->m_mmu->SetAlphaEgress(alpha, j, qu);
                     }
-                    Ptr<QbbNetDevice> dev = DynamicCast<QbbNetDevice>(sw->GetDevice(j));
+
                     // set ecn
-                    uint64_t rate = dev->GetDataRate().GetBitRate();
                     NS_ASSERT_MSG(rate2kmin.find(rate) != rate2kmin.end(), "must set kmin for each link speed");
                     NS_ASSERT_MSG(rate2kmax.find(rate) != rate2kmax.end(), "must set kmax for each link speed");
                     NS_ASSERT_MSG(rate2pmax.find(rate) != rate2pmax.end(), "must set pmax for each link speed");
                     sw->m_mmu->ConfigEcn(j, rate2kmin[rate], rate2kmax[rate], rate2pmax[rate]);
                     // set pfc
                     double delay = DynamicCast<QbbChannel>(dev->GetChannel())->GetDelay().GetSeconds();
-                    uint32_t headroom = packet_payload_size*2 + 3840 + (2*rate*delay/8);
+                    uint32_t headroom = (packet_payload_size) * 2 + 3840 + (2 * rate * delay / 8);
                     // std::cout << headroom << std::endl;
                     sw->m_mmu->SetHeadroom(headroom, j, qu);
                     totalHeadroom += headroom;
                 }
 
             }
-            std::cout << "total headroom: " << totalHeadroom << " ingressPool " << buffer_size*1024*1024 - totalHeadroom << " egressLosslessPool " << buffer_size*1024*1024 << " egressLossyPool " << (buffer_size * 1024 * 1024 - totalHeadroom)*0.8 <<  std::endl;
             sw->m_mmu->SetBufferPool(buffer_size * 1024 * 1024);
             sw->m_mmu->SetIngressPool(buffer_size * 1024 * 1024 - totalHeadroom);
             sw->m_mmu->SetEgressLosslessPool(buffer_size * 1024 * 1024);
-            sw->m_mmu->SetEgressLossyPool((buffer_size * 1024 * 1024 - totalHeadroom)*0.8);
+            sw->m_mmu->SetEgressLossyPool((buffer_size * 1024 * 1024 - totalHeadroom) * 0.8);
             sw->m_mmu->node_id = sw->GetId();
         }
     }
+    std::cout << "total headroom: " << totalHeadroom << " ingressPool " << buffer_size * 1024 * 1024 - totalHeadroom << " egressLosslessPool " << buffer_size * 1024 * 1024 << " egressLossyPool " << (buffer_size * 1024 * 1024 - totalHeadroom) * 0.8 <<  std::endl;
 
 #if ENABLE_QP
     FILE *fct_output = fopen(fct_output_file.c_str(), "w");
@@ -1101,7 +1125,7 @@ int main(int argc, char *argv[])
 
             node->AggregateObject (rdma);
             rdma->Init();
-            rdma->TraceConnectWithoutContext("QpComplete", MakeBoundCallback (qp_finish,fctOutput));
+            rdma->TraceConnectWithoutContext("QpComplete", MakeBoundCallback (qp_finish, fctOutput));
         }
     }
 
@@ -1285,14 +1309,14 @@ int main(int argc, char *argv[])
 
     uint64_t flowSize = 1e9;
 
-    for (uint32_t i = 0; i < 16; i++){
-        uint32_t rxServer = 17+i%7;
+    for (uint32_t i = 0; i < 16; i++) {
+        uint32_t rxServer = 17 + i % 7;
         std::cout << "tx " << i << " rx " << rxServer << std::endl;
         Ptr<Node> rxNode = n.Get (rxServer);
         Ptr<Ipv4> ip = rxNode->GetObject<Ipv4> ();
         Ipv4InterfaceAddress rxInterface = ip->GetAddress (1, 0);
         Ipv4Address rxAddress = rxInterface.GetLocal ();
-        for (uint32_t j = 0; j<4 ; j++){
+        for (uint32_t j = 0; j < 4 ; j++) {
             InetSocketAddress ad (rxAddress, port);
             Address sinkAddress(ad);
             Ptr<BulkSendApplication> bulksend = CreateObject<BulkSendApplication>();
@@ -1311,7 +1335,7 @@ int main(int argc, char *argv[])
             PacketSinkHelper sink ("ns3::TcpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), port));
             ApplicationContainer sinkApp = sink.Install (n.Get(rxServer));
             sinkApp.Get(0)->SetAttribute("TotalQueryBytes", UintegerValue(flowSize));
-            sinkApp.Get(0)->SetAttribute("priority", UintegerValue(prior)); 
+            sinkApp.Get(0)->SetAttribute("priority", UintegerValue(prior));
             sinkApp.Get(0)->SetAttribute("priorityCustom", UintegerValue(prior));
             sinkApp.Get(0)->SetAttribute("flowId", UintegerValue(flowCount));
             sinkApp.Get(0)->SetAttribute("senderPriority", UintegerValue(prior));
@@ -1330,8 +1354,8 @@ int main(int argc, char *argv[])
     Simulator::Schedule(Seconds(delay), printBuffer, torStats, torNodes, delay);
 
     Ipv4GlobalRoutingHelper::PopulateRoutingTables();
-        // AsciiTraceHelper ascii;
-        // qbb.EnableAsciiAll (ascii.CreateFileStream ("eval.tr"));
+    // AsciiTraceHelper ascii;
+    // qbb.EnableAsciiAll (ascii.CreateFileStream ("eval.tr"));
     std::cout << "Running Simulation.\n";
     NS_LOG_INFO("Run Simulation.");
     Simulator::Stop(Seconds(END_TIME));

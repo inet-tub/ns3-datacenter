@@ -3,8 +3,8 @@ USE_DYNAMIC_PFC_THRESHOLD 1
 
 PACKET_PAYLOAD_SIZE 1000
 
-TOPOLOGY_FILE examples/mac/leaf-spine.txt
-FLOW_FILE examples/mac/flow-test.txt
+TOPOLOGY_FILE examples/buffer-devel/leaf-spine.txt
+FLOW_FILE examples/buffer-devel/flow-test.txt
 TRACE_FILE mix/trace.txt
 TRACE_OUTPUT_FILE mix/mix.tr
 FCT_OUTPUT_FILE mix/fct.txt
