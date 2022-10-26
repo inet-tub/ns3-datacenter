@@ -601,7 +601,7 @@ int main(int argc, char *argv[])
     std::string fctOutFile = "./fcts.txt";
     cmd.AddValue ("fctOutFile", "File path for FCTs", fctOutFile);
 
-    std::string torOutFile = "examples/buffer-devel/losslesssecondDT.txt";
+    std::string torOutFile = "examples/buffer-devel/losslesssfirstDT-newbuffer.txt";
     cmd.AddValue ("torOutFile", "File path for ToR statistic", torOutFile);
 
     cmd.Parse (argc, argv);
@@ -1037,7 +1037,7 @@ int main(int argc, char *argv[])
         if (n.Get(i)->GetNodeType()) { // is switch
             Ptr<SwitchNode> sw = DynamicCast<SwitchNode>(n.Get(i));
             uint32_t shift = 3; // by default 1/8
-            double alpha = 1.0;
+            double alpha = 2.0;
 
             totalHeadroom = 0;
             sw->m_mmu->SetIngressLossyAlg(bufferalgIngress);
@@ -1300,7 +1300,7 @@ int main(int argc, char *argv[])
 
     Config::SetDefault ("ns3::TcpL4Protocol::SocketType", TypeIdValue (ns3::TcpCubic::GetTypeId()));
 
-    double startTime = 0.001;
+    double startTime = 0.005;
     uint32_t flowCount = 1;
     uint32_t prior = 1;
 

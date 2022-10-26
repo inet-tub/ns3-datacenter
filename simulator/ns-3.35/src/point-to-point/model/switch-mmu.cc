@@ -14,8 +14,8 @@
 
 
 // ALERT: Be very careful. One of the following two, either SONICBUFFER or NEWBUFFER must be uncommented. DONT uncomment both. DONT comment out both.
-#define SONICBUFFER 152192
-// #define NEWBUFFER 65571
+// #define SONICBUFFER 152192
+#define NEWBUFFER 65571
 
 #define LOSSLESS 0
 #define LOSSY 1
@@ -346,7 +346,12 @@ uint64_t SwitchMmu::DynamicThreshold(uint32_t port, uint32_t qIndex, std::string
 			remaining = egressPool[type] - egressPoolUsed[type];
 #endif
 #ifdef NEWBUFFER
-			remaining = bufferPool - egressPoolUsed[LOSSLESS] - egressPoolUsed[LOSSY];
+			uint64_t ingressPoolSharedUsed = GetIngressSharedUsed(); // Total bytes used from the ingress "shared" pool specifically.
+			uint64_t ingressSharedPool = ingressPool - totalIngressReserved;
+			if (type == LOSSY)
+				remaining = ingressSharedPool - ingressPoolSharedUsed;
+			else if (type == LOSSLESS)
+				remaining = bufferPool - egressPoolUsed[LOSSLESS] - egressPoolUsed[LOSSY]; // this is going to bypass the admission anyway by using high alpha.
 #endif
 			// UINT64_MAX - 1024*1024 is just a randomly chosen big value.
 			// Just don't want to return UINT64_MAX value, sometimes causes overflow issues later.
@@ -451,12 +456,17 @@ uint64_t SwitchMmu::ActiveBufferManagement(uint32_t port, uint32_t qIndex, std::
 		}
 		setCongested(port, qIndex, inout, satLevel);
 		if (egressPool[type] > egressPoolUsed[type]) {
-						uint64_t remaining = 0;
+			uint64_t remaining = 0;
 #ifdef SONICBUFFER
 			remaining = egressPool[type] - egressPoolUsed[type];
 #endif
 #ifdef NEWBUFFER
-			remaining = bufferPool - egressPoolUsed[LOSSLESS] - egressPoolUsed[LOSSY];
+			uint64_t ingressPoolSharedUsed = GetIngressSharedUsed(); // Total bytes used from the ingress "shared" pool specifically.
+			uint64_t ingressSharedPool = ingressPool - totalIngressReserved;
+			if (type == LOSSY)
+				remaining = ingressSharedPool - ingressPoolSharedUsed;
+			else if (type == LOSSLESS)
+				remaining = bufferPool - egressPoolUsed[LOSSLESS] - egressPoolUsed[LOSSY]; // this is going to bypass the admission anyway by using high alpha.
 #endif
 			// UINT64_MAX - 1024*1024 is just a randomly chosen big value.
 			// Just don't want to return UINT64_MAX value, sometimes causes overflow issues later.
