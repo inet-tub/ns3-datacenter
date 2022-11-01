@@ -83,8 +83,8 @@ for CDFINDEX in 0 1 2;do
 			echo "waiting for cores, $N running..."
 		done
 
-		FLOWFILE=""
-		TORFILE=""
+		FLOWFILE="/dev/null"
+		TORFILE="/dev/null"
 		RXFILE=$DUMP_DIR/arrival-${TCP_NAMES[$TCP]}-$CDFNAME-$LOAD.dat
 		TXFILE=$DUMP_DIR/departure-${TCP_NAMES[$TCP]}-$CDFNAME-$LOAD.dat
 		echo "runnig queueing simulation with ${TCP_NAMES[$TCP]}"
@@ -92,7 +92,7 @@ for CDFINDEX in 0 1 2;do
 		 --serverCount=$SERVERS --spineCount=$SPINES --leafCount=$LEAVES --linkCount=$LINKS --spineLeafCapacity=$LEAF_SPINE_CAP \
 		 --leafServerCapacity=$SERVER_LEAF_CAP --linkLatency=$LATENCY --TcpProt=$TCP --BufferSize=$BUFFER --statBuf=$STATIC_BUFFER \
 		 --algorithm=$ALG --RedMinTh=$RED_MIN --RedMaxTh=$RED_MAX --request=$BURST_SIZE --queryRequestRate=$BURST_FREQ --nPrior=$N_PRIO \
-		 --fctOutFile=$FLOWFILE --torOutFile=$TORFILE --rxOutFile=$RXFILE --txOutFile=$TXFILE --alphasFile=$ALPHAFILE --cdfFileName=$CDFFILE" ; \
-		 echo "$RXFILE")&
+		 --fctOutFile=$FLOWFILE --torOutFile=$TORFILE --rxOutFile=$RXFILE --txOutFile=$TXFILE --alphasFile=$ALPHAFILE --cdfFileName=$CDFFILE" 2>/dev/null >/dev/null; echo "$RXFILE")&
+		sleep 5
 	done
 done

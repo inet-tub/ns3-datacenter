@@ -452,7 +452,7 @@ main (int argc, char *argv[])
 	/*Parse CMD*/
 	cmd.Parse (argc, argv);
 
-	if (fctOutFile!=""){
+	if (fctOutFile!="/dev/null"){
 		enableFctLog = true;
 		fctOutput = asciiTraceHelper.CreateFileStream (fctOutFile);
 
@@ -469,7 +469,7 @@ main (int argc, char *argv[])
 		        << std::endl;
 	}
 
-	if (torOutFile!=""){
+	if (torOutFile!="/dev/null"){
 		enableTorLog = true;
 		torStats = torTraceHelper.CreateFileStream (torOutFile);
 
@@ -502,7 +502,7 @@ main (int argc, char *argv[])
 		}
 	}
 
-	if (rxOutFile!=""){
+	if (rxOutFile!="/dev/null"){
 		rxOutput = rxTraceHelper.CreateFileStream(rxOutFile);
 		*rxOutput->GetStream()
 		        << "time "
@@ -516,7 +516,7 @@ main (int argc, char *argv[])
 		        << std::endl;
 	}
 
-	if (txOutFile!=""){
+	if (txOutFile!="/dev/null"){
 		txOutput = txTraceHelper.CreateFileStream(txOutFile);
 		*txOutput->GetStream()
 		        << "time "
