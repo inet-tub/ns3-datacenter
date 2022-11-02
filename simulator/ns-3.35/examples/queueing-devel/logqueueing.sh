@@ -87,7 +87,7 @@ for CDFINDEX in 0 1 2;do
 		TORFILE="/dev/null"
 		RXFILE=$DUMP_DIR/arrival-${TCP_NAMES[$TCP]}-$CDFNAME-$LOAD.dat
 		TXFILE=$DUMP_DIR/departure-${TCP_NAMES[$TCP]}-$CDFNAME-$LOAD.dat
-		echo "runnig queueing simulation with ${TCP_NAMES[$TCP]}"
+		echo "runnig queueing simulation with ${TCP_NAMES[$TCP]} and $CDFNAME workload..."
 		(time ./waf --run "queueing --load=$LOAD --StartTime=$START_TIME --EndTime=$END_TIME --FlowLaunchEndTime=$FLOW_END_TIME \
 		 --serverCount=$SERVERS --spineCount=$SPINES --leafCount=$LEAVES --linkCount=$LINKS --spineLeafCapacity=$LEAF_SPINE_CAP \
 		 --leafServerCapacity=$SERVER_LEAF_CAP --linkLatency=$LATENCY --TcpProt=$TCP --BufferSize=$BUFFER --statBuf=$STATIC_BUFFER \
