@@ -22,8 +22,8 @@ from matplotlib.ticker import FormatStrFormatter
 # plt.style.use('grayscale')
 # plt.cm.gray
 
-NS3="/home/vamsi/Dropbox/src/phd/codebase/ns3-datacenter/simulator/ns-3.35/"
-
+# NS3="/home/vamsi/Dropbox/src/phd/codebase/ns3-datacenter/simulator/ns-3.35/"
+NS3="/home/vamsi/src/phd/results_queueing/"
 #%%
 
 nodeId = 1
@@ -31,7 +31,7 @@ portId = 4
 nodeType = "ToRServer"
 qIndex = 1 # exclude control packets
 
-df = pd.read_csv(NS3+"arrival.txt",delimiter=' ')
+df = pd.read_csv(NS3+"arrival-Cubic-WS-0.8.res",delimiter=' ',header=None,names=["time","arrival", "nodeId", "portId","type","pktSize","unsched","qIndex"])
 df = df[(df["time"]>10020000000)&(df["qIndex"]==1)&(df["nodeId"]==nodeId)&(df["portId"]==portId)&(df["type"]==nodeType)&(df["qIndex"]==qIndex)]
 #%%
 
@@ -55,10 +55,13 @@ x, y = sorted(interarrivalBdp), np.arange(len(interarrivalBdp)) / len(interarriv
 
 fig,ax= plt.subplots(1,1)
 
-ax.plot(x,y)
-lam = 0.45*1e-3
-ax.plot(x,[1-np.exp(-lam*i) for i in x])
+ax.plot(x,y,label='IAT BDP')
+lam = 0.25*1e-3
+ax.plot(x,[1-np.exp(-lam*i) for i in x],label=r'$y=1-e^{-0.00025 \ x}$')
 ax.set_xscale('log')
+ax.set_xlabel('Inter Arrival Times (IAT) in Nanoseconds')
+ax.set_ylabel('CDF')
+ax.legend()
 
 #%%
 x, y = sorted(interarrivalnonBdp), np.arange(len(interarrivalnonBdp)) / len(interarrivalnonBdp)
