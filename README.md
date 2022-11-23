@@ -3,7 +3,7 @@
 
 This repository contains the source code used for [PowerTCP (NSDI 2022)](https://www.usenix.org/conference/nsdi22/presentation/addanki) and [ABM (SIGCOMM 2022)](https://dl.acm.org/doi/10.1145/3544216.3544252).
 
-**This is a beta release. Please raise issues if you encounter any.**
+**V1.0 Release**
 
 We extend ns-3.35 to support some of the recent advancements in the datacenter context.
 - Various datacenter congestion control algorithms including PowerTCP over both TCP/IP and RDMA stacks can be used simulataneously. 
@@ -58,7 +58,7 @@ Checkout [`simulator/ns-3.35/examples/PowerTCP`](https://github.com/inet-tub/ns3
 
 # Running ABM
 
-Checkout [`simulator/ns-3.35/examples/ABM`](https://github.com/inet-tub/ns3-datacenter/tree/master/simulator/ns-3.35/examples/ABM) for simulation files and scripts to run ABM and other buffer management algorithms. **Note:** This only runs in the TCP/IP stack and this is what we used in the paper. Support for the RDMA stack and mixed stack will be updated in the upcoming months. 
+Checkout [`simulator/ns-3.35/examples/ABM`](https://github.com/inet-tub/ns3-datacenter/tree/master/simulator/ns-3.35/examples/ABM) for simulation files and scripts to run ABM and other buffer management algorithms. **Note:** This only runs in the TCP/IP stack and this is what we used in the paper. Checkout [`switch MMU`](simulator/ns-3.35/src/point-to-point/model/switch-mmu.cc) for a more general implementation of ABM suited for both RDMA stack and mixed stacks (RDMA + TCP/IP sharing the buffer).
 
 
 # Important Files
@@ -69,7 +69,7 @@ Checkout [`simulator/ns-3.35/examples/ABM`](https://github.com/inet-tub/ns3-data
 
 [`simulator/ns-3.35/src/point-to-point/model/switch-node.cc`](https://github.com/inet-tub/ns3-datacenter/tree/master/simulator/ns-3.35/src/point-to-point/model/switch-node.cc): This file is also modified to support both RDMA and TCP/IP traffic. Minor change in INT, for PowerTCP, RXBytes is appended instead of TxBytes. This is since $\lambda(t)=\mu(t)+\dot{q}(t) $ i.e., RxRate is TxRate + Queue gradient where $\lambda(t)$ is required for PowerTCP to calculate power.
 
-[`simulator/ns-3.35/src/point-to-point/model/switch-mmu.cc`](https://github.com/inet-tub/ns3-datacenter/tree/master/simulator/ns-3.35/src/point-to-point/model/switch-mmu.cc): This file has the core logic for buffer management. Currently only Dynamic Thresholds (DT) is supported. Note: This is not what we used for ABM in the paper. However, there is an ongoing effort to bring ABM to such a mixed stack.
+[`simulator/ns-3.35/src/point-to-point/model/switch-mmu.cc`](https://github.com/inet-tub/ns3-datacenter/tree/master/simulator/ns-3.35/src/point-to-point/model/switch-mmu.cc): This file has the core logic for buffer management. Currently, we only support Dynamic Thresholds (DT) and Active Buffer Management (ABM). Note: The SIGCOMM version of ABM paper uses the implementation in traffic control layer (see below).
 
 [`simulator/ns-3.35/src/traffic-control/model/gen-queue-disc.cc`](https://github.com/inet-tub/ns3-datacenter/tree/master/simulator/ns-3.35/src/traffic-control/model/gen-queue-disc.cc): This file contains various buffer management algorithms at the traffic-control layer. It can only be used in the TCP/IP stack. Note: This is what we used for ABM in the paper.
 
