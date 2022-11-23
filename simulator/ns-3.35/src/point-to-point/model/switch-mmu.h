@@ -17,8 +17,8 @@ public:
 
 	SwitchMmu(void);
 
-	bool CheckIngressAdmission(uint32_t port, uint32_t qIndex, uint32_t psize, uint32_t type);
-	bool CheckEgressAdmission(uint32_t port, uint32_t qIndex, uint32_t psize, uint32_t type);
+	bool CheckIngressAdmission(uint32_t port, uint32_t qIndex, uint32_t psize, uint32_t type, uint32_t unsched);
+	bool CheckEgressAdmission(uint32_t port, uint32_t qIndex, uint32_t psize, uint32_t type, uint32_t unsched);
 	void UpdateIngressAdmission(uint32_t port, uint32_t qIndex, uint32_t psize, uint32_t type);
 	void UpdateEgressAdmission(uint32_t port, uint32_t qIndex, uint32_t psize, uint32_t type);
 	void RemoveFromIngressAdmission(uint32_t port, uint32_t qIndex, uint32_t psize, uint32_t type);
@@ -81,15 +81,23 @@ public:
 
 	uint64_t GetIngressSharedUsed();
 
+	uint64_t GetEgressPool(uint32_t type);
+
+	uint64_t GetEgressPoolUsed(uint32_t type);
+
 	void setCongested(uint32_t portId, uint32_t qIndex, std::string inout, double satLevel);
 
 	double GetNofP(std::string inout, uint32_t qIndex);
 
 	double getDequeueRate(uint32_t port, uint32_t qIndex, std::string inout);
 
-	void updateDequeueRates(double delayNanoSec);
+	void updateDequeueRates();
 
-	uint64_t ActiveBufferManagement(uint32_t port, uint32_t qIndex, std::string inout, uint32_t type, uint32_t alphaPrio);
+	uint64_t ActiveBufferManagement(uint32_t port, uint32_t qIndex, std::string inout, uint32_t type, uint32_t unsched);
+
+	void SetABMalphaHigh(double alpha){alphaHigh = alpha;};
+
+	void SetABMdequeueUpdateNS(double time){updateIntervalNS = time;}
 
 
 	// config
@@ -143,6 +151,9 @@ public:
 	uint64_t txBytesEgress[pCnt][qCnt];
 	uint64_t bandwidth[pCnt];
 	uint32_t congestionIndicator;
+	double alphaHigh;
+	double updateIntervalNS;
+	uint32_t dequeueUpdatedOnce;
 
 };
 

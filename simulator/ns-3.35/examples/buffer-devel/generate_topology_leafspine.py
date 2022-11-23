@@ -4,12 +4,12 @@ import numpy as np
 import sys
 
 # leaf spine topology
-serversPerTor=24
-torSwitches=32
+serversPerTor=32
+torSwitches=2
 
 spineSwitches=8
 
-serverDataRate=40
+serverDataRate=10
 allOtherDataRate=40
 
 serverTorDelay="2us"

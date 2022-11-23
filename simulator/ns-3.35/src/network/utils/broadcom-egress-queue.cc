@@ -75,6 +75,7 @@ namespace ns3 {
 			// std::cout << "maxsizeBE " << uint32_t(m_queues[qIndex]->GetMaxSize().GetValue()) << " m_maxBytes " << uint32_t(m_maxBytes) << " double " << m_maxBytes << std::endl;
 			// NS_ABORT_MSG("debug");
 			// std::cout << "debug: enqueue size " << m_bytesInQueueTotal << std::endl;
+			// std::cout << "debug " << "qIndex " << qIndex << std::endl;
 			if (m_bytesInQueueTotal + p->GetSize() < m_maxBytes)  //infinite queue
 			{
 				if(!m_queues[qIndex]->Enqueue(p)) {
@@ -91,6 +92,7 @@ namespace ns3 {
 				NS_ABORT_MSG("BEgressQueue implementation error: must not drop here");
 				return false;
 			}
+			// std::cout << "done with BEgressQueue" << std::endl;
 			return true;
 		}
 

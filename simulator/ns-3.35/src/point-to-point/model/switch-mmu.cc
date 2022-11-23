@@ -12,7 +12,6 @@
 #include "ns3/random-variable.h"
 #include "switch-mmu.h"
 
-
 // ALERT: Be very careful. One of the following two, either SONICBUFFER or NEWBUFFER must be uncommented. DONT uncomment both. DONT comment out both.
 // #define SONICBUFFER 152192
 #define NEWBUFFER 65571
@@ -133,6 +132,10 @@ SwitchMmu::SwitchMmu(void) {
 	memset(ingress_bytes, 0, sizeof(ingress_bytes));
 	memset(paused, 0, sizeof(paused));
 	memset(egress_bytes, 0, sizeof(egress_bytes));
+
+	dequeueUpdatedOnce = 0; // For ABM, to trigger dequeue rate updates
+	updateIntervalNS = 25*1000; // default 25us update interval for dequeue rates
+	alphaHigh = 1024; // default value to imitate a sky high threshold for all unscheduled packets
 }
 
 void
@@ -323,13 +326,7 @@ uint64_t SwitchMmu::DynamicThreshold(uint32_t port, uint32_t qIndex, std::string
 		uint64_t ingressPoolSharedUsed = GetIngressSharedUsed(); // Total bytes used from the ingress "shared" pool specifically.
 		uint64_t ingressSharedPool = ingressPool - totalIngressReserved;
 		if (ingressSharedPool > ingressPoolSharedUsed) {
-			uint64_t remaining = 0;
-#ifdef SONICBUFFER
-			remaining = ingressSharedPool - ingressPoolSharedUsed;
-#endif
-#ifdef NEWBUFFER
-			remaining = ingressSharedPool - ingressPoolSharedUsed;
-#endif
+			uint64_t remaining = ingressSharedPool - ingressPoolSharedUsed;
 			return std::min(uint64_t(alphaIngress[port][qIndex] * (remaining)), UINT64_MAX - 1024 * 1024);
 		}
 		else {
@@ -341,18 +338,7 @@ uint64_t SwitchMmu::DynamicThreshold(uint32_t port, uint32_t qIndex, std::string
 	else if (inout == "egress") {
 		double remaining = 0;
 		if (egressPool[type] > egressPoolUsed[type]) {
-			uint64_t remaining = 0;
-#ifdef SONICBUFFER
-			remaining = egressPool[type] - egressPoolUsed[type];
-#endif
-#ifdef NEWBUFFER
-			uint64_t ingressPoolSharedUsed = GetIngressSharedUsed(); // Total bytes used from the ingress "shared" pool specifically.
-			uint64_t ingressSharedPool = ingressPool - totalIngressReserved;
-			if (type == LOSSY)
-				remaining = ingressSharedPool - ingressPoolSharedUsed;
-			else if (type == LOSSLESS)
-				remaining = bufferPool - egressPoolUsed[LOSSLESS] - egressPoolUsed[LOSSY]; // this is going to bypass the admission anyway by using high alpha.
-#endif
+			uint64_t remaining = GetEgressPool(type) - GetEgressPoolUsed(type);
 			// UINT64_MAX - 1024*1024 is just a randomly chosen big value.
 			// Just don't want to return UINT64_MAX value, sometimes causes overflow issues later.
 			return std::min(uint64_t(alphaEgress[port][qIndex] * (remaining)), UINT64_MAX - 1024 * 1024);
@@ -396,32 +382,32 @@ double SwitchMmu::getDequeueRate(uint32_t port, uint32_t qIndex, std::string ino
 	}
 	return 0;
 }
-void SwitchMmu::updateDequeueRates(double delayNanoSec) { // ALERT: This update must be triggered externally in the simulation.
+void SwitchMmu::updateDequeueRates() {
 	for (uint32_t i = 0; i < pCnt; i++) {
 		for (uint32_t j = 0; j < qCnt; j++) {
 			// update ingress queues dequeue rates
 			uint64_t temp = txBytesIngress[i][j];
 			txBytesIngress[i][j] = 0;
-			dequeueRateIngress[i][j] = (1e9 * temp * 8.0 / delayNanoSec) / (bandwidth[i]);
-			if (dequeueRateIngress[i][j] < 0.2)
-				dequeueRateIngress[i][j] = 0.2;
+			dequeueRateIngress[i][j] = (1e9 * temp * 8.0 / updateIntervalNS) / (bandwidth[i]);
+			if (dequeueRateIngress[i][j] < 0.125) // min 1/8 considering 8 queues, with round-robin
+				dequeueRateIngress[i][j] = 0.125;
 
 			//update egress queues dequeue rates
 			temp = txBytesEgress[i][j];
 			txBytesEgress[i][j] = 0;
-			dequeueRateEgress[i][j] = (1e9 * temp * 8.0 / delayNanoSec) / (bandwidth[i]);
-			if (dequeueRateEgress[i][j] < 0.2)
-				dequeueRateEgress[i][j] = 0.2;
+			dequeueRateEgress[i][j] = (1e9 * temp * 8.0 / updateIntervalNS) / (bandwidth[i]);
+			if (dequeueRateEgress[i][j] < 0.125) // min 1/8 considering 8 queues, with round-robin
+				dequeueRateEgress[i][j] = 0.125;
 		}
 	}
-	// Add a function like below in your simulation. This will keep the updates running forever until the simulation finishes.
-	// void triggerDequeueRateUpdates(double delayNanoSec, Ptr<SwitchMmu> mmu) {
-	// 	mmu->updateDequeueRates(delayNanoSec);
-	// 	Simulator::Schedule(NanoSeconds(delayNanoSec), triggerDequeueRateUpdates, delayNanoSec, mmu);
-	// }
+	dequeueUpdatedOnce = 1;
+	Simulator::Schedule(NanoSeconds(updateIntervalNS), &SwitchMmu::updateDequeueRates, this);
 }
 
-uint64_t SwitchMmu::ActiveBufferManagement(uint32_t port, uint32_t qIndex, std::string inout, uint32_t type, uint32_t alphaPrio) {
+uint64_t SwitchMmu::ActiveBufferManagement(uint32_t port, uint32_t qIndex, std::string inout, uint32_t type, uint32_t unsched) {
+	if (!dequeueUpdatedOnce){
+		updateDequeueRates();
+	}
 	if (inout == "ingress") {
 		double remaining = 0;
 		uint64_t ingressPoolSharedUsed = GetIngressSharedUsed(); // Total bytes used from the ingress "shared" pool specifically.
@@ -432,14 +418,15 @@ uint64_t SwitchMmu::ActiveBufferManagement(uint32_t port, uint32_t qIndex, std::
 		}
 		setCongested(port, qIndex, inout, satLevel);
 		if (ingressSharedPool > ingressPoolSharedUsed) {
-			uint64_t remaining = 0;
-#ifdef SONICBUFFER
-			remaining = ingressSharedPool - ingressPoolSharedUsed;
-#endif
-#ifdef NEWBUFFER
-			remaining = ingressSharedPool - ingressPoolSharedUsed;
-#endif
-			uint64_t ABM_Threshold = alphaIngress[port][qIndex] * (remaining) * (1.0 / GetNofP(inout, qIndex)) * (getDequeueRate(port, qIndex, inout));
+			uint64_t remaining = ingressSharedPool - ingressPoolSharedUsed;
+			double alphaP=1;
+			if (unsched){
+				alphaP=alphaHigh;
+			}
+			else{
+				alphaP = alphaIngress[port][qIndex];
+			}
+			uint64_t ABM_Threshold = alphaP * (remaining) * (1.0 / GetNofP(inout, qIndex)) * (getDequeueRate(port, qIndex, inout));
 			return std::min(uint64_t(ABM_Threshold), UINT64_MAX - 1024 * 1024);
 		}
 		else {
@@ -456,21 +443,17 @@ uint64_t SwitchMmu::ActiveBufferManagement(uint32_t port, uint32_t qIndex, std::
 		}
 		setCongested(port, qIndex, inout, satLevel);
 		if (egressPool[type] > egressPoolUsed[type]) {
-			uint64_t remaining = 0;
-#ifdef SONICBUFFER
-			remaining = egressPool[type] - egressPoolUsed[type];
-#endif
-#ifdef NEWBUFFER
-			uint64_t ingressPoolSharedUsed = GetIngressSharedUsed(); // Total bytes used from the ingress "shared" pool specifically.
-			uint64_t ingressSharedPool = ingressPool - totalIngressReserved;
-			if (type == LOSSY)
-				remaining = ingressSharedPool - ingressPoolSharedUsed;
-			else if (type == LOSSLESS)
-				remaining = bufferPool - egressPoolUsed[LOSSLESS] - egressPoolUsed[LOSSY]; // this is going to bypass the admission anyway by using high alpha.
-#endif
+			uint64_t remaining = GetEgressPool(type) - GetEgressPoolUsed(type);
 			// UINT64_MAX - 1024*1024 is just a randomly chosen big value.
 			// Just don't want to return UINT64_MAX value, sometimes causes overflow issues later.
-			uint64_t ABM_Threshold = alphaEgress[port][qIndex] * (remaining) * (1.0 / GetNofP(inout, qIndex)) * (getDequeueRate(port, qIndex, inout));
+			double alphaP=1;
+			if (unsched){
+				alphaP=alphaHigh;
+			}
+			else{
+				alphaP = alphaEgress[port][qIndex];
+			}
+			uint64_t ABM_Threshold = alphaP * (remaining) * (1.0 / GetNofP(inout, qIndex)) * (getDequeueRate(port, qIndex, inout));
 			return std::min(ABM_Threshold, UINT64_MAX - 1024 * 1024);
 		}
 		else {
@@ -480,7 +463,7 @@ uint64_t SwitchMmu::ActiveBufferManagement(uint32_t port, uint32_t qIndex, std::
 }
 
 
-uint64_t SwitchMmu::Threshold(uint32_t port, uint32_t qIndex, std::string inout, uint32_t type, uint32_t alphaPrio) {
+uint64_t SwitchMmu::Threshold(uint32_t port, uint32_t qIndex, std::string inout, uint32_t type, uint32_t unsched) {
 	uint64_t thresh = 0;
 	if (inout == "ingress") {
 		switch (ingressAlg[type]) {
@@ -488,7 +471,7 @@ uint64_t SwitchMmu::Threshold(uint32_t port, uint32_t qIndex, std::string inout,
 			thresh = DynamicThreshold(port, qIndex, inout, type);
 			break;
 		case ABM:
-			thresh = ActiveBufferManagement(port, qIndex, inout, type, alphaPrio);
+			thresh = ActiveBufferManagement(port, qIndex, inout, type, unsched);
 			break;
 		default:
 			thresh = DynamicThreshold(port, qIndex, inout, type);
@@ -501,7 +484,7 @@ uint64_t SwitchMmu::Threshold(uint32_t port, uint32_t qIndex, std::string inout,
 			thresh = DynamicThreshold(port, qIndex, inout, type);
 			break;
 		case ABM:
-			thresh = ActiveBufferManagement(port, qIndex, inout, type, alphaPrio);
+			thresh = ActiveBufferManagement(port, qIndex, inout, type, unsched);
 			break;
 		default:
 			thresh = DynamicThreshold(port, qIndex, inout, type);
@@ -511,15 +494,12 @@ uint64_t SwitchMmu::Threshold(uint32_t port, uint32_t qIndex, std::string inout,
 	return thresh;
 }
 
+bool SwitchMmu::CheckIngressAdmission(uint32_t port, uint32_t qIndex, uint32_t psize, uint32_t type, uint32_t unsched) {
 
-bool SwitchMmu::CheckIngressAdmission(uint32_t port, uint32_t qIndex, uint32_t psize, uint32_t type) {
-
-	//TODO: Check whether the packet should be prioritized. --> Used by ABM
-	double alphaPrio = 0; // temporary.
 	switch (type) {
 	case LOSSY:
 		// if ingress bytes is greater than the ingress threshold
-		if ( (psize + ingress_bytes[port][qIndex] > Threshold(port, qIndex, "ingress", type , alphaPrio)
+		if ( (psize + ingress_bytes[port][qIndex] > Threshold(port, qIndex, "ingress", type , unsched)
 		        // AND if the reserved is usedup
 		        && psize + ingress_bytes[port][qIndex] > reserveIngress[port][qIndex])
 		        // if the ingress pool is full. With DT, this condition is redundant.
@@ -561,20 +541,37 @@ bool SwitchMmu::CheckIngressAdmission(uint32_t port, uint32_t qIndex, uint32_t p
 }
 
 
-bool SwitchMmu::CheckEgressAdmission(uint32_t port, uint32_t qIndex, uint32_t psize, uint32_t type) {
 
-	//TODO: Check whether the packet should be prioritized. --> Used by ABM
-	double alphaPrio = 0; // temporary.
+uint64_t SwitchMmu::GetEgressPool(uint32_t type){
+#ifdef SONICBUFFER
+	return egressPool[type];
+#endif
+#ifdef NEWBUFFER
+	return bufferPool; 
+#endif
+}
+
+uint64_t SwitchMmu::GetEgressPoolUsed(uint32_t type){
+#ifdef SONICBUFFER
+	return egressPoolUsed[type];
+#endif
+#ifdef NEWBUFFER
+	return totalUsed;
+#endif
+}
+
+
+bool SwitchMmu::CheckEgressAdmission(uint32_t port, uint32_t qIndex, uint32_t psize, uint32_t type, uint32_t unsched) {
 
 	switch (type) {
 	case LOSSY:
 		// if the egress queue length is greater than the threshold
-		if ( (psize + egress_bytes[port][qIndex] > Threshold(port, qIndex, "egress", type, alphaPrio)
+		if ( (psize + egress_bytes[port][qIndex] > Threshold(port, qIndex, "egress", type, unsched)
 		        // AND if the reserved is usedup. THiS IS NOT SUPPORTED AT THE MOMENT. NO reserved at the egress.
 		        // && psize + egress_bytes[port][qIndex] > reserveEgress[port][qIndex]
 		     )
 		        // or if the egress pool is full
-		        || (psize + egressPoolUsed[LOSSY] > egressPool[LOSSY])
+		        || (psize + GetEgressPoolUsed(type) > GetEgressPool(type))
 		        // or if the switch buffer is full
 		        || (psize + totalUsed > bufferPool) )
 		{
@@ -586,16 +583,16 @@ bool SwitchMmu::CheckEgressAdmission(uint32_t port, uint32_t qIndex, uint32_t ps
 		break;
 	case LOSSLESS:
 		// if threshold is exceeded
-		if ( ( (psize + egress_bytes[port][qIndex] > Threshold(port, qIndex, "egress", type, alphaPrio))
+		if ( ( (psize + egress_bytes[port][qIndex] > Threshold(port, qIndex, "egress", type, unsched))
 		        // AND reserved is used up. THiS IS NOT SUPPORTED AT THE MOMENT. NO reserved at the egress.
 		        // && (psize + egress_bytes[port][qIndex] > reserveEgress[port][qIndex])
 		     )
 		        // or if the corresponding egress pool is used up
-		        || (psize + egressPoolUsed[LOSSLESS] > egressPool[LOSSLESS])
+		        || (psize + GetEgressPoolUsed(type) > GetEgressPool(type))
 		        // or if the switch buffer is full
 		        || (psize + totalUsed > bufferPool) )
 		{
-			std::cout << "dropping lossless packet at egress admission port " << port << " qIndex " << qIndex << " egress_bytes " << egress_bytes[port][qIndex] << " threshold " << Threshold(port, qIndex, "egress", type, alphaPrio)
+			std::cout << "dropping lossless packet at egress admission port " << port << " qIndex " << qIndex << " egress_bytes " << egress_bytes[port][qIndex] << " threshold " << Threshold(port, qIndex, "egress", type, unsched)
 			          << std::endl;
 			return false;
 		}
@@ -612,8 +609,6 @@ bool SwitchMmu::CheckEgressAdmission(uint32_t port, uint32_t qIndex, uint32_t ps
 }
 
 void SwitchMmu::UpdateIngressAdmission(uint32_t port, uint32_t qIndex, uint32_t psize, uint32_t type) {
-
-	txBytesIngress[port][qIndex] += psize; // We assume that the packet will not be dropped after this step for any other reason.
 
 	// If else are simply unnecessary but its a safety check to avoid magic scenarios (if a packet vanishes in the buffer) where we
 	// might assign negative value to unsigned intergers.
@@ -652,12 +647,14 @@ void SwitchMmu::UpdateIngressAdmission(uint32_t port, uint32_t qIndex, uint32_t 
 }
 
 void SwitchMmu::UpdateEgressAdmission(uint32_t port, uint32_t qIndex, uint32_t psize, uint32_t type) {
-	txBytesEgress[port][qIndex] += psize; // We assume that the packet will not be dropped after this step for any other reason.
 	egress_bytes[port][qIndex] += psize;
 	egressPoolUsed[type] += psize;
 }
 
 void SwitchMmu::RemoveFromIngressAdmission(uint32_t port, uint32_t qIndex, uint32_t psize, uint32_t type) {
+
+	txBytesIngress[port][qIndex] += psize; // We assume that the packet will not be dropped after this step for any other reason.
+
 	// If else are simply unnecessary but its a safety check to avoid magic scenarios (if a packet vanishes in the buffer) where we
 	// might assign negative value to unsigned intergers.
 
@@ -671,7 +668,7 @@ void SwitchMmu::RemoveFromIngressAdmission(uint32_t port, uint32_t qIndex, uint3
 	else
 		ingress_bytes[port][qIndex] = 0;
 
-	if (totalUsed >= psize)
+	if (totalUsed >= psize) // IMPORTANT: totalUsed is only updated in the ingress. No need to update in egress. Avoid double counting.
 		totalUsed -= psize;
 	else
 		totalUsed = 0;
@@ -702,6 +699,9 @@ void SwitchMmu::RemoveFromIngressAdmission(uint32_t port, uint32_t qIndex, uint3
 	}
 }
 void SwitchMmu::RemoveFromEgressAdmission(uint32_t port, uint32_t qIndex, uint32_t psize, uint32_t type) {
+	
+	txBytesEgress[port][qIndex] += psize; // We assume that the packet will not be dropped after this step for any other reason.
+
 	if (egress_bytes[port][qIndex] >= psize)
 		egress_bytes[port][qIndex] -= psize;
 	else

@@ -86,8 +86,6 @@ uint32_t cc_mode = 1;
 bool enable_qcn = true;
 uint32_t packet_payload_size = 1000, l2_chunk_size = 0, l2_ack_interval = 0;
 double pause_time = 5, simulator_stop_time = 3.01;
-std::string fct_output_file = "fct.txt";
-std::string pfc_output_file = "pfc.txt";
 
 double alpha_resume_interval = 55, rp_timer, ewma_gain = 1 / 16;
 double rate_decrease_interval = 4;
@@ -118,6 +116,8 @@ string qlen_mon_file;
 
 unordered_map<uint64_t, uint32_t> rate2kmax, rate2kmin;
 unordered_map<uint64_t, double> rate2pmax;
+
+double alpha_values[8]={1,1,1,1,1,1,1,1};
 
 /************************************************
  * Runtime varibles
@@ -182,7 +182,7 @@ void ReadFlowInput() {
 }
 void ScheduleFlowInputs() {
     while (flow_input.idx < flow_num && Seconds(flow_input.start_time) <= Simulator::Now()) {
-        std::cout << "Flow " << flow_input.src << " " << flow_input.dst << " " << flow_input.pg << " " << flow_input.dport << " " << flow_input.maxPacketCount << " " << flow_input.start_time << " " << Simulator::Now().GetSeconds() << std::endl;
+        // std::cout << "Flow " << flow_input.src << " " << flow_input.dst << " " << flow_input.pg << " " << flow_input.dport << " " << flow_input.maxPacketCount << " " << flow_input.start_time << " " << Simulator::Now().GetSeconds() << std::endl;
         uint32_t port = portNumder[flow_input.src][flow_input.dst]++; // get a new port number
         RdmaClientHelper clientHelper(flow_input.pg, serverAddress[flow_input.src], serverAddress[flow_input.dst], port, flow_input.dport, flow_input.maxPacketCount, has_win ? (global_t == 1 ? maxBdp : pairBdp[n.Get(flow_input.src)][n.Get(flow_input.dst)]) : 0, global_t == 1 ? maxRtt : pairRtt[flow_input.src][flow_input.dst], Simulator::GetMaximumSimulationTime());
         ApplicationContainer appCon = clientHelper.Install(n.Get(flow_input.src));
@@ -395,113 +395,6 @@ int get_target_leaf(int leafCount) {
     return tar;
 }
 
-uint64_t PORT_START = 4000;
-
-uint32_t FAN = 5;
-
-void install_applications_queryNew (int fromLeafId, double requestRate, uint32_t requestSize, struct cdf_table *cdfTable,
-                                    long &flowCount, long &totalFlowSize, int SERVER_COUNT, int LEAF_COUNT, double START_TIME, double END_TIME, double FLOW_LAUNCH_END_TIME)
-{
-    uint32_t fan = FAN; //SERVER_COUNT/rand_range(1,SERVER_COUNT);
-    for (int i = 0; i < SERVER_COUNT; i++)
-    {
-        int fromServerIndexX = fromLeafId * SERVER_COUNT + i;
-
-        double startTime = START_TIME + poission_gen_interval (requestRate);
-        while (startTime < FLOW_LAUNCH_END_TIME && startTime > START_TIME)
-        {
-            int leaftarget = fromLeafId;
-            while (leaftarget == fromLeafId)
-                leaftarget = get_target_leaf(LEAF_COUNT);//rand_range(0,LEAF_COUNT);
-
-            uint16_t port = PORT_START++;//uint16_t (rand_range (PORT_START, PORT_END));
-
-            int destServerIndex = fromServerIndexX;
-
-            uint32_t query = 0;
-            uint32_t flowSize = double(requestSize) / double(fan);//QUERY_DATA/fan;//gen_random_cdf (cdfTable);
-
-
-            for (int r = 0; r < fan; r++) {
-
-                uint32_t fromServerIndex = SERVER_COUNT * leaftarget + rand_range(0, SERVER_COUNT);
-
-                if (DestportNumder[fromServerIndex][destServerIndex] == UINT16_MAX - 1)
-                    DestportNumder[fromServerIndex][destServerIndex] = rand_range(10000, 11000);
-
-                if (DestportNumder[fromServerIndex][destServerIndex] == UINT16_MAX - 1)
-                    portNumder[fromServerIndex][destServerIndex] = rand_range(10000, 11000);
-
-                uint16_t dport = DestportNumder[fromServerIndex][destServerIndex]++; //uint16_t (rand_range (PORT_START, PORT_END));
-                uint16_t sport = portNumder[fromServerIndex][destServerIndex]++;
-
-
-                totalFlowSize += flowSize;
-                query += flowSize;
-                flowCount++;
-
-                RdmaClientHelper clientHelper(3, serverAddress[fromServerIndex], serverAddress[destServerIndex], sport, dport, flowSize, has_win ? (global_t == 1 ? maxBdp : pairBdp[n.Get(fromServerIndex)][n.Get(destServerIndex)]) : 0, global_t == 1 ? maxRtt : pairRtt[fromServerIndex][destServerIndex], Simulator::GetMaximumSimulationTime());
-                ApplicationContainer appCon = clientHelper.Install(n.Get(fromServerIndex));
-                // std::cout << " from " << fromServerIndex << " to " << destServerIndex <<  " fromLeadId " << fromLeafId << " serverCount " << SERVER_COUNT << " leafCount " << LEAF_COUNT <<  std::endl;
-                //      appCon.Start(Seconds(flow_input.start_time));
-                appCon.Start(Seconds(startTime));
-
-
-            }
-            startTime += poission_gen_interval (requestRate);
-        }
-    }
-}
-
-
-void install_applications (int fromLeafId, double requestRate, struct cdf_table *cdfTable,
-                           long &flowCount, long &totalFlowSize, int SERVER_COUNT, int LEAF_COUNT, double START_TIME, double END_TIME, double FLOW_LAUNCH_END_TIME)
-{
-    for (int i = 0; i < SERVER_COUNT; i++)
-    {
-        int fromServerIndex = fromLeafId * SERVER_COUNT + i;
-
-        double startTime = START_TIME + poission_gen_interval (requestRate);
-        while (startTime < FLOW_LAUNCH_END_TIME && startTime > START_TIME)
-        {
-
-            int destServerIndex = fromServerIndex;
-            while (destServerIndex >= fromLeafId * SERVER_COUNT && destServerIndex < fromLeafId * SERVER_COUNT + SERVER_COUNT && destServerIndex == fromServerIndex)
-            {
-                destServerIndex = rand_range (fromLeafId * SERVER_COUNT, SERVER_COUNT * LEAF_COUNT);
-            }
-
-            if (DestportNumder[fromServerIndex][destServerIndex] == UINT16_MAX - 1)
-                DestportNumder[fromServerIndex][destServerIndex] = rand_range(10000, 11000);
-
-            if (DestportNumder[fromServerIndex][destServerIndex] == UINT16_MAX - 1)
-                portNumder[fromServerIndex][destServerIndex] = rand_range(10000, 11000);
-
-
-            uint16_t dport = DestportNumder[fromServerIndex][destServerIndex]++; //uint16_t (rand_range (PORT_START, PORT_END));
-            uint16_t sport = portNumder[fromServerIndex][destServerIndex]++;
-
-            uint64_t flowSize = gen_random_cdf (cdfTable);
-            while (flowSize == 0)
-                flowSize = gen_random_cdf (cdfTable);
-
-            totalFlowSize += flowSize;
-            flowCount += 1;
-
-
-            RdmaClientHelper clientHelper(3, serverAddress[fromServerIndex], serverAddress[destServerIndex], sport, dport, flowSize, has_win ? (global_t == 1 ? maxBdp : pairBdp[n.Get(fromServerIndex)][n.Get(destServerIndex)]) : 0, global_t == 1 ? maxRtt : pairRtt[fromServerIndex][destServerIndex], Simulator::GetMaximumSimulationTime());
-            ApplicationContainer appCon = clientHelper.Install(n.Get(fromServerIndex));
-            // std::cout << " from " << fromServerIndex << " to " << destServerIndex <<  " fromLeadId " << fromLeafId << " serverCount " << SERVER_COUNT << " leafCount " << LEAF_COUNT <<  std::endl;
-//      appCon.Start(Seconds(flow_input.start_time));
-            appCon.Start(Seconds(startTime));
-
-            startTime += poission_gen_interval (requestRate);
-        }
-    }
-    std::cout << "Finished installation of applications from leaf-" << fromLeafId << std::endl;
-}
-
-
 std::vector<uint32_t> maxBinbufferOccupancy(100, 0); // ugly initialization
 
 uint32_t binBuffer = 0;
@@ -527,7 +420,6 @@ void printBuffer(Ptr<OutputStreamWrapper> fout, NodeContainer switches, double d
     Simulator::Schedule(Seconds(delay), printBuffer, fout, switches, delay);
 }
 
-
 /******************************************************************************************************************************************************************************************************/
 
 int main(int argc, char *argv[])
@@ -539,7 +431,7 @@ int main(int argc, char *argv[])
     bool thetapowertcp = false;
 
 
-    uint32_t SERVER_COUNT = 24;
+    uint32_t SERVER_COUNT = 32;
     uint32_t LEAF_COUNT = 32; // LEAF and SPINE correspond to a single pod. Leafs are ToR switches and Spine are AGG switches. Count is within a single pod.
     uint32_t SPINE_COUNT = 8;
     uint64_t LEAF_SERVER_CAPACITY = 50;
@@ -550,8 +442,6 @@ int main(int argc, char *argv[])
     double FLOW_LAUNCH_END_TIME = 5;
 
     double load = 0.2;
-
-
 
     uint32_t requestSize = 1000000;
     double queryRequestRate = 1;
@@ -604,11 +494,29 @@ int main(int argc, char *argv[])
     std::string torOutFile = "examples/buffer-devel/losslesssfirstDT-newbuffer.txt";
     cmd.AddValue ("torOutFile", "File path for ToR statistic", torOutFile);
 
+    std::string pfcOutFile = "./pfc.txt";
+    cmd.AddValue ("pfcOutFile", "File path for pfc events", pfcOutFile);
+
+    std::string alphasFile = "/home/vamsi/src/phd/codebase/ns3-datacenter/simulator/ns-3.35/examples/buffer-devel/alphas"; // On lakewood
+    cmd.AddValue ("alphasFile", "alpha values file (should be exactly nPrior lines)", alphasFile);
+
     cmd.Parse (argc, argv);
 
     fctOutput = asciiTraceHelper.CreateFileStream (fctOutFile);
     torStats = torTraceHelper.CreateFileStream (torOutFile);
 
+    std::string line;
+    std::fstream aFile;
+    aFile.open(alphasFile);
+    uint32_t p=0;
+    while ( getline( aFile, line ) && p < 8 ) { // hard coded to read only 8 alpha values.
+        std::istringstream iss( line );
+        double a;
+        iss >> a;
+        alpha_values[p] = a;
+        p++;
+    }
+    aFile.close();
 
     SPINE_LEAF_CAPACITY = SPINE_LEAF_CAPACITY * LINK_CAPACITY_BASE;
     LEAF_SERVER_CAPACITY = LEAF_SERVER_CAPACITY * LINK_CAPACITY_BASE;
@@ -741,8 +649,6 @@ int main(int argc, char *argv[])
             rate_decrease_interval = v;
         } else if (key.compare("MIN_RATE") == 0) {
             conf >> min_rate;
-        } else if (key.compare("FCT_OUTPUT_FILE") == 0) {
-            conf >> fct_output_file;
         } else if (key.compare("HAS_WIN") == 0) {
             conf >> has_win;
         } else if (key.compare("GLOBAL_T") == 0) {
@@ -769,8 +675,6 @@ int main(int argc, char *argv[])
             conf >> ack_high_prio;
         } else if (key.compare("DCTCP_RATE_AI") == 0) {
             conf >> dctcp_rate_ai;
-        } else if (key.compare("PFC_OUTPUT_FILE") == 0) {
-            conf >> pfc_output_file;
         } else if (key.compare("KMAX_MAP") == 0) {
             int n_k ;
             conf >> n_k;
@@ -826,7 +730,6 @@ int main(int argc, char *argv[])
     // overriding config file. I prefer to use cmd arguments
     cc_mode = algorithm; // overrides configuration file
     has_win = windowCheck; // overrides configuration file
-    FAN = incast;
 
     Config::SetDefault("ns3::QbbNetDevice::PauseTime", UintegerValue(pause_time));
     Config::SetDefault("ns3::QbbNetDevice::QcnEnabled", BooleanValue(enable_qcn));
@@ -935,7 +838,7 @@ int main(int argc, char *argv[])
     rem->SetAttribute("ErrorRate", DoubleValue(error_rate_per_link));
     rem->SetAttribute("ErrorUnit", StringValue("ERROR_UNIT_PACKET"));
 
-    FILE *pfc_file = fopen(pfc_output_file.c_str(), "w");
+    FILE *pfc_file = fopen(pfcOutFile.c_str(), "w");
 
     QbbHelper qbb;
     Ipv4AddressHelper ipv4;
@@ -1036,14 +939,14 @@ int main(int argc, char *argv[])
     for (uint32_t i = 0; i < node_num; i++) {
         if (n.Get(i)->GetNodeType()) { // is switch
             Ptr<SwitchNode> sw = DynamicCast<SwitchNode>(n.Get(i));
-            uint32_t shift = 3; // by default 1/8
-            double alpha = 2.0;
-
             totalHeadroom = 0;
             sw->m_mmu->SetIngressLossyAlg(bufferalgIngress);
             sw->m_mmu->SetIngressLosslessAlg(bufferalgIngress);
             sw->m_mmu->SetEgressLossyAlg(bufferalgEgress);
             sw->m_mmu->SetEgressLosslessAlg(bufferalgEgress);
+            sw->m_mmu->SetABMalphaHigh(1024);
+            sw->m_mmu->SetABMdequeueUpdateNS(25*1000); // 25us
+
 
             for (uint32_t j = 1; j < sw->GetNDevices(); j++) {
                 Ptr<QbbNetDevice> dev = DynamicCast<QbbNetDevice>(sw->GetDevice(j));
@@ -1052,12 +955,12 @@ int main(int argc, char *argv[])
                 sw->m_mmu->bandwidth[j] = rate;
                 for (uint32_t qu = 0; qu < 8; qu++) {
                     if (qu != 1) { // lossless
-                        sw->m_mmu->SetAlphaIngress(alpha, j, qu);
+                        sw->m_mmu->SetAlphaIngress(alpha_values[qu], j, qu);
                         sw->m_mmu->SetAlphaEgress(10000, j, qu);
                     }
                     else { // lossy
                         sw->m_mmu->SetAlphaIngress(10000, j, qu);
-                        sw->m_mmu->SetAlphaEgress(alpha, j, qu);
+                        sw->m_mmu->SetAlphaEgress(alpha_values[qu], j, qu);
                     }
 
                     // set ecn
@@ -1084,7 +987,6 @@ int main(int argc, char *argv[])
     std::cout << "total headroom: " << totalHeadroom << " ingressPool " << buffer_size * 1024 * 1024 - totalHeadroom << " egressLosslessPool " << buffer_size * 1024 * 1024 << " egressLossyPool " << (buffer_size * 1024 * 1024 - totalHeadroom) * 0.8 <<  std::endl;
 
 #if ENABLE_QP
-    FILE *fct_output = fopen(fct_output_file.c_str(), "w");
     //
     // install RDMA driver
     //
@@ -1199,70 +1101,9 @@ int main(int argc, char *argv[])
     }
     DestportNumder = portNumder;
 
-    double oversubRatio = double(SERVER_COUNT * LEAF_SERVER_CAPACITY) / (SPINE_LEAF_CAPACITY * SPINE_COUNT);
-    std::cout << "Over-subscription ratio: " << oversubRatio << std::endl;
-    NS_LOG_INFO ("Initialize CDF table");
-    struct cdf_table* cdfTable = new cdf_table ();
-    init_cdf (cdfTable);
-    load_cdf (cdfTable, cdfFileName.c_str ());
-    NS_LOG_INFO ("Calculating request rate");
-//        double requestRate =0;
-    double requestRate = load * LEAF_SERVER_CAPACITY * SERVER_COUNT / oversubRatio / (8 * avg_cdf (cdfTable)) / SERVER_COUNT;
-//       double requestRate = load * LEAF_SERVER_CAPACITY * SERVER_COUNT  / (8 * avg_cdf (cdfTable)) / SERVER_COUNT;
-    NS_LOG_INFO ("Average request rate: " << requestRate << " per second");
-    std::cout << "Average request rate: " << requestRate << " per second" << std::endl;
-    NS_LOG_INFO ("Initialize random seed: " << randomSeed);
-    if (randomSeed == 0)
-    {
-        srand ((unsigned)time (NULL));
-    }
-    else
-    {
-        srand (randomSeed);
-    }
-
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     /* Applications Background*/
     NS_LOG_INFO ("Create background applications");
-
-    // long flowCount = 1;
-    // long totalFlowSize = 0;
-
-    // for (int fromLeafId = 0; fromLeafId < LEAF_COUNT; fromLeafId ++)
-    // {
-    //     install_applications(fromLeafId, requestRate, cdfTable, flowCount, totalFlowSize, SERVER_COUNT, LEAF_COUNT, START_TIME, END_TIME, FLOW_LAUNCH_END_TIME);
-    // }
-
-    // NS_LOG_INFO ("Total flow: " << flowCount);
-    // std::cout << "Total flow: " << flowCount << std::endl;
-    // NS_LOG_INFO ("Actual average flow size: " << static_cast<double> (totalFlowSize) / flowCount);
-    // std::cout << "Actual average flow size: " << static_cast<double> (totalFlowSize) / flowCount << std::endl;
-    // NS_LOG_INFO ("Create applications");
-
-
-
-    // /* Applications Foreground*/
-    // NS_LOG_INFO ("Create foreground applications");
-    // long flowCountQ = flowCount;
-    // long totalFlowSizeQ = 0;
-    // double QUERY_START_TIME = 0.0;
-    // requestRate = queryRequestRate; //1;//10;
-    // if (requestSize == 0) {
-    //     requestRate = 0;
-    // }
-    // if (requestRate > 0 && requestSize > 0) {
-    //     for (int fromLeafId = 0; fromLeafId < LEAF_COUNT; fromLeafId ++)
-    //     {
-    //         install_applications_queryNew(fromLeafId, requestRate, requestSize, cdfTable, flowCountQ, totalFlowSizeQ, SERVER_COUNT, LEAF_COUNT, QUERY_START_TIME, END_TIME, FLOW_LAUNCH_END_TIME);
-    //     }
-    // }
-
-    // NS_LOG_INFO ("Total Query: " << flowCountQ - flowCount);
-    // std::cout << "Total Query: " << flowCountQ - flowCount << std::endl;
-
-
-    // Time interPacketInterval = Seconds(0.0000005 / 2);
-
 
     // maintain port number for each host
     for (uint32_t i = 0; i < node_num; i++) {
@@ -1280,8 +1121,6 @@ int main(int argc, char *argv[])
         // std::cout << flow_input.start_time << std::endl;
         Simulator::Schedule(Seconds(flow_input.start_time) - Simulator::Now(), ScheduleFlowInputs);
     }
-
-
 
 
     /*General TCP Socket settings. Mostly used by various congestion control algorithms in common*/
@@ -1309,14 +1148,14 @@ int main(int argc, char *argv[])
 
     uint64_t flowSize = 1e9;
 
-    for (uint32_t i = 0; i < 16; i++) {
-        uint32_t rxServer = 17 + i % 7;
-        std::cout << "tx " << i << " rx " << rxServer << std::endl;
+    for (uint32_t i = 0; i < 8; i++) {
+        uint32_t rxServer = 16 + i % 8;
+        // std::cout << "tx " << i << " rx " << rxServer << std::endl;
         Ptr<Node> rxNode = n.Get (rxServer);
         Ptr<Ipv4> ip = rxNode->GetObject<Ipv4> ();
         Ipv4InterfaceAddress rxInterface = ip->GetAddress (1, 0);
         Ipv4Address rxAddress = rxInterface.GetLocal ();
-        for (uint32_t j = 0; j < 4 ; j++) {
+        for (uint32_t j = 0; j < 2 ; j++) {
             InetSocketAddress ad (rxAddress, port);
             Address sinkAddress(ad);
             Ptr<BulkSendApplication> bulksend = CreateObject<BulkSendApplication>();
@@ -1356,7 +1195,7 @@ int main(int argc, char *argv[])
     Ipv4GlobalRoutingHelper::PopulateRoutingTables();
     // AsciiTraceHelper ascii;
     // qbb.EnableAsciiAll (ascii.CreateFileStream ("eval.tr"));
-    std::cout << "Running Simulation.\n";
+    // std::cout << "Running Simulation.\n";
     NS_LOG_INFO("Run Simulation.");
     Simulator::Stop(Seconds(END_TIME));
     Simulator::Run();
@@ -1364,5 +1203,5 @@ int main(int argc, char *argv[])
     NS_LOG_INFO("Done.");
 
     endt = clock();
-    std::cout << (double)(endt - begint) / CLOCKS_PER_SEC << "\n";
+    // std::cout << (double)(endt - begint) / CLOCKS_PER_SEC << "\n";
 }

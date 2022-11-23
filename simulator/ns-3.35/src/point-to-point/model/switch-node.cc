@@ -16,6 +16,7 @@
 #include "ns3/udp-header.h"
 #include "ns3/custom-priority-tag.h"
 #include "ns3/feedback-tag.h"
+#include "ns3/unsched-tag.h"
 
 namespace ns3 {
 
@@ -128,9 +129,18 @@ void SwitchNode::SendToDev(Ptr<Packet>p, CustomHeader &ch) {
 		NS_ASSERT_MSG(m_devices[idx]->IsLinkUp(), "The routing table look up should return link that is up");
 
 		// determine the qIndex
-		uint32_t qIndex;
+		uint32_t qIndex=0;
 		MyPriorityTag priotag;
+		// IMPORTANT: MyPriorityTag should only be attached by lossy traffic. This tag indicates the qIndex but also indicates that it is "lossy". Never attach MyPriorityTag on lossless traffic.
 		bool found = p->PeekPacketTag(priotag);
+
+		// UnSchedTag is used by ABM. End-hosts explicitly tag packets of the first BDP so that ABM then prioritizes these packets in the buffer allocation.
+		uint32_t unsched = 0;
+		UnSchedTag tag;
+		bool foundunSched = p->PeekPacketTag (tag);
+		if (foundunSched) {
+			unsched = tag.GetValue();
+		}
 
 		if (ch.l3Prot == 0xFF || ch.l3Prot == 0xFE || (m_ackHighPrio && (ch.l3Prot == 0xFD || ch.l3Prot == 0xFC))) { //QCN or PFC or NACK, go highest priority
 			qIndex = 0;
@@ -149,7 +159,7 @@ void SwitchNode::SendToDev(Ptr<Packet>p, CustomHeader &ch) {
 		uint32_t inDev = t.GetPortId();
 		if (qIndex != 0) { //not highest priority
 			// IMPORTANT: MyPriorityTag should only be attached by lossy traffic. This tag indicates the qIndex but also indicates that it is "lossy". Never attach MyPriorityTag on lossless traffic.
-			if (m_mmu->CheckIngressAdmission(inDev, qIndex, p->GetSize(), found) && m_mmu->CheckEgressAdmission(idx, qIndex, p->GetSize(), found)) {			// Admission control
+			if (m_mmu->CheckIngressAdmission(inDev, qIndex, p->GetSize(), found,unsched) && m_mmu->CheckEgressAdmission(idx, qIndex, p->GetSize(), found,unsched)) {			// Admission control
 				m_mmu->UpdateIngressAdmission(inDev, qIndex, p->GetSize(), found);
 				m_mmu->UpdateEgressAdmission(idx, qIndex, p->GetSize(), found);
 			} else {
@@ -285,7 +295,7 @@ void SwitchNode::SwitchNotifyDequeue(uint32_t ifIndex, uint32_t qIndex, Ptr<Pack
 					int log_dt = log2apprx(dt, b, m, l); // ~log2(dt)*fct
 					int log_qlen = log2apprx(qlen >> 8, b, m, l); // ~log2(qlen / 256)*fct
 					qterm = pow(2, (
-					              log_dt + log_qlen + log_1e9 - log_B - 2 * log_T
+					                log_dt + log_qlen + log_1e9 - log_B - 2 * log_T
 					            ) / fct
 					           ) * 256;
 					// 2^((log2(dt)*fct+log2(qlen/256)*fct+log2(1e9)*fct-log2(B)*fct-2*log2(T)*fct)/fct)*256 ~= dt*qlen*1e9/(B*T^2)
@@ -294,7 +304,7 @@ void SwitchNode::SwitchNotifyDequeue(uint32_t ifIndex, uint32_t qIndex, Ptr<Pack
 					int byte = m_lastPktSize[ifIndex];
 					int log_byte = log2apprx(byte, b, m, l);
 					byteTerm = pow(2, (
-					                 log_byte + log_1e9 - log_B - log_T
+					                   log_byte + log_1e9 - log_B - log_T
 					               ) / fct
 					              );
 					// 2^((log2(byte)*fct+log2(1e9)*fct-log2(B)*fct-log2(T)*fct)/fct) ~= byte*1e9 / (B*T)
@@ -303,7 +313,7 @@ void SwitchNode::SwitchNotifyDequeue(uint32_t ifIndex, uint32_t qIndex, Ptr<Pack
 					int log_T_dt = log2apprx(m_maxRtt - dt, b, m, l); // ~log2(T-dt)*fct
 					int log_u = log2apprx(int(round(m_u[ifIndex] * 8192)), b, m, l); // ~log2(u*512)*fct
 					uTerm = pow(2, (
-					              log_T_dt + log_u - log_T
+					                log_T_dt + log_u - log_T
 					            ) / fct
 					           ) / 8192;
 					// 2^((log2(T-dt)*fct+log2(u*512)*fct-log2(T)*fct)/fct)/512 = (T-dt)*u/T
