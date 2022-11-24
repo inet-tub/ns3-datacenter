@@ -150,7 +150,7 @@ void SwitchNode::SendToDev(Ptr<Packet>p, CustomHeader &ch) {
 			// std::cout << "using queue " << qIndex << std::endl;
 		}
 		else {
-			qIndex = (ch.l3Prot == 0x06 ? 1 : ch.udp.pg); // if the stack did not attach MyPriorityTag, put to queue 1.
+			qIndex = (ch.l3Prot == 0x06 ? 1 : ch.udp.pg); // For TCP/IP if the stack did not attach MyPriorityTag, put to queue 1.
 		}
 
 		// admission control
@@ -160,7 +160,7 @@ void SwitchNode::SendToDev(Ptr<Packet>p, CustomHeader &ch) {
 		if (qIndex != 0) { //not highest priority
 			// IMPORTANT: MyPriorityTag should only be attached by lossy traffic. This tag indicates the qIndex but also indicates that it is "lossy". Never attach MyPriorityTag on lossless traffic.
 			if (m_mmu->CheckIngressAdmission(inDev, qIndex, p->GetSize(), found,unsched) && m_mmu->CheckEgressAdmission(idx, qIndex, p->GetSize(), found,unsched)) {			// Admission control
-				m_mmu->UpdateIngressAdmission(inDev, qIndex, p->GetSize(), found);
+				m_mmu->UpdateIngressAdmission(inDev, qIndex, p->GetSize(), found, unsched);
 				m_mmu->UpdateEgressAdmission(idx, qIndex, p->GetSize(), found);
 			} else {
 				return; // Drop

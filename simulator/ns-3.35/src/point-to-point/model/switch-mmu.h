@@ -19,7 +19,7 @@ public:
 
 	bool CheckIngressAdmission(uint32_t port, uint32_t qIndex, uint32_t psize, uint32_t type, uint32_t unsched);
 	bool CheckEgressAdmission(uint32_t port, uint32_t qIndex, uint32_t psize, uint32_t type, uint32_t unsched);
-	void UpdateIngressAdmission(uint32_t port, uint32_t qIndex, uint32_t psize, uint32_t type);
+	void UpdateIngressAdmission(uint32_t port, uint32_t qIndex, uint32_t psize, uint32_t type, uint32_t unsched);
 	void UpdateEgressAdmission(uint32_t port, uint32_t qIndex, uint32_t psize, uint32_t type);
 	void RemoveFromIngressAdmission(uint32_t port, uint32_t qIndex, uint32_t psize, uint32_t type);
 	void RemoveFromEgressAdmission(uint32_t port, uint32_t qIndex, uint32_t psize, uint32_t type);
@@ -32,6 +32,8 @@ public:
 	bool ShouldSendCN(uint32_t ifindex, uint32_t qIndex);
 
 	void ConfigEcn(uint32_t port, uint32_t _kmin, uint32_t _kmax, double _pmax);
+
+	void SetBufferModel(std::string model){bufferModel = model;}
 
 	void SetBufferPool(uint64_t b);
 
@@ -99,11 +101,16 @@ public:
 
 	void SetABMdequeueUpdateNS(double time){updateIntervalNS = time;}
 
+	void SetPortCount(uint32_t pc){portCount = pc;}
+
 
 	// config
 	uint32_t node_id;
 	uint32_t kmin[pCnt], kmax[pCnt];
 	double pmax[pCnt];
+
+	// Buffer model
+	std::string bufferModel;
 
 	// Buffer pools
 	uint64_t bufferPool;
@@ -154,6 +161,7 @@ public:
 	double alphaHigh;
 	double updateIntervalNS;
 	uint32_t dequeueUpdatedOnce;
+	uint32_t portCount;
 
 };
 

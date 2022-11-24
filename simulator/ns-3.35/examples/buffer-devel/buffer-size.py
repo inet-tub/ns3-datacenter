@@ -319,30 +319,54 @@ ax.set_title(alg)
 fig.tight_layout()
 # fig.savefig(plotsdir+'losslesssecond.pdf')
 #%%
-algs=["DT","ABM","DT-newbuffer","ABM-newbuffer"]
-# alg="DT-newbuffer"
-# alg="DT"
-alg="ABM-newbuffer"
-# alg="ABM"
-df = pd.read_csv(DIR+'losslesssfirst'+str(alg)+'.txt',delimiter=' ',usecols=[1,3,5,7,9,11,13],names=["switch","buffer","eglossless","eglossy","ing","head","time"])
-df0 = df[df["switch"]==0]
-df1 = df[df["switch"]==1]
+import pandas as pd
 
-fig,ax = plt.subplots(1,1)
-ax.plot(df0["time"]*1000,df0["eglossy"],label="Lossy (TCP)",lw=2,c='red')
-ax.plot(df0["time"]*1000,df0["eglossless"],label="Lossless (RDMA)",lw=2,c='green')
-ax.plot(df0["time"]*1000,df0["ing"],label="Shared Buffer",lw=2,c='blue',alpha=0.4,ls='--')
-# ax.plot(df0["time"]*1000,df0["head"],label="headroom",lw=2)
-ax.legend()
-# ax.set_yscale('log')
-ax.set_ylim([10000,10**7])
-ax.set_yticks([0,2*10**6,4*10**6,6*10**6,8*10**6,10*10**6])
-ax.set_yticklabels(["0","2","4","6","8","10"])
-ax.set_xlim([0,10])
-ax.set_ylabel("Buffer Occupancy (MB)")
-ax.set_xlabel("Time (ms)")
-ax.xaxis.grid(True,ls='--')
-ax.yaxis.grid(True,ls='--')
-ax.set_title(alg)
-fig.tight_layout()
-# fig.savefig(plotsdir+'losslessfirst.pdf')
+
+plotsdir="/home/vamsi/src/phd/writings/rdma-buffer/hotnets22/plots/"
+plt.rcParams.update({'font.size': 16})
+
+DIR="/home/vamsi/lakewood/src/phd/codebase/ns3-datacenter/simulator/ns-3.35/examples/buffer-devel/dump_test/"
+
+algs=["101","110"]
+
+algNames={}
+algNames["101"]="DT"
+algNames["110"]="ABM"
+
+models=["sonic","new"]
+
+# alphas=["0.25","0.5","1","2","3","4"]
+alphas=["0.25","1","4"]
+
+for model in models:
+    for alg in algs:
+        fig,ax = plt.subplots(1,1)
+        alphaFig=0.4
+        for alpha in alphas:
+
+            df = pd.read_csv(DIR+'tor-'+alg+'-'+alpha+'-'+model+'-losslessfirst'+'.tor',delimiter=' ',usecols=[1,3,5,7,9,11,13],names=["switch","buffer","eglossless","eglossy","ing","head","time"])
+            df0 = df[df["switch"]==0]
+            df1 = df[df["switch"]==1]
+            if (alpha=="4"):
+                ax.plot(df0["time"]*1000,df0["eglossy"],label="Lossy (TCP)",lw=2,c='red',alpha=alphaFig)
+                ax.plot(df0["time"]*1000,df0["eglossless"],label="Lossless (RDMA)",lw=2,c='green',alpha=alphaFig)
+                ax.plot(df0["time"]*1000,df0["ing"],label="Shared Buffer",lw=2,c='blue',ls='--',alpha=alphaFig)
+            else:
+                ax.plot(df0["time"]*1000,df0["eglossy"],lw=2,c='red',alpha=alphaFig)
+                ax.plot(df0["time"]*1000,df0["eglossless"],lw=2,c='green',alpha=alphaFig)
+                ax.plot(df0["time"]*1000,df0["ing"],lw=2,c='blue',ls='--',alpha=alphaFig)
+            # ax.plot(df0["time"]*1000,df0["head"],label="headroom",lw=2)
+            alphaFig+=0.1
+        ax.legend()
+        # ax.set_yscale('log')
+        ax.set_ylim([10000,10**7])
+        ax.set_xlim([0,15])
+        ax.set_yticks([0,2*10**6,4*10**6,6*10**6,8*10**6,10*10**6])
+        ax.set_yticklabels(["0","2","4","6","8","10"])
+        ax.set_ylabel("Buffer Occupancy (MB)")
+        ax.set_xlabel("Time (ms)")
+        ax.xaxis.grid(True,ls='--')
+        ax.yaxis.grid(True,ls='--')
+        ax.set_title(alg+'-'+model)
+        fig.tight_layout()
+        # fig.savefig(plotsdir+'losslesssecond.pdf')

@@ -432,10 +432,10 @@ int main(int argc, char *argv[])
 
 
     uint32_t SERVER_COUNT = 32;
-    uint32_t LEAF_COUNT = 32; // LEAF and SPINE correspond to a single pod. Leafs are ToR switches and Spine are AGG switches. Count is within a single pod.
+    uint32_t LEAF_COUNT = 2; // LEAF and SPINE correspond to a single pod. Leafs are ToR switches and Spine are AGG switches. Count is within a single pod.
     uint32_t SPINE_COUNT = 8;
-    uint64_t LEAF_SERVER_CAPACITY = 50;
-    uint64_t SPINE_LEAF_CAPACITY = 50;
+    uint64_t LEAF_SERVER_CAPACITY = 10;
+    uint64_t SPINE_LEAF_CAPACITY = 40;
 
     double START_TIME = 0.1;
     double END_TIME = 0.010;
@@ -452,6 +452,7 @@ int main(int argc, char *argv[])
 
     uint32_t bufferalgIngress = DT;
     uint32_t bufferalgEgress = DT;
+
 
     std::string confFile = "/home/vamsi/src/phd/codebase/ns3-datacenter/simulator/ns-3.35/examples/buffer-devel/config-workload.txt";
     std::string cdfFileName = "/home/vamsi/src/phd/codebase/ns3-datacenter/simulator/ns-3.35/examples/buffer-devel/websearch.txt";
@@ -497,8 +498,11 @@ int main(int argc, char *argv[])
     std::string pfcOutFile = "./pfc.txt";
     cmd.AddValue ("pfcOutFile", "File path for pfc events", pfcOutFile);
 
-    std::string alphasFile = "/home/vamsi/src/phd/codebase/ns3-datacenter/simulator/ns-3.35/examples/buffer-devel/alphas"; // On lakewood
+    std::string alphasFile = "/home/vamsi/src/phd/codebase/ns3-datacenter/simulator/ns-3.35/examples/buffer-devel/alphas0.25"; // On lakewood
     cmd.AddValue ("alphasFile", "alpha values file (should be exactly nPrior lines)", alphasFile);
+
+    std::string bufferModel = "sonic";
+    cmd.AddValue("bufferModel", "the buffer model to be used in the switch MMU", bufferModel);
 
     cmd.Parse (argc, argv);
 
@@ -878,6 +882,7 @@ int main(int argc, char *argv[])
         // because we want our IP to be the primary IP (first in the IP address list),
         // so that the global routing is based on our IP
         NetDeviceContainer d = qbb.Install(snode, dnode);
+        // std::cout << "link " << src << " " << dst << std::endl;
         if (snode->GetNodeType() == 0) {
             Ptr<Ipv4> ipv4 = snode->GetObject<Ipv4>();
             ipv4->AddInterface(d.Get(0));
@@ -932,59 +937,6 @@ int main(int argc, char *argv[])
     }
 
     nic_rate = get_nic_rate(n);
-
-    // config switch
-    // The switch mmu runs Dynamic Thresholds (DT) by default.
-    uint64_t totalHeadroom;
-    for (uint32_t i = 0; i < node_num; i++) {
-        if (n.Get(i)->GetNodeType()) { // is switch
-            Ptr<SwitchNode> sw = DynamicCast<SwitchNode>(n.Get(i));
-            totalHeadroom = 0;
-            sw->m_mmu->SetIngressLossyAlg(bufferalgIngress);
-            sw->m_mmu->SetIngressLosslessAlg(bufferalgIngress);
-            sw->m_mmu->SetEgressLossyAlg(bufferalgEgress);
-            sw->m_mmu->SetEgressLosslessAlg(bufferalgEgress);
-            sw->m_mmu->SetABMalphaHigh(1024);
-            sw->m_mmu->SetABMdequeueUpdateNS(25*1000); // 25us
-
-
-            for (uint32_t j = 1; j < sw->GetNDevices(); j++) {
-                Ptr<QbbNetDevice> dev = DynamicCast<QbbNetDevice>(sw->GetDevice(j));
-                uint64_t rate = dev->GetDataRate().GetBitRate();
-                // set port bandwidth in the mmu, used by ABM.
-                sw->m_mmu->bandwidth[j] = rate;
-                for (uint32_t qu = 0; qu < 8; qu++) {
-                    if (qu != 1) { // lossless
-                        sw->m_mmu->SetAlphaIngress(alpha_values[qu], j, qu);
-                        sw->m_mmu->SetAlphaEgress(10000, j, qu);
-                    }
-                    else { // lossy
-                        sw->m_mmu->SetAlphaIngress(10000, j, qu);
-                        sw->m_mmu->SetAlphaEgress(alpha_values[qu], j, qu);
-                    }
-
-                    // set ecn
-                    NS_ASSERT_MSG(rate2kmin.find(rate) != rate2kmin.end(), "must set kmin for each link speed");
-                    NS_ASSERT_MSG(rate2kmax.find(rate) != rate2kmax.end(), "must set kmax for each link speed");
-                    NS_ASSERT_MSG(rate2pmax.find(rate) != rate2pmax.end(), "must set pmax for each link speed");
-                    sw->m_mmu->ConfigEcn(j, rate2kmin[rate], rate2kmax[rate], rate2pmax[rate]);
-                    // set pfc
-                    double delay = DynamicCast<QbbChannel>(dev->GetChannel())->GetDelay().GetSeconds();
-                    uint32_t headroom = (packet_payload_size) * 2 + 3840 + (2 * rate * delay / 8);
-                    // std::cout << headroom << std::endl;
-                    sw->m_mmu->SetHeadroom(headroom, j, qu);
-                    totalHeadroom += headroom;
-                }
-
-            }
-            sw->m_mmu->SetBufferPool(buffer_size * 1024 * 1024);
-            sw->m_mmu->SetIngressPool(buffer_size * 1024 * 1024 - totalHeadroom);
-            sw->m_mmu->SetEgressLosslessPool(buffer_size * 1024 * 1024);
-            sw->m_mmu->SetEgressLossyPool((buffer_size * 1024 * 1024 - totalHeadroom) * 0.8);
-            sw->m_mmu->node_id = sw->GetId();
-        }
-    }
-    std::cout << "total headroom: " << totalHeadroom << " ingressPool " << buffer_size * 1024 * 1024 - totalHeadroom << " egressLosslessPool " << buffer_size * 1024 * 1024 << " egressLossyPool " << (buffer_size * 1024 * 1024 - totalHeadroom) * 0.8 <<  std::endl;
 
 #if ENABLE_QP
     //
@@ -1072,6 +1024,62 @@ int main(int argc, char *argv[])
     }
     printf("maxRtt=%lu maxBdp=%lu minRtt=%lu\n", maxRtt, maxBdp, minRtt);
 
+
+        // config switch
+    // The switch mmu runs Dynamic Thresholds (DT) by default.
+    uint64_t totalHeadroom;
+    for (uint32_t i = 0; i < node_num; i++) {
+        if (n.Get(i)->GetNodeType()) { // is switch
+            Ptr<SwitchNode> sw = DynamicCast<SwitchNode>(n.Get(i));
+            totalHeadroom = 0;
+            sw->m_mmu->SetIngressLossyAlg(bufferalgIngress);
+            sw->m_mmu->SetIngressLosslessAlg(bufferalgIngress);
+            sw->m_mmu->SetEgressLossyAlg(bufferalgEgress);
+            sw->m_mmu->SetEgressLosslessAlg(bufferalgEgress);
+            sw->m_mmu->SetABMalphaHigh(1024);
+            sw->m_mmu->SetABMdequeueUpdateNS(minRtt);
+            sw->m_mmu->SetPortCount(sw->GetNDevices()-1); // set the actual port count here so that we don't always iterate over the default 256 ports.
+            sw->m_mmu->SetBufferModel(bufferModel);
+            // std::cout << "ports " << sw->GetNDevices() << " node " << i << std::endl;
+            for (uint32_t j = 1; j < sw->GetNDevices(); j++) {
+                Ptr<QbbNetDevice> dev = DynamicCast<QbbNetDevice>(sw->GetDevice(j));
+                uint64_t rate = dev->GetDataRate().GetBitRate();
+                // set port bandwidth in the mmu, used by ABM.
+                sw->m_mmu->bandwidth[j] = rate;
+                for (uint32_t qu = 0; qu < 8; qu++) {
+                    if (qu != 1) { // lossless
+                        sw->m_mmu->SetAlphaIngress(alpha_values[qu], j, qu);
+                        sw->m_mmu->SetAlphaEgress(10000, j, qu);
+                    }
+                    else { // lossy
+                        sw->m_mmu->SetAlphaIngress(10000, j, qu);
+                        sw->m_mmu->SetAlphaEgress(alpha_values[qu], j, qu);
+                    }
+
+                    // set ecn
+                    NS_ASSERT_MSG(rate2kmin.find(rate) != rate2kmin.end(), "must set kmin for each link speed");
+                    NS_ASSERT_MSG(rate2kmax.find(rate) != rate2kmax.end(), "must set kmax for each link speed");
+                    NS_ASSERT_MSG(rate2pmax.find(rate) != rate2pmax.end(), "must set pmax for each link speed");
+                    sw->m_mmu->ConfigEcn(j, rate2kmin[rate], rate2kmax[rate], rate2pmax[rate]);
+                    // set pfc
+                    double delay = DynamicCast<QbbChannel>(dev->GetChannel())->GetDelay().GetSeconds();
+                    uint32_t headroom = (packet_payload_size + 48) * 2 + 3860 + (2 * rate * delay / 8);
+                    // std::cout << headroom << std::endl;
+                    sw->m_mmu->SetHeadroom(headroom, j, qu);
+                    totalHeadroom += headroom;
+                }
+
+            }
+            sw->m_mmu->SetBufferPool(buffer_size * 1024 * 1024);
+            sw->m_mmu->SetIngressPool(buffer_size * 1024 * 1024 - totalHeadroom);
+            sw->m_mmu->SetEgressLosslessPool(buffer_size * 1024 * 1024);
+            sw->m_mmu->SetEgressLossyPool((buffer_size * 1024 * 1024 - totalHeadroom) * 0.8);
+            sw->m_mmu->node_id = sw->GetId();
+        }
+        if (n.Get(i)->GetNodeType())
+            std::cout << "total headroom: " << totalHeadroom << " ingressPool " << buffer_size * 1024 * 1024 - totalHeadroom << " egressLosslessPool " << buffer_size * 1024 * 1024 << " egressLossyPool " << (uint64_t)((buffer_size * 1024 * 1024 - totalHeadroom) * 0.8) <<  std::endl;
+    }
+
     //
     // setup switch CC
     //
@@ -1148,14 +1156,14 @@ int main(int argc, char *argv[])
 
     uint64_t flowSize = 1e9;
 
-    for (uint32_t i = 0; i < 8; i++) {
+    for (uint32_t i = 0; i < 16; i++) {
         uint32_t rxServer = 16 + i % 8;
         // std::cout << "tx " << i << " rx " << rxServer << std::endl;
         Ptr<Node> rxNode = n.Get (rxServer);
         Ptr<Ipv4> ip = rxNode->GetObject<Ipv4> ();
         Ipv4InterfaceAddress rxInterface = ip->GetAddress (1, 0);
         Ipv4Address rxAddress = rxInterface.GetLocal ();
-        for (uint32_t j = 0; j < 2 ; j++) {
+        for (uint32_t j = 0; j < 4 ; j++) {
             InetSocketAddress ad (rxAddress, port);
             Address sinkAddress(ad);
             Ptr<BulkSendApplication> bulksend = CreateObject<BulkSendApplication>();
