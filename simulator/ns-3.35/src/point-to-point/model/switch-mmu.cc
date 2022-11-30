@@ -437,9 +437,9 @@ uint64_t SwitchMmu::ActiveBufferManagement(uint32_t port, uint32_t qIndex, std::
 			else{
 				alphaP = alphaIngress[port][qIndex];
 			}
-			uint64_t ABM_Threshold = alphaP * (remaining) * (1.0 / GetNofP(inout, qIndex)) * (getDequeueRate(port, qIndex, inout));
-			if (type == LOSSLESS)
-				std::cout << getDequeueRate(port, qIndex, inout) << " port " << port  << " qIndex " << qIndex << std::endl;
+			uint64_t ABM_Threshold = alphaP * (remaining) * (1.0 / GetNofP(inout, qIndex)) * 1; //* (getDequeueRate(port, qIndex, inout));
+			// if (type == LOSSLESS)
+			// 	std::cout << getDequeueRate(port, qIndex, inout) << " port " << port  << " qIndex " << qIndex << std::endl;
 			return std::min(uint64_t(ABM_Threshold), UINT64_MAX - 1024 * 1024);
 		}
 		else {
@@ -466,7 +466,7 @@ uint64_t SwitchMmu::ActiveBufferManagement(uint32_t port, uint32_t qIndex, std::
 			else{
 				alphaP = alphaEgress[port][qIndex];
 			}
-			uint64_t ABM_Threshold = alphaP * (remaining) * (1.0 / GetNofP(inout, qIndex)) * (getDequeueRate(port, qIndex, inout));
+			uint64_t ABM_Threshold = alphaP * (remaining) * (1.0 / GetNofP(inout, qIndex)) * 1;// * (getDequeueRate(port, qIndex, inout));
 			return std::min(ABM_Threshold, UINT64_MAX - 1024 * 1024);
 		}
 		else {
@@ -558,15 +558,23 @@ bool SwitchMmu::CheckIngressAdmission(uint32_t port, uint32_t qIndex, uint32_t p
 uint64_t SwitchMmu::GetEgressPool(uint32_t type){
 	if (bufferModel == "sonic")
 		return egressPool[type];
-	else if (bufferModel == "new")
-		return ingressPool - totalIngressReserved; 
+	else if (bufferModel == "new"){
+		if (type==LOSSLESS)
+			return bufferPool;
+		else
+			return ingressPool - totalIngressReserved;
+	}
 }
 
 uint64_t SwitchMmu::GetEgressPoolUsed(uint32_t type){
 	if (bufferModel == "sonic")
 		return egressPoolUsed[type];
-	else if (bufferModel == "new")
-		return GetIngressSharedUsed();
+	else if (bufferModel == "new"){
+		if (type==LOSSLESS)
+			return totalUsed;
+		else
+			return GetIngressSharedUsed();
+	}
 }
 
 

@@ -336,7 +336,7 @@ algNames["110"]="ABM"
 models=["sonic","new"]
 
 # alphas=["0.25","0.5","1","2","3","4"]
-alphas=["0.25","1","4"]
+alphas=["0.25","0.5","1","2"]
 
 for model in models:
     for alg in algs:
@@ -347,20 +347,22 @@ for model in models:
             df = pd.read_csv(DIR+'tor-'+alg+'-'+alpha+'-'+model+'-losslessfirst'+'.tor',delimiter=' ',usecols=[1,3,5,7,9,11,13],names=["switch","buffer","eglossless","eglossy","ing","head","time"])
             df0 = df[df["switch"]==0]
             df1 = df[df["switch"]==1]
-            if (alpha=="4"):
-                ax.plot(df0["time"]*1000,df0["eglossy"],label="Lossy (TCP)",lw=2,c='red',alpha=alphaFig)
-                ax.plot(df0["time"]*1000,df0["eglossless"],label="Lossless (RDMA)",lw=2,c='green',alpha=alphaFig)
-                ax.plot(df0["time"]*1000,df0["ing"],label="Shared Buffer",lw=2,c='blue',ls='--',alpha=alphaFig)
+            if (alpha=="2"):
+                ax.plot(df0["time"]*1000,df0["eglossy"],label="TCP",lw=2,c='red',alpha=alphaFig)
+                ax.plot(df0["time"]*1000,df0["eglossless"]-df0["head"],label="RDMA Shared",lw=2,c='green',alpha=alphaFig)
+                # ax.plot(df0["time"]*1000,df0["head"],label="RDMA Headroom",lw=2,c='blue',alpha=alphaFig)
+                # ax.plot(df0["time"]*1000,df0["ing"],label="Shared Buffer",lw=2,c='blue',ls='--',alpha=alphaFig)
             else:
                 ax.plot(df0["time"]*1000,df0["eglossy"],lw=2,c='red',alpha=alphaFig)
-                ax.plot(df0["time"]*1000,df0["eglossless"],lw=2,c='green',alpha=alphaFig)
-                ax.plot(df0["time"]*1000,df0["ing"],lw=2,c='blue',ls='--',alpha=alphaFig)
+                ax.plot(df0["time"]*1000,df0["eglossless"]-df0["head"],lw=2,c='green',alpha=alphaFig)
+                # ax.plot(df0["time"]*1000,df0["head"],lw=2,c='blue',alpha=alphaFig)
+                # ax.plot(df0["time"]*1000,df0["ing"],lw=2,c='blue',ls='--',alpha=alphaFig)
             # ax.plot(df0["time"]*1000,df0["head"],label="headroom",lw=2)
-            alphaFig+=0.1
+            alphaFig+=0.2
         ax.legend()
         # ax.set_yscale('log')
         ax.set_ylim([10000,10**7])
-        ax.set_xlim([0,15])
+        ax.set_xlim([0,30])
         ax.set_yticks([0,2*10**6,4*10**6,6*10**6,8*10**6,10*10**6])
         ax.set_yticklabels(["0","2","4","6","8","10"])
         ax.set_ylabel("Buffer Occupancy (MB)")

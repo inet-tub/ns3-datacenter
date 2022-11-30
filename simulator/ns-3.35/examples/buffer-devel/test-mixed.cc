@@ -1163,7 +1163,7 @@ int main(int argc, char *argv[])
         Ptr<Ipv4> ip = rxNode->GetObject<Ipv4> ();
         Ipv4InterfaceAddress rxInterface = ip->GetAddress (1, 0);
         Ipv4Address rxAddress = rxInterface.GetLocal ();
-        for (uint32_t j = 0; j < 4 ; j++) {
+        for (uint32_t j = 0; j < 8 ; j++) {
             InetSocketAddress ad (rxAddress, port);
             Address sinkAddress(ad);
             Ptr<BulkSendApplication> bulksend = CreateObject<BulkSendApplication>();
