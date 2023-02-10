@@ -199,7 +199,7 @@ private:
 
   bool enableINT;
 
-  TracedCallback<Ptr<const Packet>, uint32_t, Ptr<GenQueueDisc>> m_rxTrace; // trace enqueue events
+  TracedCallback<Ptr<const Packet>, uint32_t, bool, Ptr<GenQueueDisc>> m_rxTrace; // trace enqueue events
   TracedCallback<Ptr<const Packet>, uint32_t, Ptr<GenQueueDisc>> m_txTrace; // trace dequeue events
 };
 

@@ -164,7 +164,7 @@ InvokePerPortToRStats(Ptr<OutputStreamWrapper> stream, uint32_t BufferSize, uint
 }
 
 void
-TraceRxQueueDisc(Ptr<OutputStreamWrapper> stream, Ptr<Packet const> p, uint32_t qIndex, Ptr<GenQueueDisc> genDisc) {
+TraceRxQueueDisc(Ptr<OutputStreamWrapper> stream, Ptr<Packet const> p, uint32_t qIndex, bool enqueue, Ptr<GenQueueDisc> genDisc) {
 	UnSchedTag tag; uint32_t unsched = 0;
 	bool found = p->PeekPacketTag(tag);
 	if (found) unsched = tag.GetValue();
@@ -177,6 +177,8 @@ TraceRxQueueDisc(Ptr<OutputStreamWrapper> stream, Ptr<Packet const> p, uint32_t 
 	        << " " << p->GetSize()
 	        << " " << unsched
 	        << " " << qIndex
+	        << " " << enqueue
+	        << " " << genDisc->GetQueueDiscClass (qIndex)->GetQueueDisc ()->GetNBytes()
 	        << std::endl;
 }
 
@@ -345,7 +347,10 @@ void install_applications (int txLeaf, NodeContainer* servers, double requestRat
 			sinkApp.Start (Seconds(startTime));
 			sinkApp.Stop (Seconds (END_TIME));
 			if (enableFctLog) sinkApp.Get(0)->TraceConnectWithoutContext("FlowFinish", MakeBoundCallback(&TraceMsgFinish, fctOutput));
-			startTime += poission_gen_interval (requestRate);
+			double IAT = poission_gen_interval (requestRate);
+			startTime += IAT;
+			if (rxLeaf == 1 && rxServer == 4)
+				std::cout << IAT << " " << flowSize << " " << startTime << " CHECK" << std::endl;
 		}
 	}
 	// std::cout << "Finished installation of applications from leaf-"<< fromLeafId << std::endl;
@@ -512,7 +517,9 @@ main (int argc, char *argv[])
 		        << "type "
 		        << "pktSize "
 		        << "unsched "
-		        << "qIndex"
+		        << "qIndex "
+		        << "enqueue "
+		        << "qSize"
 		        << std::endl;
 	}
 
@@ -1016,7 +1023,7 @@ main (int argc, char *argv[])
 		}
 	}
 
-
+	std::cout << "Average request rate: " << requestRate << " per second" << std::endl;
 	// AsciiTraceHelper ascii;
 //    p2p.EnableAsciiAll (ascii.CreateFileStream ("eval.tr"));
 	Ipv4GlobalRoutingHelper::PopulateRoutingTables ();

@@ -466,8 +466,6 @@ GenQueueDisc::DoEnqueue (Ptr<QueueDiscItem> item)
   if (uint32_t(p) >= nPrior)
     p = uint32_t(nPrior - 1);
 
-  m_rxTrace(packet, p, this); // trace packet arrival event at queue p
-
   /* Arrival Statistics*/
   numBytesSent[p] += item->GetSize();
   uint64_t sizenow = GetQueueDiscClass (p)->GetQueueDisc ()->GetNBytes();
@@ -491,9 +489,12 @@ GenQueueDisc::DoEnqueue (Ptr<QueueDiscItem> item)
 
     NS_LOG_LOGIC ("Queue disc limit exceeded -- dropping packet");
     // std::cout << " maxSize " << maxSize << " remaining " << sharedMemory->GetRemainingBuffer() << " packetSize " << item->GetSize() << " priority " << uint32_t(p) << " alpha " << alphas[p] << " thresh " << uint64_t (alphas[p]*(sharedMemory->GetRemainingBuffer())) << " deq " << DeqRate[p] << " N " << sharedMemory->GetNofP(p) << std::endl;
-
+    m_rxTrace(packet, p, false, this); // trace packet arrival event at queue p
     DropBeforeEnqueue (item, LIMIT_EXCEEDED_DROP);
     return false;
+  }
+  else{
+    m_rxTrace(packet, p, true, this); // trace packet arrival event at queue p
   }
 
   /*If algorithm is Intelligent Buffer, it may change the queue to zero (DPP prioritizes short flows to separate queue)*/
