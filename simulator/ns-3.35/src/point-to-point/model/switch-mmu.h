@@ -39,6 +39,8 @@ public:
 
 	void SetIngressPool(uint64_t b);
 
+	void SetSharedPool(uint64_t b);
+
 	void SetEgressPoolAll(uint64_t b);
 
 	void SetEgressLossyPool(uint64_t b);
@@ -71,6 +73,8 @@ public:
 
 	void SetEgressLosslessAlg(uint32_t alg);
 
+	void SetGamma(double value);
+
 	uint64_t Threshold(uint32_t port, uint32_t qIndex, std::string inout, uint32_t type, uint32_t alphaPrio);
 
 	uint64_t DynamicThreshold(uint32_t port, uint32_t qIndex, std::string inout, uint32_t type);
@@ -82,10 +86,6 @@ public:
 	uint64_t GetIngressReservedUsed(uint32_t port, uint32_t qIndex);
 
 	uint64_t GetIngressSharedUsed();
-
-	uint64_t GetEgressPool(uint32_t type);
-
-	uint64_t GetEgressPoolUsed(uint32_t type);
 
 	void setCongested(uint32_t portId, uint32_t qIndex, std::string inout, double satLevel);
 
@@ -103,6 +103,8 @@ public:
 
 	void SetPortCount(uint32_t pc){portCount = pc;}
 
+	uint64_t ReverieThreshold(uint32_t port, uint32_t qIndex, uint32_t type);
+
 
 	// config
 	uint32_t node_id;
@@ -117,6 +119,7 @@ public:
 	uint64_t ingressPool ;
 	uint64_t egressPool[2];
 	uint64_t egressPoolAll;
+	uint64_t sharedPool;
 	uint64_t xoffTotal;
 	uint64_t totalIngressReserved;
 
@@ -125,6 +128,7 @@ public:
 	uint64_t egressPoolUsed[2];
 	uint64_t xoffTotalUsed;
 	uint64_t totalIngressReservedUsed;
+	uint64_t sharedPoolUsed;
 
 
 	// buffer configuration.
@@ -142,6 +146,8 @@ public:
 	uint32_t paused[pCnt][qCnt];
 	uint64_t egress_bytes[pCnt][qCnt];
 	uint64_t xoffUsed[pCnt][qCnt];
+	uint64_t ingressLpf_bytes[pCnt][qCnt];
+	uint64_t egressLpf_bytes[pCnt][qCnt];
 
 	// Buffer Sharing algorithm
 	uint32_t ingressAlg[2];
@@ -162,6 +168,8 @@ public:
 	double updateIntervalNS;
 	uint32_t dequeueUpdatedOnce;
 	uint32_t portCount;
+
+	double gamma;
 
 };
 
