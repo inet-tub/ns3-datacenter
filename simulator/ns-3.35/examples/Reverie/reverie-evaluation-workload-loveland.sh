@@ -31,7 +31,7 @@ DCTCP=4
 NUM=0
 
 # BUFFER_ALGS=($DT $FAB $ABM "reverie")
-BUFFER_ALGS=($DT $ABM "reverie")
+BUFFER_ALGS=($DT $ABM $REVERIE)
 
 BURST_SIZES=(0 100000 500000 1000000 1500000 2000000)
 
@@ -61,17 +61,21 @@ EXP=$1
 
 for tcpload in 0.2 0.4 0.6;do
 	for alg in ${BUFFER_ALGS[@]};do
-
+		if [[ $alg != $REVERIE ]];then
+			BUFFERMODEL="sonic"
+		else
+			BUFFERMODEL="reverie"
+		fi
 		while [[ $(ps aux | grep reverie-evaluation-sigcomm2023-optimized | wc -l) -gt $N_CORES ]];do
 			sleep 30;
 			echo "waiting for cores, $N_CORES running..."
 		done
-		FCTFILE=evaluation-$alg-$RDMACC-$TCPCC-$rdmaload-$tcpload-$rdmaburst-$tcpburst-$egresslossyFrac-$gamma.fct
-		TORFILE=evaluation-$alg-$RDMACC-$TCPCC-$rdmaload-$tcpload-$rdmaburst-$tcpburst-$egresslossyFrac-$gamma.tor
-		DUMPFILE=evaluation-$alg-$RDMACC-$TCPCC-$rdmaload-$tcpload-$rdmaburst-$tcpburst-$egresslossyFrac-$gamma.out
+		FCTFILE=$DUMP_DIR/evaluation-$alg-$RDMACC-$TCPCC-$rdmaload-$tcpload-$rdmaburst-$tcpburst-$egresslossyFrac-$gamma.fct
+		TORFILE=$DUMP_DIR/evaluation-$alg-$RDMACC-$TCPCC-$rdmaload-$tcpload-$rdmaburst-$tcpburst-$egresslossyFrac-$gamma.tor
+		DUMPFILE=$DUMP_DIR/evaluation-$alg-$RDMACC-$TCPCC-$rdmaload-$tcpload-$rdmaburst-$tcpburst-$egresslossyFrac-$gamma.out
 		echo $FCTFILE
 		if [[ $EXP == 1 ]];then
-			(time ./waf --run "reverie-evaluation-sigcomm2023 --bufferalgIngress=$alg --bufferalgEgress=$alg --rdmacc=$RDMACC --rdmaload=$rdmaload --rdmarequestSize=$rdmaburst --rdmaqueryRequestRate=1 --tcpload=$tcpload --tcpcc=$TCPCC --enableEcn=true --tcpqueryRequestRate=1 --tcprequestSize=$tcpburst --egressLossyShare=$egresslossyFrac --bufferModel=$BUFFERMODEL --gamma=$gamma --START_TIME=$START_TIME --END_TIME=$END_TIME --FLOW_LAUNCH_END_TIME=$FLOW_LAUNCH_END_TIME --buffersize=$BUFFERSIZE --fctOutFile=$FCTFILE --torOutFile=$TORFILE --alphasFile=$ALPHAFILE" > $DUMPFILE 2> $DUMPFILE)&
+			(time ./waf --run "reverie-evaluation-sigcomm2023 --bufferalgIngress=$alg --bufferalgEgress=$alg --rdmacc=$RDMACC --rdmaload=$rdmaload --rdmarequestSize=$rdmaburst --rdmaqueryRequestRate=1 --tcpload=$tcpload --tcpcc=$TCPCC --enableEcn=true --tcpqueryRequestRate=1 --tcprequestSize=$tcpburst --egressLossyShare=$egresslossyFrac --bufferModel=$BUFFERMODEL --gamma=$gamma --START_TIME=$START_TIME --END_TIME=$END_TIME --FLOW_LAUNCH_END_TIME=$FLOW_LAUNCH_END_TIME --buffersize=$BUFFERSIZE --fctOutFile=$FCTFILE --torOutFile=$TORFILE --alphasFile=$ALPHAFILE" --gdb )
 			sleep 5
 		fi
 		NUM=$(( $NUM+1  ))
@@ -87,7 +91,11 @@ RDMACC=$DCQCNCC
 TCPCC=$CUBIC
 for egresslossyFrac in 0.6 0.4 0.2;do
 	for alg in DT ABM;do
-		
+		if [[ $alg != $REVERIE ]];then
+			BUFFERMODEL="sonic"
+		else
+			BUFFERMODEL="reverie"
+		fi		
 		while [[ $(ps aux | grep reverie-evaluation-sigcomm2023-optimized | wc -l) -gt $N_CORES ]];do
 			sleep 30;
 			echo "waiting for cores, $N_CORES running..."
@@ -116,7 +124,11 @@ TCPCC=$CUBIC
 
 for BUFFER_PER_PORT_PER_GBPS in 9.6 7 5.12 3.44;do
 	for alg in ${BUFFER_ALGS[@]};do
-
+		if [[ $alg != $REVERIE ]];then
+			BUFFERMODEL="sonic"
+		else
+			BUFFERMODEL="reverie"
+		fi
 		while [[ $(ps aux | grep reverie-evaluation-sigcomm2023-optimized | wc -l) -gt $N_CORES ]];do
 			sleep 30;
 			echo "waiting for cores, $N_CORES running..."
@@ -138,7 +150,8 @@ tcpload=0
 tcpburst=0
 RDMACC=$DCQCNCC
 TCPCC=$CUBIC
-
+alg=$REVERIE
+BUFFERMODEL="reverie"
 for gamma in 0.99 0.9 0.8;do
 	for rdmaburst in ${BURST_SIZES[@]};do
 
@@ -170,7 +183,12 @@ for tcpburst in ${BURST_SIZES[@]};do
 		continue;
 	fi
 	for alg in ${BUFFER_ALGS[@]};do
-		
+
+		if [[ $alg != $REVERIE ]];then
+			BUFFERMODEL="sonic"
+		else
+			BUFFERMODEL="reverie"
+		fi
 		while [[ $(ps aux | grep reverie-evaluation-sigcomm2023-optimized | wc -l) -gt $N_CORES ]];do
 			sleep 30;
 			echo "waiting for cores, $N_CORES running..."
