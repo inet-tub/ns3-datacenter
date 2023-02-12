@@ -42,8 +42,8 @@ egresslossyFrac=0.8
 gamma=0.999
 
 START_TIME=1
-END_TIME=5
-FLOW_LAUNCH_END_TIME=4
+END_TIME=3
+FLOW_LAUNCH_END_TIME=2
 BUFFER_PER_PORT_PER_GBPS=5.12 # in KiloBytes per port per Gbps
 BUFFERSIZE=$(python3 -c "print(40*25*1000*$BUFFER_PER_PORT_PER_GBPS)") # in Bytes
 ALPHAFILE=$DIR/alphas
