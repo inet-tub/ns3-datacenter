@@ -233,6 +233,13 @@ void RdmaHw::AddQueuePair(uint64_t size, uint16_t pg, Ipv4Address sip, Ipv4Addre
 	qp->SetAppNotifyCallback(notifyAppFinish);
 	qp->stopTime = stopTime;
 
+	if (stopTime == Simulator::GetMaximumSimulationTime()-MicroSeconds(1)){
+		qp->incastFlow = 1;
+	}
+	else{
+		qp->incastFlow = 0;
+	}
+
 	// add qp
 	uint32_t nic_idx = GetNicIdxOfQp(qp);
 	m_nic[nic_idx].qpGrp->AddQp(qp);

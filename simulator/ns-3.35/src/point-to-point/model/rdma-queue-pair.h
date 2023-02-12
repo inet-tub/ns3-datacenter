@@ -124,6 +124,7 @@ public:
 	uint64_t GetWin(); // window size calculated from m_rate
 	bool IsFinished();
 	uint64_t HpGetCurWin(); // window size calculated from hp.m_curRate, used by HPCC
+	uint32_t incastFlow;
 };
 
 class RdmaRxQueuePair : public Object { // Rx side queue pair

@@ -491,6 +491,52 @@ uint64_t SwitchMmu::ActiveBufferManagement(uint32_t port, uint32_t qIndex, std::
 	}
 }
 
+uint64_t SwitchMmu::FlowAwareBuffer(uint32_t port, uint32_t qIndex, std::string inout, uint32_t type, uint32_t unsched) {
+	if (inout == "ingress") {
+		double remaining = 0;
+		uint64_t ingressPoolSharedUsed = GetIngressSharedUsed(); // Total bytes used from the ingress "shared" pool specifically.
+		uint64_t ingressSharedPool = ingressPool - totalIngressReserved;
+		if (ingressSharedPool > ingressPoolSharedUsed) {
+			uint64_t remaining = ingressSharedPool - ingressPoolSharedUsed;
+			double alphaP = 1;
+			if (unsched) {
+				alphaP = alphaHigh;
+			}
+			else {
+				alphaP = alphaIngress[port][qIndex];
+			}
+			uint64_t FAB_Threshold = alphaP * (remaining);
+			return std::min(uint64_t(FAB_Threshold), UINT64_MAX - 1024 * 1024);
+		}
+		else {
+			// ingressPoolShared is full. There is no `remaining` buffer in ingressPoolShared.
+			// DT's threshold returns zero in this case, but using if else just to avoid threshold computations even in the simple case.
+			return 0;
+		}
+	}
+	else if (inout == "egress") {
+		double remaining = 0;
+		if (egressPool[type] > egressPoolUsed[type]) {
+			uint64_t remaining = egressPool[type] - egressPoolUsed[type];
+			// UINT64_MAX - 1024*1024 is just a randomly chosen big value.
+			// Just don't want to return UINT64_MAX value, sometimes causes overflow issues later.
+			double alphaP = 1;
+			if (unsched) {
+				alphaP = alphaHigh;
+			}
+			else {
+				alphaP = alphaEgress[port][qIndex];
+			}
+			uint64_t FAB_Threshold = alphaP * (remaining);
+			return std::min(FAB_Threshold, UINT64_MAX - 1024 * 1024);
+		}
+		else {
+			return 0;
+		}
+	}
+}
+
+
 
 uint64_t SwitchMmu::ReverieThreshold(uint32_t port, uint32_t qIndex, uint32_t type){
 	if (type == LOSSLESS){
@@ -543,6 +589,9 @@ uint64_t SwitchMmu::Threshold(uint32_t port, uint32_t qIndex, std::string inout,
 		case ABM:
 			thresh = ActiveBufferManagement(port, qIndex, inout, type, unsched);
 			break;
+		case FAB:
+			thresh = FlowAwareBuffer(port, qIndex,inout, type,unsched);
+			break;
 		default:
 			thresh = DynamicThreshold(port, qIndex, inout, type);
 			break;
@@ -555,6 +604,9 @@ uint64_t SwitchMmu::Threshold(uint32_t port, uint32_t qIndex, std::string inout,
 			break;
 		case ABM:
 			thresh = ActiveBufferManagement(port, qIndex, inout, type, unsched);
+			break;
+		case FAB:
+			thresh = FlowAwareBuffer(port, qIndex,inout, type,unsched);
 			break;
 		default:
 			thresh = DynamicThreshold(port, qIndex, inout, type);
@@ -577,14 +629,14 @@ bool SwitchMmu::CheckIngressAdmission(uint32_t port, uint32_t qIndex, uint32_t p
 			        // AND if per queue headroom is used up.
 			        && (psize + GetHdrmBytes(port, qIndex) > xoff[port][qIndex]) && GetHdrmBytes(port, qIndex) > 0 )
 			        // or if the headroom pool is full
-			        || (psize + xoffTotalUsed >= xoffTotal && GetHdrmBytes(port, qIndex) > 0 )
+			        || (psize + xoffTotalUsed > xoffTotal && GetHdrmBytes(port, qIndex) > 0 )
 			        // if the ingresspool+headroom is full. With DT, this condition is redundant.
 			        // This is just to account for any badly configured buffer or buffer sharing if any.
 			        || (psize + totalUsed > ingressPool + xoffTotal)
 			        // if the switch buffer is full
 			        || (psize + totalUsed > bufferPool)  ) {
 
-				std::cout << "reverie: dropping lossless packet at ingress admission headroom " << GetHdrmBytes(port, qIndex) << " xoff " << xoff[port][qIndex] << " pktSize " << psize << " xoffTotalUsed " << xoffTotalUsed  << std::endl;
+				std::cout << "reverie: dropping lossless packet at ingress admission headroom " << GetHdrmBytes(port, qIndex) << " xoff " << xoff[port][qIndex] << " pktSize " << psize << " xoffTotalUsed " << xoffTotalUsed  << " totalUsed " <<  totalUsed << " ingresspool " << ingressPool << " threshold " << ReverieThreshold(port, qIndex, LOSSLESS) << " ingress_bytes " << ingressLpf_bytes[port][qIndex] << std::endl;
 				return false;
 			}
 			else {
@@ -621,14 +673,14 @@ bool SwitchMmu::CheckIngressAdmission(uint32_t port, uint32_t qIndex, uint32_t p
 			        // AND if per queue headroom is used up.
 			        && (psize + GetHdrmBytes(port, qIndex) > xoff[port][qIndex]) && GetHdrmBytes(port, qIndex) > 0 )
 			        // or if the headroom pool is full
-			        || (psize + xoffTotalUsed >= xoffTotal && GetHdrmBytes(port, qIndex) > 0 )
+			        || (psize + xoffTotalUsed > xoffTotal && GetHdrmBytes(port, qIndex) > 0 )
 			        // if the ingresspool+headroom is full. With DT, this condition is redundant.
 			        // This is just to account for any badly configured buffer or buffer sharing if any.
 			        || (psize + totalUsed > ingressPool + xoffTotal)
 			        // if the switch buffer is full
 			        || (psize + totalUsed > bufferPool)  )
 			{
-				std::cout << "dropping lossless packet at ingress admission headroom " << GetHdrmBytes(port, qIndex) << " xoff " << xoff[port][qIndex] << " pktSize " << psize << " xoffTotalUsed " << xoffTotalUsed  << std::endl;
+				std::cout << "dropping lossless packet at ingress admission headroom " << GetHdrmBytes(port, qIndex) << " xoff " << xoff[port][qIndex] << " pktSize " << psize << " xoffTotalUsed " << xoffTotalUsed << " totalUsed " <<  totalUsed << std::endl;
 				return false;
 			}
 			else {
@@ -745,6 +797,7 @@ void SwitchMmu::UpdateIngressAdmission(uint32_t port, uint32_t qIndex, uint32_t 
 
 	// Update the total headroom used.
 	if (type == LOSSLESS) {
+		sharedPoolUsed += psize;
 		if (bufferModel=="sonic"){
 			// First, remove the previously used headroom corresponding to queue: port, qIndex. This will be updated with current value next.
 			xoffTotalUsed -= xoffUsed[port][qIndex];
@@ -768,14 +821,13 @@ void SwitchMmu::UpdateIngressAdmission(uint32_t port, uint32_t qIndex, uint32_t 
 		}
 		else if (bufferModel=="reverie"){
 			// First, remove the previously used headroom corresponding to queue: port, qIndex. This will be updated with current value next.
-			sharedPoolUsed += psize;
 			xoffTotalUsed -= xoffUsed[port][qIndex];
 			// Second, get currently used headroom by the queue: port, qIndex and update `xoffUsed[port][qIndex]`
 			uint64_t threshold = ReverieThreshold(port, qIndex, LOSSLESS); // get the threshold
 			// if headroom is zero
 			if (xoffUsed[port][qIndex] == 0) {
 				// if ingress bytes of the queue exceeds threshold, start using headroom. pfc pause will be triggered by CheckShouldPause later.
-				if (ingressLpf_bytes[port][qIndex] > threshold) {
+				if (ingressLpf_bytes[port][qIndex] >= threshold) {
 					// LOL: The commented part below was a HUGE mistake identified after debugging some of the lossless packets being dropped. It was a good lesson.
 					// xoffUsed[port][qIndex] += ingress_bytes[port][qIndex] - threshold;
 					xoffUsed[port][qIndex] += psize;
@@ -787,8 +839,8 @@ void SwitchMmu::UpdateIngressAdmission(uint32_t port, uint32_t qIndex, uint32_t 
 			}
 			// Finally, update the total headroom used by adding (since we removed before) the latest value of xoffUsed (headroom used) by the queue
 			xoffTotalUsed += xoffUsed[port][qIndex]; // add the current used headroom to total headroom
-			uint64_t inst_ingress_shared_bytes = ingress_bytes[port][qIndex]-xoffUsed[port][qIndex];
-			ingressLpf_bytes[port][qIndex] = gamma * ingressLpf_bytes [port][qIndex] + (1-gamma) * (inst_ingress_shared_bytes);
+			// uint64_t inst_ingress_shared_bytes = ingress_bytes[port][qIndex]-xoffUsed[port][qIndex];
+			// ingressLpf_bytes[port][qIndex] = gamma * ingressLpf_bytes [port][qIndex] + (1-gamma) * (inst_ingress_shared_bytes);
 		}
 	}
 }
@@ -798,7 +850,7 @@ void SwitchMmu::UpdateEgressAdmission(uint32_t port, uint32_t qIndex, uint32_t p
 	egressPoolUsed[type] += psize;
 	if (type == LOSSY){
 		sharedPoolUsed += psize;
-		egressLpf_bytes[port][qIndex] = gamma * egressLpf_bytes[port][qIndex] + (1-gamma) * (egress_bytes[port][qIndex]);
+		// egressLpf_bytes[port][qIndex] = gamma * egressLpf_bytes[port][qIndex] + (1-gamma) * (egress_bytes[port][qIndex]);
 	}
 }
 

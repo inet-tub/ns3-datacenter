@@ -8,8 +8,8 @@ serversPerTor=32
 torSwitches=2
 spineSwitches=8
 
-serverDataRate=10
-allOtherDataRate=40
+serverDataRate=25
+allOtherDataRate=25
 
 serverTorDelay="2us"
 torSpineDelay="2us"
@@ -21,7 +21,7 @@ switch_num = torSwitches + spineSwitches
 node_num = serversPerTor*torSwitches + switch_num
 link_num = serversPerTor*torSwitches + (torSwitches)*spineSwitches
 
-print (str(node_num)+" "+str(switch_num)+" "+str(torSwitches)+" "+str(link_num)+" "+str(serverDataRate*1e9)+" "+str(allOtherDataRate*1e9),end="")
+print (str(node_num)+" "+str(switch_num)+" "+str(torSwitches)+" "+str(link_num)+" "+str(int(serverDataRate*1e9))+" "+str(int(allOtherDataRate*1e9)),end="")
 print("\n",end="")
 
 for i in range(switch_num):
@@ -31,11 +31,11 @@ print("\n",end="")
 
 for i in range(torSwitches):
 	for j in range(serversPerTor):
-		print(str(j+serversPerTor*i)+" "+str(serversPerTor*torSwitches+i)+" "+str(serverDataRate*1e9)+" "+serverTorDelay+" "+str(errorRate))
+		print(str(j+serversPerTor*i)+" "+str(serversPerTor*torSwitches+i)+" "+str(int(serverDataRate*1e9))+" "+serverTorDelay+" "+str(errorRate))
 
 torIndexBegin=serversPerTor*torSwitches
 spineIndexBegin=serversPerTor*torSwitches+torSwitches
 
 for i in range(torSwitches):
 	for j in range(spineSwitches):
-		print(str(torIndexBegin + i)+" "+str(spineIndexBegin + j )+" "+str(allOtherDataRate*1e9)+" "+torSpineDelay+" "+str(errorRate))
+		print(str(torIndexBegin + i)+" "+str(spineIndexBegin + j )+" "+str(int(allOtherDataRate*1e9))+" "+torSpineDelay+" "+str(errorRate))

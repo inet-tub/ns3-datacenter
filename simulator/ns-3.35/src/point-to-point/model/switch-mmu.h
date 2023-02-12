@@ -97,6 +97,8 @@ public:
 
 	uint64_t ActiveBufferManagement(uint32_t port, uint32_t qIndex, std::string inout, uint32_t type, uint32_t unsched);
 
+	uint64_t FlowAwareBuffer(uint32_t port, uint32_t qIndex, std::string inout, uint32_t type, uint32_t unsched);
+
 	void SetABMalphaHigh(double alpha){alphaHigh = alpha;};
 
 	void SetABMdequeueUpdateNS(double time){updateIntervalNS = time;}

@@ -3,8 +3,8 @@ USE_DYNAMIC_PFC_THRESHOLD 1
 
 PACKET_PAYLOAD_SIZE 1000
 
-TOPOLOGY_FILE examples/buffer-devel/leaf-spine.txt
-FLOW_FILE examples/buffer-devel/flow-test.txt
+TOPOLOGY_FILE examples/Reverie/leaf-spine.txt
+FLOW_FILE examples/Reverie/flow-test.txt
 TRACE_FILE mix/trace.txt
 TRACE_OUTPUT_FILE mix/mix.tr
 FCT_OUTPUT_FILE mix/fct.txt
@@ -29,9 +29,7 @@ L2_CHUNK_SIZE 4000
 L2_ACK_INTERVAL 1
 L2_BACK_TO_ZERO 0
 
-HAS_WIN 0
 GLOBAL_T 1
-VAR_WIN 0
 FAST_REACT 1
 U_TARGET 0.95
 MI_THRESH 5
