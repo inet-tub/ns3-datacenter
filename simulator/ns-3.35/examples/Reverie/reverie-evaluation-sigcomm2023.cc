@@ -614,6 +614,7 @@ void workload_tcp (int txLeaf, double requestRate, struct cdf_table *cdfTable,
 }
 
 
+uint32_t flowEnd = 0;
 
 void printBuffer(Ptr<OutputStreamWrapper> fout, NodeContainer switches, double delay) {
     for (uint32_t i = 0; i < switches.GetN(); i++) {
@@ -631,9 +632,10 @@ void printBuffer(Ptr<OutputStreamWrapper> fout, NodeContainer switches, double d
                 << std::endl;
         }
     }
-
-    Simulator::Schedule(Seconds(delay), printBuffer, fout, switches, delay);
+    if (Simulator::Now().GetSeconds() < flowEnd)
+        Simulator::Schedule(Seconds(delay), printBuffer, fout, switches, delay);
 }
+
 
 /******************************************************************************************************************************************************************************************************/
 
@@ -745,6 +747,8 @@ int main(int argc, char *argv[])
 
     cmd.Parse (argc, argv);
 
+    flowEnd = FLOW_LAUNCH_END_TIME;
+
     fctOutput = asciiTraceHelper.CreateFileStream (fctOutFile);
 
     *fctOutput->GetStream () 
@@ -789,6 +793,7 @@ int main(int argc, char *argv[])
         double a;
         iss >> a;
         alpha_values[p] = a;
+        // std::cout << "alpha-" << p << " " << alpha_values[p] << std::endl;
         p++;
     }
     aFile.close();

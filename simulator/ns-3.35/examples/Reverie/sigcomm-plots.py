@@ -45,7 +45,7 @@ loadsint=[0.2,0.4,0.6,0.8]
 rdmacc=str(DCQCNCC)
 tcpcc=str(CUBIC)
 tcpload="0"
-rdmaburst="1500000"
+rdmaburst="2000000"
 tcpburst="0"
 egresslossyFrac="0.8"
 gamma="0.999"
@@ -55,24 +55,30 @@ fig,ax=plt.subplots(1,1)
 for alg in algs:
     shortfct99=list()
     shortfctavg=list()
+    numpfc=list()
     for rdmaload in loads:
         fctfile = dump+"evaluation-"+alg+'-'+rdmacc+'-'+tcpcc+'-'+rdmaload+'-'+tcpload+'-'+rdmaburst+'-'+tcpburst+'-'+egresslossyFrac+'-'+gamma+'.fct'
         torfile = dump+"evaluation-"+alg+'-'+rdmacc+'-'+tcpcc+'-'+rdmaload+'-'+tcpload+'-'+rdmaburst+'-'+tcpburst+'-'+egresslossyFrac+'-'+gamma+'.tor'
         outfile = dump+"evaluation-"+alg+'-'+rdmacc+'-'+tcpcc+'-'+rdmaload+'-'+tcpload+'-'+rdmaburst+'-'+tcpburst+'-'+egresslossyFrac+'-'+gamma+'.out'
+        pfcfile = dump+"evaluation-"+alg+'-'+rdmacc+'-'+tcpcc+'-'+rdmaload+'-'+tcpload+'-'+rdmaburst+'-'+tcpburst+'-'+egresslossyFrac+'-'+gamma+'.pfc'
         
         fctDF = pd.read_csv(fctfile,delimiter=' ')
         shortfctDF = fctDF[(fctDF["incastflow"]==1)&(fctDF["priority"]==3)]
         
         shortfct = list(shortfctDF["slowdown"])
-        fct99 = shortfct[int(len(shortfct)*0.99)]
+        fct99 = shortfct[int(len(shortfct)*0.999)]
         shortfct99.append(fct99)
         shortfctavg.append(np.mean(shortfct))
         
-    # ax.plot(loadsint,shortfct99,label=alg)
-    ax.plot(loadsint,shortfctavg,label=alg)
+        pfcDF = pd.read_csv(pfcfile,delimiter=' ')
+        numpfc.append(len(pfcDF))
+        
+    ax.plot(loadsint,shortfct99,label=alg)
+    # ax.plot(loadsint,shortfctavg,label=alg)
+    # ax.plot(loadsint,numpfc,label=alg)
 
 ax.legend()
-ax.set_yscale('log')
+# ax.set_yscale('log')
 
 #%%
 
@@ -84,7 +90,7 @@ tcpburst="0"
 egresslossyFrac="0.8"
 gamma="0.999"
 
-bursts=["100000", "500000", "1000000", "1500000", "2000000"]
+bursts=["500000", "1000000", "1500000", "2000000", "2500000"]
 
 fig,ax=plt.subplots(1,1)
 
@@ -96,7 +102,7 @@ for alg in algs:
         outfile = dump+"evaluation-"+alg+'-'+rdmacc+'-'+tcpcc+'-'+rdmaload+'-'+tcpload+'-'+rdmaburst+'-'+tcpburst+'-'+egresslossyFrac+'-'+gamma+'.out'
         
         fctDF = pd.read_csv(fctfile,delimiter=' ')
-        shortfctDF = fctDF[(fctDF["incastflow"]==1)&(fctDF["priority"]==3)]
+        shortfctDF = fctDF[(fctDF["flowsize"]<100000)&(fctDF["priority"]==3)]
         
         shortfct = list(shortfctDF["slowdown"])
         fct99 = shortfct[int(len(shortfct)*0.99)]

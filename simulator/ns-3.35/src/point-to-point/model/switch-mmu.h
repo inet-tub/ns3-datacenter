@@ -173,7 +173,7 @@ public:
 	uint32_t dequeueUpdatedOnce;
 	uint32_t portCount;
 
-	double gamma;
+	double Reveriegamma;
 	uint32_t lpfUpdatedOnce;
 
 };
