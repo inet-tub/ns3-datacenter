@@ -75,6 +75,9 @@ AsciiTraceHelper asciiTraceHelper;
 Ptr<OutputStreamWrapper> torStats;
 AsciiTraceHelper torTraceHelper;
 
+Ptr<OutputStreamWrapper> pfc_file;
+AsciiTraceHelper asciiTraceHelperpfc;
+
 uint32_t packet_payload_size = 1400, l2_chunk_size = 0, l2_ack_interval = 0;
 double pause_time = 5, simulator_stop_time = 3.01;
 
@@ -244,8 +247,15 @@ void qp_finish(Ptr<OutputStreamWrapper> fout, Ptr<RdmaQueuePair> q) {
 }
 
 
-void get_pfc(FILE* fout, Ptr<QbbNetDevice> dev, uint32_t type) {
-    fprintf(fout, "%lu %u %u %u %u\n", Simulator::Now().GetTimeStep(), dev->GetNode()->GetId(), dev->GetNode()->GetNodeType(), dev->GetIfIndex(), type);
+void get_pfc(Ptr<OutputStreamWrapper> fout, Ptr<QbbNetDevice> dev, uint32_t type) {
+    *fout->GetStream()
+        << Simulator::Now().GetSeconds()
+        << " " << dev->GetNode()->GetId()
+        << " " << dev->GetNode()->GetNodeType()
+        << " " << dev->GetIfIndex()
+        << " " << type
+        << std::endl;
+    // fprintf(fout, "%lu %u %u %u %u\n", Simulator::Now().GetTimeStep(), dev->GetNode()->GetId(), dev->GetNode()->GetNodeType(), dev->GetIfIndex(), type);
 }
 
 void CalculateRoute(Ptr<Node> host) {
@@ -413,7 +423,9 @@ void incast_rdma (int fromLeafId, double requestRate, uint32_t requestSize, stru
                 appCon.Start(Seconds(startTime));
             }
             startTime += poission_gen_interval (requestRate);
+            // break;
         }
+        // break;
     }
 }
 
@@ -672,7 +684,7 @@ int main(int argc, char *argv[])
 
     uint32_t rdmarequestSize = 2000000;
     cmd.AddValue ("rdmarequestSize", "Query Size in Bytes", rdmarequestSize);
-    double rdmaqueryRequestRate = 0;
+    double rdmaqueryRequestRate = 1;
     cmd.AddValue("rdmaqueryRequestRate", "Query request rate (poisson arrivals)", rdmaqueryRequestRate);
 
     uint32_t rdmacc = DCQCNCC;
@@ -693,11 +705,11 @@ int main(int argc, char *argv[])
     uint32_t rdmaWindowCheck = 0;
     cmd.AddValue("rdmaWindowCheck", "windowCheck", rdmaWindowCheck);
     
-    uint32_t rdmaVarWin = 0;
+    uint32_t rdmaVarWin = 9;
     cmd.AddValue("rdmaVarWin", "windowCheck", rdmaVarWin);
     
 
-    uint32_t buffer_size = 5.4;
+    uint64_t buffer_size = 2610000;//5.4;
     cmd.AddValue("buffersize", "buffer size in MB",buffer_size);
     
     uint32_t bufferalgIngress = DT;
@@ -757,6 +769,16 @@ int main(int argc, char *argv[])
                 << " " << "sharedPoolOccupancy"
                 << " " << "time"
                 << std::endl;
+
+    pfc_file = asciiTraceHelperpfc.CreateFileStream(pfcOutFile);
+
+    *pfc_file->GetStream()
+        << "Time"
+        << " " << "NodeId"
+        << " " << "NodeType"
+        << " " << "IfIndex"
+        << " " << "type"
+        << std::endl;
 
     std::string line;
     std::fstream aFile;
@@ -1067,8 +1089,6 @@ int main(int argc, char *argv[])
     rem->SetAttribute("ErrorRate", DoubleValue(error_rate_per_link));
     rem->SetAttribute("ErrorUnit", StringValue("ERROR_UNIT_PACKET"));
 
-    FILE *pfc_file = fopen(pfcOutFile.c_str(), "w");
-
     QbbHelper qbb;
     Ipv4AddressHelper ipv4;
     for (uint32_t i = 0; i < link_num; i++)
@@ -1156,8 +1176,8 @@ int main(int argc, char *argv[])
         ipv4.Assign(d);
 
         // setup PFC trace
-        // DynamicCast<QbbNetDevice>(d.Get(0))->TraceConnectWithoutContext("QbbPfc", MakeBoundCallback (&get_pfc, pfc_file, DynamicCast<QbbNetDevice>(d.Get(0))));
-        // DynamicCast<QbbNetDevice>(d.Get(1))->TraceConnectWithoutContext("QbbPfc", MakeBoundCallback (&get_pfc, pfc_file, DynamicCast<QbbNetDevice>(d.Get(1))));
+        DynamicCast<QbbNetDevice>(d.Get(0))->TraceConnectWithoutContext("QbbPfc", MakeBoundCallback (&get_pfc, pfc_file, DynamicCast<QbbNetDevice>(d.Get(0))));
+        DynamicCast<QbbNetDevice>(d.Get(1))->TraceConnectWithoutContext("QbbPfc", MakeBoundCallback (&get_pfc, pfc_file, DynamicCast<QbbNetDevice>(d.Get(1))));
     }
 
     nic_rate = get_nic_rate(n);
@@ -1263,7 +1283,7 @@ int main(int argc, char *argv[])
             sw->m_mmu->SetEgressLossyAlg(bufferalgEgress);
             sw->m_mmu->SetEgressLosslessAlg(bufferalgEgress);
             sw->m_mmu->SetABMalphaHigh(1024);
-            sw->m_mmu->SetABMdequeueUpdateNS(minRtt);
+            sw->m_mmu->SetABMdequeueUpdateNS(maxRtt);
             sw->m_mmu->SetPortCount(sw->GetNDevices() - 1); // set the actual port count here so that we don't always iterate over the default 256 ports.
             sw->m_mmu->SetBufferModel(bufferModel);
             sw->m_mmu->SetGamma(gamma);
@@ -1274,7 +1294,7 @@ int main(int argc, char *argv[])
                 // set port bandwidth in the mmu, used by ABM.
                 sw->m_mmu->bandwidth[j] = rate;
                 for (uint32_t qu = 0; qu < 8; qu++) {
-                    if (qu == 3) { // lossless
+                    if (qu == 3 || qu == 0) { // lossless
                         sw->m_mmu->SetAlphaIngress(alpha_values[qu], j, qu);
                         sw->m_mmu->SetAlphaEgress(10000, j, qu);
                         // set pfc
@@ -1297,17 +1317,17 @@ int main(int argc, char *argv[])
                 }
 
             }
-            sw->m_mmu->SetBufferPool(buffer_size * 1000 * 1000);
-            sw->m_mmu->SetIngressPool(buffer_size * 1000 * 1000 - totalHeadroom);
-            sw->m_mmu->SetSharedPool(buffer_size * 1000 * 1000 - totalHeadroom);
-            sw->m_mmu->SetEgressLosslessPool(buffer_size * 1000 * 1000);
-            sw->m_mmu->SetEgressLossyPool((buffer_size * 1000 * 1000 - totalHeadroom) * egressLossyShare);
+            sw->m_mmu->SetBufferPool(buffer_size);
+            sw->m_mmu->SetIngressPool(buffer_size - totalHeadroom);
+            sw->m_mmu->SetSharedPool(buffer_size  - totalHeadroom);
+            sw->m_mmu->SetEgressLosslessPool(buffer_size);
+            sw->m_mmu->SetEgressLossyPool((buffer_size - totalHeadroom) * egressLossyShare);
             sw->m_mmu->node_id = sw->GetId();
         }
         if (n.Get(i)->GetNodeType())
-            std::cout << "total headroom: " << totalHeadroom << " ingressPool " << buffer_size * 1000 * 1000 - totalHeadroom << " egressLosslessPool " 
-                      << buffer_size * 1000 * 1000 << " egressLossyPool " << (uint64_t)((buffer_size * 1000 * 1000 - totalHeadroom) * egressLossyShare) 
-                      << " sharedPool " << buffer_size * 1000 * 1000 - totalHeadroom <<  std::endl;
+            std::cout << "total headroom: " << totalHeadroom << " ingressPool " << buffer_size - totalHeadroom << " egressLosslessPool " 
+                      << buffer_size << " egressLossyPool " << (uint64_t)((buffer_size - totalHeadroom) * egressLossyShare) 
+                      << " sharedPool " << buffer_size - totalHeadroom <<  std::endl;
     }
     //
     // setup switch CC
@@ -1372,8 +1392,8 @@ int main(int argc, char *argv[])
 
     /*General TCP Socket settings. Mostly used by various congestion control algorithms in common*/
     Config::SetDefault ("ns3::TcpSocket::ConnTimeout", TimeValue (MilliSeconds (10))); // syn retry interval
-    Config::SetDefault ("ns3::TcpSocketBase::MinRto", TimeValue (MicroSeconds (10000)) );  //(MilliSeconds (5))
-    Config::SetDefault ("ns3::TcpSocketBase::RTTBytes", UintegerValue ( maxBdp )); //packet_payload_size*1000 // This many number of first bytes will be prioritized by ABM. It is not necessarily RTTBytes
+    Config::SetDefault ("ns3::TcpSocketBase::MinRto", TimeValue (MicroSeconds (1000)) );  //(MilliSeconds (5))
+    Config::SetDefault ("ns3::TcpSocketBase::RTTBytes", UintegerValue ( packet_payload_size*100 )); //packet_payload_size*1000 // This many number of first bytes will be prioritized by ABM. It is not necessarily RTTBytes
     Config::SetDefault ("ns3::TcpSocketBase::ClockGranularity", TimeValue (NanoSeconds (10))); //(MicroSeconds (100))
     Config::SetDefault ("ns3::RttEstimator::InitialEstimation", TimeValue (MicroSeconds (10))); //TimeValue (MicroSeconds (80))
     Config::SetDefault ("ns3::TcpSocket::SndBufSize", UintegerValue (1073725440)); //1073725440

@@ -609,6 +609,7 @@ void QbbNetDevice::SendPfc(uint32_t qIndex, uint32_t type) {
 	AddHeader(p, 0x800);
 	CustomHeader ch(CustomHeader::L2_Header | CustomHeader::L3_Header | CustomHeader::L4_Header);
 	p->PeekHeader(ch);
+	m_tracePfc(type+2); // 2 indicates PFC PAUSE sent.3 indicates RESUME sent
 	SwitchSend(0, p, ch);
 }
 

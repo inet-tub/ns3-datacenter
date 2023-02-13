@@ -112,6 +112,7 @@ void SwitchNode::CheckAndSendPfc(uint32_t inDev, uint32_t qIndex) {
 	Ptr<QbbNetDevice> device = DynamicCast<QbbNetDevice>(m_devices[inDev]);
 	if (m_mmu->CheckShouldPause(inDev, qIndex)) {
 		device->SendPfc(qIndex, 0);
+		// std::cout << "sending PFC" << std::endl;
 		m_mmu->SetPause(inDev, qIndex);
 	}
 }

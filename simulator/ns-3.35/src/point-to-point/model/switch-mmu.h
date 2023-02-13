@@ -105,7 +105,9 @@ public:
 
 	void SetPortCount(uint32_t pc){portCount = pc;}
 
-	uint64_t ReverieThreshold(uint32_t port, uint32_t qIndex, uint32_t type);
+	uint64_t ReverieThreshold(uint32_t port, uint32_t qIndex, uint32_t type, uint32_t unsched);
+
+	void UpdateLpfCounters();
 
 
 	// config
@@ -172,6 +174,7 @@ public:
 	uint32_t portCount;
 
 	double gamma;
+	uint32_t lpfUpdatedOnce;
 
 };
 

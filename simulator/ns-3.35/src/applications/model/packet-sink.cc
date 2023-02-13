@@ -284,7 +284,7 @@ void PacketSink::HandleRead (Ptr<Socket> socket)
       /* Modification */
       if(TotalQueryBytes){
         if(m_totalRx >= TotalQueryBytes){
-          double totalSize = m_totalRx + ((m_totalRx-1)/(1400.0)+1)*(64); // TODO: Add header sizes more precisely.
+          double totalSize = m_totalRx ;//+ ((m_totalRx-1)/(1400.0)+1)*(64); // TODO: Add header sizes more precisely.
           if (m_recvAt.GetSeconds()!=0){
             m_flowFinishTrace(totalSize, m_recvAt.GetNanoSeconds(),true,sender_priority);
           }

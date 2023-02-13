@@ -140,6 +140,7 @@ SwitchMmu::SwitchMmu(void) {
 	memset(egress_bytes, 0, sizeof(egress_bytes));
 
 	dequeueUpdatedOnce = 0; // For ABM, to trigger dequeue rate updates
+	lpfUpdatedOnce = 0; // For Reverie, LPF updates
 	updateIntervalNS = 25 * 1000; // default 25us update interval for dequeue rates
 	alphaHigh = 1024; // default value to imitate a sky high threshold for all unscheduled packets
 	portCount = pCnt; // default value is 257. This should be set to the real port count using SetPortCount function externally based on the simulation setup
@@ -367,10 +368,26 @@ uint64_t SwitchMmu::DynamicThreshold(uint32_t port, uint32_t qIndex, std::string
 }
 void SwitchMmu::setCongested(uint32_t portId, uint32_t qIndex, std::string inout, double satLevel) {
 	if (inout == "ingress") {
+		// NofPIngress[qIndex] -= congestedIngress[portId][qIndex];
+		// if (ingressLpf_bytes[portId][qIndex] > congestionIndicator){
+		// 	NofPIngress[qIndex] += 1;
+		// 	congestedIngress[portId][qIndex] = 1;
+		// }
+		// else{
+		// 	congestedIngress[portId][qIndex] = 0;
+		// }
 		NofPIngress[qIndex] +=  satLevel - congestedIngress[portId][qIndex];
 		congestedIngress[portId][qIndex] = satLevel;
 	}
 	else if (inout == "egress") {
+		// NofPEgress[qIndex] -= congestedEgress[portId][qIndex];
+		// if (egressLpf_bytes[portId][qIndex] > congestionIndicator){
+		// 	NofPEgress[qIndex] += 1;
+		// 	congestedEgress[portId][qIndex] = 1;
+		// }
+		// else{
+		// 	congestedEgress[portId][qIndex] = 0;
+		// }
 		NofPEgress[qIndex] += satLevel - congestedEgress[portId][qIndex];
 		congestedEgress[portId][qIndex] = satLevel;
 	}
@@ -406,7 +423,7 @@ void SwitchMmu::updateDequeueRates() {
 			uint64_t temp = txBytesIngress[i][j];
 			txBytesIngress[i][j] = 0;
 			double temp1 = (1e9 * temp * 8.0 / updateIntervalNS) / (bandwidth[i]);
-			if (ingress_bytes[i][j] > congestionIndicator)
+			if (ingress_bytes[i][j] > congestionIndicator && temp > 2*1024)
 				dequeueRateIngress[i][j] = temp1;
 			else
 				dequeueRateIngress[i][j] = 1;
@@ -417,7 +434,7 @@ void SwitchMmu::updateDequeueRates() {
 			temp = txBytesEgress[i][j];
 			txBytesEgress[i][j] = 0;
 			temp1 = (1e9 * temp * 8.0 / updateIntervalNS) / (bandwidth[i]);
-			if (egress_bytes[i][j] > congestionIndicator)
+			if (egress_bytes[i][j] > congestionIndicator && temp > 2*1024)
 				dequeueRateEgress[i][j] = temp1;
 			else
 				dequeueRateEgress[i][j] = 1;
@@ -453,7 +470,7 @@ uint64_t SwitchMmu::ActiveBufferManagement(uint32_t port, uint32_t qIndex, std::
 			else {
 				alphaP = alphaIngress[port][qIndex];
 			}
-			uint64_t ABM_Threshold = alphaP * (remaining) * (1.0 / GetNofP(inout, qIndex)) * 1; //* (getDequeueRate(port, qIndex, inout));
+			uint64_t ABM_Threshold = alphaP * (remaining) * (1.0 / GetNofP(inout, qIndex)) * (getDequeueRate(port, qIndex, inout));
 			// if (type == LOSSLESS)
 			// 	std::cout << getDequeueRate(port, qIndex, inout) << " port " << port  << " qIndex " << qIndex << std::endl;
 			return std::min(uint64_t(ABM_Threshold), UINT64_MAX - 1024 * 1024);
@@ -482,7 +499,7 @@ uint64_t SwitchMmu::ActiveBufferManagement(uint32_t port, uint32_t qIndex, std::
 			else {
 				alphaP = alphaEgress[port][qIndex];
 			}
-			uint64_t ABM_Threshold = alphaP * (remaining) * (1.0 / GetNofP(inout, qIndex)) * 1;// * (getDequeueRate(port, qIndex, inout));
+			uint64_t ABM_Threshold = alphaP * (remaining) * (1.0 / GetNofP(inout, qIndex)) * (getDequeueRate(port, qIndex, inout));
 			return std::min(ABM_Threshold, UINT64_MAX - 1024 * 1024);
 		}
 		else {
@@ -538,10 +555,10 @@ uint64_t SwitchMmu::FlowAwareBuffer(uint32_t port, uint32_t qIndex, std::string 
 
 
 
-uint64_t SwitchMmu::ReverieThreshold(uint32_t port, uint32_t qIndex, uint32_t type){
+uint64_t SwitchMmu::ReverieThreshold(uint32_t port, uint32_t qIndex, uint32_t type, uint32_t unsched){
 	if (type == LOSSLESS){
 		double remaining = 0;
-		double satLevel = double(ingress_bytes[port][qIndex]) / congestionIndicator;
+		double satLevel = double(ingressLpf_bytes[port][qIndex]) / congestionIndicator;
 		if (satLevel > 1) {
 			satLevel = 1;
 		}
@@ -549,7 +566,7 @@ uint64_t SwitchMmu::ReverieThreshold(uint32_t port, uint32_t qIndex, uint32_t ty
 		if (sharedPool > sharedPoolUsed) {
 			uint64_t remaining = sharedPool - sharedPoolUsed;
 			double alphaP = alphaIngress[port][qIndex];
-			uint64_t Reverie_Threshold = alphaP * (remaining) * (1.0 / GetNofP("ingress", qIndex));
+			uint64_t Reverie_Threshold = alphaP * (remaining) * (1.0 / GetNofP("ingress", qIndex)) ;//+ (ingress_bytes[port][qIndex] - ingressLpf_bytes[port][qIndex]);
 			return std::min(uint64_t(Reverie_Threshold), UINT64_MAX - 1024 * 1024);
 		}
 		else {
@@ -560,15 +577,21 @@ uint64_t SwitchMmu::ReverieThreshold(uint32_t port, uint32_t qIndex, uint32_t ty
 	}
 	else if (type == LOSSY){
 		double remaining = 0;
-		double satLevel = double(egress_bytes[port][qIndex]) / congestionIndicator;
+		double satLevel = double(egressLpf_bytes[port][qIndex]) / congestionIndicator;
 		if (satLevel > 1) {
 			satLevel = 1;
 		}
 		setCongested(port, qIndex, "egress", satLevel);
 		if (sharedPool > sharedPoolUsed) {
 			uint64_t remaining = sharedPool - sharedPoolUsed;
-			double alphaP = alphaEgress[port][qIndex];
-			uint64_t Reverie_Threshold = alphaP * (remaining) * (1.0 / GetNofP("egress", qIndex));
+			double alphaP = 1;
+			if (unsched) {
+				alphaP = alphaHigh;
+			}
+			else {
+				alphaP = alphaEgress[port][qIndex];
+			}
+			uint64_t Reverie_Threshold = alphaP * (remaining) * (1.0 / GetNofP("egress", qIndex)); //* egress_bytes[port][qIndex]/egressLpf_bytes[port][qIndex];
 			return std::min(uint64_t(Reverie_Threshold), UINT64_MAX - 1024 * 1024);
 		}
 		else {
@@ -619,6 +642,9 @@ uint64_t SwitchMmu::Threshold(uint32_t port, uint32_t qIndex, std::string inout,
 bool SwitchMmu::CheckIngressAdmission(uint32_t port, uint32_t qIndex, uint32_t psize, uint32_t type, uint32_t unsched) {
 
 	if (bufferModel == "reverie") {
+		// if (!lpfUpdatedOnce){
+		// 	UpdateLpfCounters();
+		// }
 		switch (type) {
 		case LOSSY:
 			return true;
@@ -636,7 +662,7 @@ bool SwitchMmu::CheckIngressAdmission(uint32_t port, uint32_t qIndex, uint32_t p
 			        // if the switch buffer is full
 			        || (psize + totalUsed > bufferPool)  ) {
 
-				std::cout << "reverie: dropping lossless packet at ingress admission headroom " << GetHdrmBytes(port, qIndex) << " xoff " << xoff[port][qIndex] << " pktSize " << psize << " xoffTotalUsed " << xoffTotalUsed  << " totalUsed " <<  totalUsed << " ingresspool " << ingressPool << " threshold " << ReverieThreshold(port, qIndex, LOSSLESS) << " ingress_bytes " << ingressLpf_bytes[port][qIndex] << std::endl;
+				std::cout << "reverie: dropping lossless packet at ingress admission headroom " << GetHdrmBytes(port, qIndex) << " xoff " << xoff[port][qIndex] << " pktSize " << psize << " xoffTotalUsed " << xoffTotalUsed  << " totalUsed " <<  totalUsed << " ingresspool " << ingressPool << " threshold " << ReverieThreshold(port, qIndex, LOSSLESS,unsched) << " ingress_bytes " << ingressLpf_bytes[port][qIndex] << std::endl;
 				return false;
 			}
 			else {
@@ -708,7 +734,7 @@ bool SwitchMmu::CheckEgressAdmission(uint32_t port, uint32_t qIndex, uint32_t ps
 			break;
 		case LOSSY:
 			// if the egress queue length is greater than the threshold
-			if ( (psize + egressLpf_bytes[port][qIndex] > ReverieThreshold(port, qIndex, LOSSY)
+			if ( (psize + egressLpf_bytes[port][qIndex] > ReverieThreshold(port, qIndex, LOSSY,unsched)
 				// AND if the reserved is usedup. THiS IS NOT SUPPORTED AT THE MOMENT. NO reserved at the egress.
 				// && psize + egress_bytes[port][qIndex] > reserveEgress[port][qIndex]
 				     )
@@ -823,11 +849,11 @@ void SwitchMmu::UpdateIngressAdmission(uint32_t port, uint32_t qIndex, uint32_t 
 			// First, remove the previously used headroom corresponding to queue: port, qIndex. This will be updated with current value next.
 			xoffTotalUsed -= xoffUsed[port][qIndex];
 			// Second, get currently used headroom by the queue: port, qIndex and update `xoffUsed[port][qIndex]`
-			uint64_t threshold = ReverieThreshold(port, qIndex, LOSSLESS); // get the threshold
+			uint64_t threshold = ReverieThreshold(port, qIndex, LOSSLESS,unsched); // get the threshold
 			// if headroom is zero
 			if (xoffUsed[port][qIndex] == 0) {
 				// if ingress bytes of the queue exceeds threshold, start using headroom. pfc pause will be triggered by CheckShouldPause later.
-				if (ingressLpf_bytes[port][qIndex] >= threshold) {
+				if (ingressLpf_bytes[port][qIndex] > threshold) {
 					// LOL: The commented part below was a HUGE mistake identified after debugging some of the lossless packets being dropped. It was a good lesson.
 					// xoffUsed[port][qIndex] += ingress_bytes[port][qIndex] - threshold;
 					xoffUsed[port][qIndex] += psize;
@@ -905,10 +931,29 @@ void SwitchMmu::RemoveFromIngressAdmission(uint32_t port, uint32_t qIndex, uint3
 		else
 			sharedPoolUsed = 0;
 
-		uint64_t inst_ingress_shared_bytes = ingress_bytes[port][qIndex]-xoffUsed[port][qIndex];
+		uint64_t inst_ingress_shared_bytes = ingress_bytes[port][qIndex];//-xoffUsed[port][qIndex];
 		ingressLpf_bytes[port][qIndex] = gamma * ingressLpf_bytes[port][qIndex] + (1-gamma) * (inst_ingress_shared_bytes);
+		if (ingress_bytes[port][qIndex] < ingressLpf_bytes[port][qIndex]){
+			ingressLpf_bytes[port][qIndex] = ingress_bytes[port][qIndex];
+		}
 	}
 }
+
+// void SwitchMmu::UpdateLpfCounters(){
+// 	for (uint32_t port = 0; port < portCount; port++){
+// 		for (uint32_t qIndex=0;qIndex<qCnt;qIndex++){
+// 			uint64_t inst_ingress_shared_bytes = ingress_bytes[port][qIndex];//-xoffUsed[port][qIndex];
+// 			ingressLpf_bytes[port][qIndex] = gamma * ingressLpf_bytes[port][qIndex] + (1-gamma) * (inst_ingress_shared_bytes);
+
+// 			egressLpf_bytes[port][qIndex] = gamma * egressLpf_bytes[port][qIndex] + (1-gamma) * (egress_bytes[port][qIndex]);
+// 		}
+// 	}
+// 	lpfUpdatedOnce = 1;
+// 	double delay = 1e9*1500*8/bandwidth[0];
+
+// 	Simulator::Schedule(NanoSeconds(delay),&SwitchMmu::UpdateLpfCounters,this);
+// }
+
 void SwitchMmu::RemoveFromEgressAdmission(uint32_t port, uint32_t qIndex, uint32_t psize, uint32_t type) {
 
 	txBytesEgress[port][qIndex] += psize; // We assume that the packet will not be dropped after this step for any other reason.
@@ -930,6 +975,9 @@ void SwitchMmu::RemoveFromEgressAdmission(uint32_t port, uint32_t qIndex, uint32
 			sharedPoolUsed = 0;
 
 		egressLpf_bytes[port][qIndex] = gamma * egressLpf_bytes[port][qIndex] + (1-gamma) * (egress_bytes[port][qIndex]);
+		if (egress_bytes[port][qIndex] < egressLpf_bytes[port][qIndex]){
+			egressLpf_bytes[port][qIndex]=egress_bytes[port][qIndex];
+		}
 	}
 }
 
@@ -951,7 +999,7 @@ bool SwitchMmu::CheckShouldResume(uint32_t port, uint32_t qIndex) {
 		return GetHdrmBytes(port, qIndex) == 0 && (ingress_bytes[port][qIndex] < xon[port][qIndex] || ingress_bytes[port][qIndex] + xon_offset[port][qIndex] <= Threshold(port, qIndex, "ingress", LOSSLESS, 0) );
 	}
 	else if (bufferModel=="reverie"){
-		return GetHdrmBytes(port, qIndex) == 0 && (ingressLpf_bytes[port][qIndex] < xon[port][qIndex] || ingressLpf_bytes[port][qIndex] <= ReverieThreshold(port, qIndex, LOSSLESS) );
+		return GetHdrmBytes(port, qIndex) == 0 && (ingressLpf_bytes[port][qIndex] < xon[port][qIndex] || ingressLpf_bytes[port][qIndex] <= ReverieThreshold(port, qIndex, LOSSLESS,0) );
 	}
 	// Minor detail: Threshold(port, qIndex, "ingress", LOSSLESS, 0) is used above where type=LOSSLESS and unsched=0; It is obvious that resume is triggered only for LOSSLESS queues.
 	// Abound unsched=0: sending resume must be independent of arriving traffic and hence the threshold used is the default value and a prioritized value cannot be used here as is done for admission of priority packets in ABM.

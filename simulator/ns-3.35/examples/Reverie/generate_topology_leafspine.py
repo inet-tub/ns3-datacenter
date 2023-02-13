@@ -4,9 +4,9 @@ import numpy as np
 import sys
 
 # leaf spine topology
-serversPerTor=32
+serversPerTor=16
 torSwitches=2
-spineSwitches=8
+spineSwitches=4
 
 serverDataRate=25
 allOtherDataRate=25
