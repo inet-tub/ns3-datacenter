@@ -1,1 +1,1 @@
-CXXFLAGS=-w ./waf configure --build-profile=optimized --enable-examples --disable-tests --disable-python
+CXXFLAGS=-w ./waf configure --build-profile=release --enable-examples --disable-tests --disable-python
