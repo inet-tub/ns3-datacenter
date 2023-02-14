@@ -590,7 +590,7 @@ uint64_t SwitchMmu::ReverieThreshold(uint32_t port, uint32_t qIndex, uint32_t ty
 		}
 	}
 	else if (type == LOSSY) {
-		double remaining = 0;
+		// double remaining = 0;
 		double satLevel = double(egressLpf_bytes[port][qIndex]) / congestionIndicator;
 		if (satLevel > 1) {
 			satLevel = 1;

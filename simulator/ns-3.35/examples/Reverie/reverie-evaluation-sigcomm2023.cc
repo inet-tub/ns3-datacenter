@@ -533,8 +533,8 @@ void incast_tcp (int incastLeaf, double requestRate, uint32_t requestSize, struc
                 ApplicationContainer sinkApp = sink.Install (n.Get(incastLeaf*SERVER_COUNT + incastServer));
                 sinkApp.Get(0)->SetAttribute("TotalQueryBytes", UintegerValue(flowSize));
                 sinkApp.Get(0)->SetAttribute("recvAt", TimeValue(Seconds(startTime)));
-                sinkApp.Get(0)->SetAttribute("priority", UintegerValue(0)); // ack packets are prioritized
-                sinkApp.Get(0)->SetAttribute("priorityCustom", UintegerValue(0)); // ack packets are prioritized
+                sinkApp.Get(0)->SetAttribute("priority", UintegerValue(1)); // ack packets are prioritized
+                sinkApp.Get(0)->SetAttribute("priorityCustom", UintegerValue(1)); // ack packets are prioritized
                 sinkApp.Get(0)->SetAttribute("senderPriority", UintegerValue(prior));
                 sinkApp.Get(0)->SetAttribute("flowId", UintegerValue(flowCount));
                 flowCount += 1;

@@ -33,7 +33,7 @@ NUM=0
 # BUFFER_ALGS=($DT $FAB $ABM "reverie")
 BUFFER_ALGS=($DT $ABM $REVERIE)
 
-BURST_SIZES=(0 500000 1000000 1500000 2000000 2500000)
+BURST_SIZES=(61250 125000 500000 1000000 1500000)
 
 LOADS=(0 0.2 0.4 0.6 0.8)
 
@@ -61,7 +61,7 @@ rdmaburst=0
 RDMACC=$DCQCNCC
 TCPCC=$CUBIC
 for tcpburst in ${BURST_SIZES[@]};do
-	if [[ $tcpburst == 2000000 ]];then
+	if [[ $tcpburst == 1000000 ]];then
 		continue;
 	fi
 	for alg in ${BUFFER_ALGS[@]};do

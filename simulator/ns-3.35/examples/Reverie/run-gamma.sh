@@ -62,6 +62,7 @@ tcpburst=0
 RDMACC=$DCQCNCC
 TCPCC=$CUBIC
 BUFFERMODEL="reverie"
+alg=$REVERIE
 for gamma in 0.4 0.8 0.9 0.99 0.999 0.999999;do
 	while [[ $(ps aux | grep reverie-evaluation-sigcomm2023-optimized | wc -l) -gt $N_CORES ]];do
 		sleep 30;
