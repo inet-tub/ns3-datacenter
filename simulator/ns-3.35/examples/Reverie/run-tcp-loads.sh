@@ -57,7 +57,7 @@ TCPREQRATE=2
 ######### 
 tcpburst=0
 tcpload=0
-rdmaburst=1000000
+rdmaburst=1500000
 RDMACC=$DCQCNCC
 TCPCC=$CUBIC
 for rdmaload in ${LOADS[@]};do

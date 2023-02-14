@@ -312,7 +312,7 @@ ax6.set_ylabel("99-pct buffer (Lossless)")
 ax7.set_ylabel("99-pct buffer (Lossy)")
 
 #%%
-
+dump="loveland_dump/"
 
 rdmacc=str(DCQCNCC)
 tcpcc=str(CUBIC)
@@ -321,7 +321,7 @@ tcpload="0"
 egresslossyFrac="0.8"
 gamma="0.999"
 
-rdmaburst="2000000"
+rdmaburst="1000000"
 
 fig0,ax0 = plt.subplots(1,1)
 fig1,ax1 = plt.subplots(1,1)
@@ -438,6 +438,8 @@ ax4.set_ylabel("99.9-pct FCT")
 ax5.set_ylabel("99-pct FCT")
 ax6.set_ylabel("99-pct buffer (Lossless)")
 ax7.set_ylabel("99-pct buffer (Lossy)")
+
+ax0.set_yscale('log')
 
 #%%
 
