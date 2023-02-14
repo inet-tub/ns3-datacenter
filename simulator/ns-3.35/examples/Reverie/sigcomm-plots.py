@@ -16,8 +16,9 @@ import pandas as pd
 import numpy as np
 
 #%%
-dump="dump14/"
+dump="dump_sigcomm/"
 plots="plots_sigcomm/"
+# plots="/home/vamsi/plots_sigcomm/"
 
 
 LOSSLESS=0
@@ -63,6 +64,15 @@ bursts=["500000", "1000000","1500000", "2000000", "2500000"]
 buffer=2610000
 
 #%%
+
+dump="dump_sigcomm/"
+
+loads=["0.2","0.4","0.6","0.8"]
+loadsint=[0.2,0.4,0.6,0.8]
+
+# bursts=["500000", "1000000"]
+bursts=["500000", "1000000","1500000", "2000000", "2500000"]
+
 rdmacc=str(DCQCNCC)
 tcpcc=str(CUBIC)
 rdmaburst="2000000"
@@ -80,6 +90,8 @@ fig4,ax4 = plt.subplots(1,1)
 fig5,ax5 = plt.subplots(1,1)
 fig6,ax6 = plt.subplots(1,1)
 fig7,ax7 = plt.subplots(1,1)
+fig8,ax8 = plt.subplots(1,1)
+fig9,ax9 = plt.subplots(1,1)
 
 
 for alg in algs:
@@ -92,6 +104,8 @@ for alg in algs:
     lossy=list()
     lossless=list()
     total=list()
+    longfctav=list()
+    medfctav=list()
     for tcpload in loads:
         fctfile = dump+"evaluation-"+alg+'-'+rdmacc+'-'+tcpcc+'-'+rdmaload+'-'+tcpload+'-'+rdmaburst+'-'+tcpburst+'-'+egresslossyFrac+'-'+gamma+'.fct'
         torfile = dump+"evaluation-"+alg+'-'+rdmacc+'-'+tcpcc+'-'+rdmaload+'-'+tcpload+'-'+rdmaburst+'-'+tcpburst+'-'+egresslossyFrac+'-'+gamma+'.tor'
@@ -128,6 +142,21 @@ for alg in algs:
         lossless.append(np.max(100*losslessbuf/buffer))
         total.append(np.max(100*totalbuf/buffer))
         
+        longfctDF = fctDF[(fctDF["flowsize"]>1000000)&(fctDF["priority"])==1]
+        longfct = list(longfctDF["slowdown"])
+        longfct.sort()
+        # longfctav.append(longfct[int(len(longfct)*0.99)])
+        longfctav.append(np.mean(longfct))
+        
+        
+        medfctDF = fctDF[(fctDF["flowsize"]<1000000)&(fctDF["flowsize"]>100000)&(fctDF["priority"])==1]
+        medfct = list(longfctDF["slowdown"])
+        medfct.sort()
+        # medfctav.append(medfct[int(len(medfct)*0.99)])
+        medfctav.append(np.mean(medfct))
+        
+        # print (alg,rdmacc,tcpcc,rdmaload,tcpload,rdmaburst,tcpburst,egresslossyFrac,gamma, numpfc, shortfctavg)
+        
     
     ax0.plot(loadsint,[i/1000 for i in numpfc],label=names[alg],lw=2,marker=markers[alg],c=colors[alg], markersize=10)
     ax1.plot(loadsint,shortfctavg,label=names[alg],lw=2,marker=markers[alg],c=colors[alg], markersize=10)
@@ -137,6 +166,8 @@ for alg in algs:
     ax5.plot(loadsint,tcpshortfct99,label=names[alg],lw=2,marker=markers[alg],c=colors[alg], markersize=10)
     ax6.plot(loadsint,lossless,label=names[alg],lw=2,marker=markers[alg],c=colors[alg], markersize=10)
     ax7.plot(loadsint,lossy,label=names[alg],lw=2,marker=markers[alg],c=colors[alg], markersize=10)
+    ax8.plot(loadsint,longfctav,label=names[alg],lw=2,marker=markers[alg],c=colors[alg], markersize=10)
+    ax9.plot(loadsint,medfctav,label=names[alg],lw=2,marker=markers[alg],c=colors[alg], markersize=10)
 
 ax0.legend()
 ax1.legend()
@@ -146,6 +177,7 @@ ax4.legend()
 ax5.legend()
 ax6.legend()
 ax7.legend()
+ax8.legend()
 
 ax0.xaxis.grid(True,ls='--')
 ax1.xaxis.grid(True,ls='--')
@@ -155,6 +187,7 @@ ax4.xaxis.grid(True,ls='--')
 ax5.xaxis.grid(True,ls='--')
 ax6.xaxis.grid(True,ls='--')
 ax7.xaxis.grid(True,ls='--')
+ax8.xaxis.grid(True,ls='--')
 
 ax0.yaxis.grid(True,ls='--')
 ax1.yaxis.grid(True,ls='--')
@@ -164,6 +197,7 @@ ax4.yaxis.grid(True,ls='--')
 ax5.yaxis.grid(True,ls='--')
 ax6.yaxis.grid(True,ls='--')
 ax7.yaxis.grid(True,ls='--')
+ax8.yaxis.grid(True,ls='--')
 
 ax0.set_xlabel("TCP load (%)")
 ax1.set_xlabel("TCP load (%)")
@@ -173,6 +207,7 @@ ax4.set_xlabel("TCP load (%)")
 ax5.set_xlabel("TCP load (%)")
 ax6.set_xlabel("TCP load (%)")
 ax7.set_xlabel("TCP load (%)")
+ax8.set_xlabel("TCP load (%)")
 
 ax0.set_ylabel("# PFC pauses (x1000)")
 ax1.set_ylabel("Avg. FCT")
@@ -182,9 +217,25 @@ ax4.set_ylabel("99.9-pct FCT")
 ax5.set_ylabel("99-pct FCT")
 ax6.set_ylabel("99-pct buffer (Lossless)")
 ax7.set_ylabel("99-pct buffer (Lossy)")
+ax8.set_ylabel("Avg. FCT")
+ax8.set_yscale('log')
 
+figs=[fig0, fig1, fig2,fig3, fig4,fig5, fig6, fig7, fig8, fig9]
+filenames=["pfc","incastavgfct","incast95fct","incast99fct","incast999fct","tcp99fct","losslessbuf","lossybuf","tcplongfctav","tcpmedfctav"]
+
+for i in range(len(figs)) :
+   figs[i].tight_layout()
+   figs[i].savefig(plots+'tcploads-rdmabursts-'+filenames[i]+'.pdf')
 
 #%%
+
+dump="dump_sigcomm/"
+
+loads=["0.2","0.4","0.6","0.8"]
+loadsint=[0.2,0.4,0.6,0.8]
+
+# bursts=["500000", "1000000"]
+bursts=["500000", "1000000","1500000", "2000000", "2500000"]
 
 rdmacc=str(DCQCNCC)
 tcpcc=str(CUBIC)
@@ -311,8 +362,22 @@ ax5.set_ylabel("99-pct FCT")
 ax6.set_ylabel("99-pct buffer (Lossless)")
 ax7.set_ylabel("99-pct buffer (Lossy)")
 
+figs=[fig0, fig1, fig2,fig3, fig4,fig5, fig6, fig7]
+filenames=["pfc","incastavgfct","incast95fct","incast99fct","incast999fct","tcp99fct","losslessbuf","lossybuf","tcplongfctav"]
+
+for i in range(len(figs)) :
+   figs[i].tight_layout()
+   figs[i].savefig(plots+'tcploads-acrossrdmabursts-'+filenames[i]+'.pdf')
+
+
 #%%
 dump="loveland_dump/"
+
+loads=["0.2","0.4","0.6","0.8"]
+loadsint=[0.2,0.4,0.6,0.8]
+
+# bursts=["500000", "1000000"]
+bursts=["500000", "1000000","1500000", "2000000"]
 
 rdmacc=str(DCQCNCC)
 tcpcc=str(CUBIC)
@@ -350,7 +415,7 @@ for alg in algs:
         pfcfile = dump+"evaluation-"+alg+'-'+rdmacc+'-'+tcpcc+'-'+rdmaload+'-'+tcpload+'-'+rdmaburst+'-'+tcpburst+'-'+egresslossyFrac+'-'+gamma+'.pfc'
         
         fctDF = pd.read_csv(fctfile,delimiter=' ')
-        shortfctDF = fctDF[(fctDF["flowsize"]<10000)&(fctDF["priority"]==3)] #fctDF[(fctDF["incastflow"]==1)&(fctDF["priority"]==3)]
+        shortfctDF = fctDF[(fctDF["incastflow"]==1)&(fctDF["priority"]==3)] # fctDF[(fctDF["flowsize"]<100000)&(fctDF["priority"]==3)] #
         
         # tcpshortfctDF = fctDF[(fctDF["flowsize"]<100000)&(fctDF["priority"]==1)]
         # shortfct = list(tcpshortfctDF["slowdown"])
@@ -385,7 +450,7 @@ for alg in algs:
         total.append(np.max(100*totalbuf/buffer))
         
     
-    ax0.plot(loadsint,[i/1000 for i in numpfc],label=names[alg],lw=2,marker=markers[alg],c=colors[alg], markersize=10)
+    ax0.plot(loadsint,numpfc,label=names[alg],lw=2,marker=markers[alg],c=colors[alg], markersize=10)
     ax1.plot(loadsint,shortfctavg,label=names[alg],lw=2,marker=markers[alg],c=colors[alg], markersize=10)
     ax2.plot(loadsint,shortfct95,label=names[alg],lw=2,marker=markers[alg],c=colors[alg], markersize=10)
     ax3.plot(loadsint,shortfct99,label=names[alg],lw=2,marker=markers[alg],c=colors[alg], markersize=10)
@@ -442,16 +507,19 @@ ax7.set_ylabel("99-pct buffer (Lossy)")
 ax0.set_yscale('log')
 
 #%%
+dump="dump14/"
 
+loads=["0.2","0.4","0.6","0.8"]
+loadsint=[0.2,0.4,0.6,0.8]
 
 rdmacc=str(DCQCNCC)
 tcpcc=str(CUBIC)
-tcpburst="0"
 tcpload="0"
 egresslossyFrac="0.8"
 gamma="0.999"
 
 rdmaload="0.8"
+rdmaburst="0"
 
 fig0,ax0 = plt.subplots(1,1)
 fig1,ax1 = plt.subplots(1,1)
@@ -462,7 +530,7 @@ fig5,ax5 = plt.subplots(1,1)
 fig6,ax6 = plt.subplots(1,1)
 fig7,ax7 = plt.subplots(1,1)
 
-burststemp=["500000", "1000000","1500000", "2000000", "3000000","4000000"]
+burststemp=["500000", "1000000","1500000", "2000000", "2500000"]
 
 for alg in algs:
     shortfct95=list()
@@ -474,14 +542,14 @@ for alg in algs:
     lossy=list()
     lossless=list()
     total=list()
-    for rdmaburst in burststemp:
+    for tcpburst in burststemp:
         fctfile = dump+"evaluation-"+alg+'-'+rdmacc+'-'+tcpcc+'-'+rdmaload+'-'+tcpload+'-'+rdmaburst+'-'+tcpburst+'-'+egresslossyFrac+'-'+gamma+'.fct'
         torfile = dump+"evaluation-"+alg+'-'+rdmacc+'-'+tcpcc+'-'+rdmaload+'-'+tcpload+'-'+rdmaburst+'-'+tcpburst+'-'+egresslossyFrac+'-'+gamma+'.tor'
         outfile = dump+"evaluation-"+alg+'-'+rdmacc+'-'+tcpcc+'-'+rdmaload+'-'+tcpload+'-'+rdmaburst+'-'+tcpburst+'-'+egresslossyFrac+'-'+gamma+'.out'
         pfcfile = dump+"evaluation-"+alg+'-'+rdmacc+'-'+tcpcc+'-'+rdmaload+'-'+tcpload+'-'+rdmaburst+'-'+tcpburst+'-'+egresslossyFrac+'-'+gamma+'.pfc'
         
         fctDF = pd.read_csv(fctfile,delimiter=' ')
-        shortfctDF = fctDF[(fctDF["flowsize"]<10000)&(fctDF["priority"]==3)] #fctDF[(fctDF["incastflow"]==1)&(fctDF["priority"]==3)]
+        shortfctDF = fctDF[(fctDF["incastflow"]==1)&(fctDF["priority"]==1)] #fctDF[(fctDF["flowsize"]<100000)&(fctDF["priority"]==3)]
         
         # tcpshortfctDF = fctDF[(fctDF["flowsize"]<100000)&(fctDF["priority"]==1)]
         # shortfct = list(tcpshortfctDF["slowdown"])

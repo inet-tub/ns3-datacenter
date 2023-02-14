@@ -33,7 +33,7 @@ NUM=0
 # BUFFER_ALGS=($DT $FAB $ABM "reverie")
 BUFFER_ALGS=($DT $ABM $REVERIE)
 
-BURST_SIZES=(500000 1000000 1500000 2000000 3000000 4000000)
+BURST_SIZES=(12500 500000 1000000 1500000 2000000)
 
 LOADS=(0.2 0.4 0.6 0.8)
 
@@ -57,11 +57,11 @@ TCPREQRATE=2
 ###### 
 rdmaload=0.8
 tcpload=0
-tcpburst=0
-RDMACC=$DCQCNCC
+rdmaburst=0
+RDMACC=$INTCC
 TCPCC=$CUBIC
-for rdmaburst in ${BURST_SIZES[@]};do
-	if [[ $rdmaburst == 2000000 ]];then
+for tcpburst in ${BURST_SIZES[@]};do
+	if [[ $tcpburst == 1500000 ]];then
 		continue;
 	fi
 	for alg in ${BUFFER_ALGS[@]};do
@@ -80,7 +80,7 @@ for rdmaburst in ${BURST_SIZES[@]};do
 		PFCFILE=$DUMP_DIR/evaluation-$alg-$RDMACC-$TCPCC-$rdmaload-$tcpload-$rdmaburst-$tcpburst-$egresslossyFrac-$gamma.pfc
 		echo $FCTFILE
 		if [[ $EXP == 1 ]];then
-			(time ./waf --run "reverie-evaluation-sigcomm2023 --bufferalgIngress=$alg --bufferalgEgress=$alg --rdmacc=$RDMACC --rdmaload=$rdmaload --rdmarequestSize=$rdmaburst --rdmaqueryRequestRate=$RDMAREQRATE --tcpload=$tcpload --tcpcc=$TCPCC --enableEcn=true --tcpqueryRequestRate=$TCPREQRATE --tcprequestSize=$tcpburst --egressLossyShare=$egresslossyFrac --bufferModel=$BUFFERMODEL --gamma=$gamma --START_TIME=$START_TIME --END_TIME=$END_TIME --FLOW_LAUNCH_END_TIME=$FLOW_LAUNCH_END_TIME --buffersize=$BUFFERSIZE --fctOutFile=$FCTFILE --torOutFile=$TORFILE --alphasFile=$ALPHAFILE --pfcOutFile=$PFCFILE" > $DUMPFILE 2> $DUMPFILE)&
+			(time ./waf --run "reverie-evaluation-sigcomm2023 --powertcp=true --bufferalgIngress=$alg --bufferalgEgress=$alg --rdmacc=$RDMACC --rdmaload=$rdmaload --rdmarequestSize=$rdmaburst --rdmaqueryRequestRate=$RDMAREQRATE --tcpload=$tcpload --tcpcc=$TCPCC --enableEcn=true --tcpqueryRequestRate=$TCPREQRATE --tcprequestSize=$tcpburst --egressLossyShare=$egresslossyFrac --bufferModel=$BUFFERMODEL --gamma=$gamma --START_TIME=$START_TIME --END_TIME=$END_TIME --FLOW_LAUNCH_END_TIME=$FLOW_LAUNCH_END_TIME --buffersize=$BUFFERSIZE --fctOutFile=$FCTFILE --torOutFile=$TORFILE --alphasFile=$ALPHAFILE --pfcOutFile=$PFCFILE" > $DUMPFILE 2> $DUMPFILE)&
 			sleep 5
 		fi
 		NUM=$(( $NUM+1  ))
