@@ -33,9 +33,9 @@ NUM=0
 # BUFFER_ALGS=($DT $FAB $ABM "reverie")
 BUFFER_ALGS=($DT $ABM $REVERIE)
 
-BURST_SIZES=(61250 125000 500000 1000000 1500000)
+BURST_SIZES=(500000 1000000 1500000 2000000 3000000 4000000)
 
-LOADS=(0 0.2 0.4 0.6 0.8)
+LOADS=(0.2 0.4 0.6 0.8)
 
 egresslossyFrac=0.8
 
@@ -55,9 +55,9 @@ TCPREQRATE=2
 
 ############################################################################
 ######### 
-rdmaburst=0
+tcpburst=0
 tcpload=0
-tcpburst=1000000
+rdmaburst=2000000
 RDMACC=$DCQCNCC
 TCPCC=$CUBIC
 for rdmaload in ${LOADS[@]};do
