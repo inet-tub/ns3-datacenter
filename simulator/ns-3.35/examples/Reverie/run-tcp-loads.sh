@@ -57,10 +57,13 @@ TCPREQRATE=2
 ######### 
 tcpburst=0
 tcpload=0
-rdmaburst=2000000
+rdmaburst=1000000
 RDMACC=$DCQCNCC
 TCPCC=$CUBIC
 for rdmaload in ${LOADS[@]};do
+	if [[ $rdmaload == 0.8 ]];then
+		continue;
+	fi
 	# tcpload=$(python3 -c "print('%.1f'%(0.8-$rdmaload))")
 	for alg in ${BUFFER_ALGS[@]};do
 		if [[ $alg != $REVERIE ]];then
