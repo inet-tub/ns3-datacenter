@@ -163,7 +163,11 @@ void SwitchNode::SendToDev(Ptr<Packet>p, CustomHeader &ch) {
 			if (m_mmu->CheckIngressAdmission(inDev, qIndex, p->GetSize(), found,unsched) && m_mmu->CheckEgressAdmission(idx, qIndex, p->GetSize(), found,unsched)) {			// Admission control
 				m_mmu->UpdateIngressAdmission(inDev, qIndex, p->GetSize(), found, unsched);
 				m_mmu->UpdateEgressAdmission(idx, qIndex, p->GetSize(), found);
+
+				std::cout << "arrival " << this->GetNode()->GetId() << " " << inDev << " " << qIndex << " " << p->GetSize() << " " << unsched << " " << Simulator::Now().GetNanoSeconds() << " " << m_mmu->ingress_bytes[inDev][qIndex] << " " << m_mmu->egress_bytes[idx][qIndex] << std::endl;
+
 			} else {
+				std::cout << "drop " << this->GetNode()->GetId() << " " << inDev << " " << qIndex << " " << p->GetSize() << " " << unsched << " " << Simulator::Now().GetNanoSeconds() << " " << m_mmu->ingress_bytes[inDev][qIndex] << " " << m_mmu->egress_bytes[idx][qIndex] << std::endl;
 				return; // Drop
 			}
 			CheckAndSendPfc(inDev, qIndex);
@@ -240,10 +244,18 @@ void SwitchNode::SwitchNotifyDequeue(uint32_t ifIndex, uint32_t qIndex, Ptr<Pack
 	MyPriorityTag priotag;
 	bool found = p->PeekPacketTag(priotag);
 
+	uint32_t unsched = 0;
+	UnSchedTag tag;
+	bool foundunSched = p->PeekPacketTag (tag);
+	if (foundunSched) {
+		unsched = tag.GetValue();
+	}
+
 	if (qIndex != 0) {
 		uint32_t inDev = t.GetPortId();
 		m_mmu->RemoveFromIngressAdmission(inDev, qIndex, p->GetSize(), found);
 		m_mmu->RemoveFromEgressAdmission(ifIndex, qIndex, p->GetSize(), found);
+		std::cout << "departure " << this->GetNode()->GetId() << " " << inDev << " " << qIndex << " " << p->GetSize() << " " << unsched << " " << Simulator::Now().GetNanoSeconds() << " " << m_mmu->ingress_bytes[inDev][qIndex] << " " << m_mmu->egress_bytes[idx][qIndex] << std::endl;
 		m_bytes[inDev][ifIndex][qIndex] -= p->GetSize();
 		if (m_ecnEnabled) {
 			bool egressCongested = m_mmu->ShouldSendCN(ifIndex, qIndex);

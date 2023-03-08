@@ -79,7 +79,7 @@ def build(bld):
         'utils/custom-header.cc',
         'utils/int-header.cc',
         'utils/seq-ts-header.cc',
-        'utils/rdma-tag.cc',
+        'utils/PacketId-tag.cc',
         'utils/interface-tag.cc',
         ]
 
@@ -189,7 +189,7 @@ def build(bld):
         'utils/custom-header.h',
         'utils/int-header.h',
         'utils/seq-ts-header.h',
-        'utils/rdma-tag.h',
+        'utils/PacketId-tag.h',
         'utils/interface-tag.h',
         ]
 

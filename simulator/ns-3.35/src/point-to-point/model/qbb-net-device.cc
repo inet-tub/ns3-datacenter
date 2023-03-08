@@ -46,7 +46,7 @@
 #include "ns3/seq-ts-header.h"
 #include "ns3/pointer.h"
 #include "ns3/custom-header.h"
-#include "ns3/rdma-tag.h"
+#include "ns3/PacketId-tag.h"
 #include "ns3/interface-tag.h"
 #include "ns3/unsched-tag.h"
 

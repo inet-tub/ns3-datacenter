@@ -13,6 +13,7 @@
 #include "qbb-header.h"
 #include "cn-header.h"
 #include "ns3/unsched-tag.h"
+#include "ns3/PacketId-tag.h"
 
 namespace ns3 {
 
