@@ -1,98 +1,95 @@
 source config.sh
-DIR="$NS3/examples/queueing-devel"
-DUMP_DIR="$DIR/dump_queueing"
-WORKLOADS="$NS3/workloads"
-mkdir $DUMP_DIR
+DIR=$(pwd)
+DUMP_DIR=$DIR/dump_queueing
+RESULTS_DIR=$DIR/results_queueing
 
-######## THESE ARE HARD CODED VALUES. DO NOT CHANGE ############
-DT=101
-FAB=102
-CS=103
-IB=104
-ABM=110
-
-RENO=0
-CUBIC=1
-DCTCP=2
-HPCC=3
-POWERTCP=4
-HOMA=5
-TIMELY=6
-THETAPOWERTCP=7
-
-TCP_NAMES[0]="Reno"
-TCP_NAMES[1]="Cubic"
-TCP_NAMES[2]="Dctcp"
-TCP_NAMES[3]="HPCC"
-TCP_NAMES[4]="PowerTCP"
-TCP_NAMES[5]="Homa"
-TCP_NAMES[6]="Timely"
-TCP_NAMES[7]="Theta-PowerTCP"
-###############################################################
-
-BUF_ALGS=($DT $FAB $CS $IB $ABM)
-TCP_ALGS=($CUBIC $DCTCP $TIMELY $POWERTCP)
-
-START_TIME=10
-END_TIME=24
-FLOW_END_TIME=13
-
-ALPHAFILE="$DIR/alphas"
-
-CDFFILES[0]="$WORKLOADS/websearch.csv"
-CDFFILES[1]="$WORKLOADS/datamining.csv"
-CDFFILES[2]="$WORKLOADS/hadoop.csv"
-
-CDFNAMES[0]="WS"
-CDFNAMES[1]="DM"
-CDFNAMES[2]="HP"
-
-# Oversubscription = 1; 64 Servers; 8 ToRs, 2 Spines.
-SERVERS=8
-LEAVES=8
-SPINES=2
-LINKS=4
-SERVER_LEAF_CAP=10 #Gbps
-LEAF_SPINE_CAP=10 #Gbps
-LATENCY=10 # Microseconds, rtt=80us
-
-RED_MIN=65 # packets
-RED_MAX=65 # packets
-
-STATIC_BUFFER=0
-BUFFER_PER_PORT_PER_GBPS=9.6
-BUFFER=$(python3 -c "print(int($BUFFER_PER_PORT_PER_GBPS*1024*($SERVERS+$LINKS*$SPINES)*$SERVER_LEAF_CAP))")
-
-N_PRIO=2
+if [ ! -d "$DUMP_DIR" ];then
+	mkdir $DUMP_DIR
+fi
+if [ ! -d "$RESULTS_DIR" ];then
+	mkdir $RESULTS_DIR
+fi
 
 cd $NS3
 
-LOAD=0.8
-BURST_SIZES=0
-BURST_SIZE=0
-BURST_FREQ=0
+LOSSLESS=0
+LOSSY=1
 
-ALG=$DT
-for CDFINDEX in 0;do
-	CDFFILE=${CDFFILES[$CDFINDEX]}
-	CDFNAME=${CDFNAMES[$CDFINDEX]}
-	for TCP in ${TCP_ALGS[@]};do
+DT=101
+FAB=102
+ABM=110
+REVERIE=111
 
-		while [[ $(ps aux | grep 'queueing-optimized' | wc -l) -gt $N_CORES ]];do
+DCQCNCC=1
+INTCC=3
+TIMELYCC=7
+PINTCC=10
+CUBIC=2
+DCTCP=4
+
+
+NUM=0
+
+# BUFFER_ALGS=($DT $FAB $ABM "reverie")
+BUFFER_ALGS=($DT)
+
+BURST_SIZES=(0 500000 1000000 1500000 2000000 2500000)
+
+LOADS=(0.2 0.4 0.6 0.8)
+
+egresslossyFrac=0.8
+
+gamma=0.999
+
+START_TIME=1
+END_TIME=6
+FLOW_LAUNCH_END_TIME=5
+BUFFER_PER_PORT_PER_GBPS=5.12 # in KiloBytes per port per Gbps
+BUFFERSIZE=$(python3 -c "print(8*25*1000*$BUFFER_PER_PORT_PER_GBPS)") # in Bytes
+ALPHAFILE=$DIR/alphas
+
+EXP=$1
+
+RDMAREQRATE=2
+TCPREQRATE=2
+
+############################################################################
+######### Pure RDMA with a fixed burst size, across loads ########
+rdmaburst=0
+tcpload=0
+tcpburst=0
+RDMACC=$DCQCNCC
+TCPCC=$CUBIC
+alg=$DT
+for rdmaload in ${LOADS[@]};do
+	# tcpload=$(python3 -c "print('%.1f'%(0.8-$rdmaload))")
+	for RDMACC in $DCQCNCC $INTCC $TIMELYCC ;do
+		if [[ $RDMACC == $INTCC ]];then
+			POWERTCP=true
+		else
+			POWERTCP=false
+		fi
+
+		if [[ $alg != $REVERIE ]];then
+			BUFFERMODEL="sonic"
+		else
+			BUFFERMODEL="reverie"
+		fi
+		while [[ $(ps aux | grep queueing-optimized | wc -l) -gt $N_CORES ]];do
 			sleep 30;
-			echo "waiting for cores, $N running..."
+			echo "waiting for cores, $N_CORES running..."
 		done
-
-		FLOWFILE="/dev/null"
-		TORFILE="/dev/null"
-		RXFILE=$DUMP_DIR/arrival-${TCP_NAMES[$TCP]}-$CDFNAME-$LOAD.dat
-		TXFILE=$DUMP_DIR/departure-${TCP_NAMES[$TCP]}-$CDFNAME-$LOAD.dat
-		echo "runnig queueing simulation with ${TCP_NAMES[$TCP]} and $CDFNAME workload..."
-		(time ./waf --run "queueing --load=$LOAD --StartTime=$START_TIME --EndTime=$END_TIME --FlowLaunchEndTime=$FLOW_END_TIME \
-		 --serverCount=$SERVERS --spineCount=$SPINES --leafCount=$LEAVES --linkCount=$LINKS --spineLeafCapacity=$LEAF_SPINE_CAP \
-		 --leafServerCapacity=$SERVER_LEAF_CAP --linkLatency=$LATENCY --TcpProt=$TCP --BufferSize=$BUFFER --statBuf=$STATIC_BUFFER \
-		 --algorithm=$ALG --RedMinTh=$RED_MIN --RedMaxTh=$RED_MAX --request=$BURST_SIZE --queryRequestRate=$BURST_FREQ --nPrior=$N_PRIO \
-		 --fctOutFile=$FLOWFILE --torOutFile=$TORFILE --rxOutFile=$RXFILE --txOutFile=$TXFILE --alphasFile=$ALPHAFILE --cdfFileName=$CDFFILE" 2>/dev/null >/dev/null; echo "$RXFILE")&
-		sleep 5
+		FCTFILE=$DUMP_DIR/queueing-$RDMACC-$rdmaload.fct
+		TORFILE=$DUMP_DIR/queueing-$RDMACC-$rdmaload.tor
+		DUMPFILE=$DUMP_DIR/queueing-$RDMACC-$rdmaload.out
+		PFCFILE=$DUMP_DIR/queueing-$RDMACC-$rdmaload.pfc
+		echo $FCTFILE
+		if [[ $EXP == 1 ]];then
+			(time ./waf --run "queueing --powertcp=$POWERTCP --bufferalgIngress=$alg --bufferalgEgress=$alg --rdmacc=$RDMACC --rdmaload=$rdmaload --rdmarequestSize=$rdmaburst --rdmaqueryRequestRate=$RDMAREQRATE --tcpload=$tcpload --tcpcc=$TCPCC --enableEcn=true --tcpqueryRequestRate=$TCPREQRATE --tcprequestSize=$tcpburst --egressLossyShare=$egresslossyFrac --bufferModel=$BUFFERMODEL --gamma=$gamma --START_TIME=$START_TIME --END_TIME=$END_TIME --FLOW_LAUNCH_END_TIME=$FLOW_LAUNCH_END_TIME --buffersize=$BUFFERSIZE --fctOutFile=$FCTFILE --torOutFile=$TORFILE --alphasFile=$ALPHAFILE --pfcOutFile=$PFCFILE" > $DUMPFILE 2> $DUMPFILE)&
+			sleep 5
+		fi
+		NUM=$(( $NUM+1  ))
 	done
 done
+
+echo "Total $NUM experiments"

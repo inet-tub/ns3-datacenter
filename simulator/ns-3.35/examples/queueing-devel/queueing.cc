@@ -540,7 +540,7 @@ void incast_tcp (int incastLeaf, double requestRate, uint32_t requestSize, struc
                 flowCount += 1;
                 sinkApp.Start (startApp);
                 sinkApp.Stop (Seconds (END_TIME));
-                sinkApp.Get(0)->TraceConnectWithoutContext("FlowFinish", MakeBoundCallback(&TraceMsgFinish, fctOutput));
+                // sinkApp.Get(0)->TraceConnectWithoutContext("FlowFinish", MakeBoundCallback(&TraceMsgFinish, fctOutput));
             }
             startTime += poission_gen_interval (requestRate);
         }
@@ -607,7 +607,7 @@ void workload_tcp (int txLeaf, double requestRate, struct cdf_table *cdfTable,
             flowCount += 1;
             sinkApp.Start (Seconds(startTime));
             sinkApp.Stop (Seconds (END_TIME));
-            sinkApp.Get(0)->TraceConnectWithoutContext("FlowFinish", MakeBoundCallback(&TraceMsgFinish, fctOutput));
+            // sinkApp.Get(0)->TraceConnectWithoutContext("FlowFinish", MakeBoundCallback(&TraceMsgFinish, fctOutput));
             startTime += poission_gen_interval (requestRate);
         }
     }
@@ -686,7 +686,7 @@ int main(int argc, char *argv[])
 
     uint32_t rdmarequestSize = 2000000;
     cmd.AddValue ("rdmarequestSize", "Query Size in Bytes", rdmarequestSize);
-    double rdmaqueryRequestRate = 1;
+    double rdmaqueryRequestRate = 0;
     cmd.AddValue("rdmaqueryRequestRate", "Query request rate (poisson arrivals)", rdmaqueryRequestRate);
 
     uint32_t rdmacc = DCQCNCC;
@@ -1014,6 +1014,8 @@ int main(int argc, char *argv[])
     SPINE_COUNT = switch_num - tors;
     SERVER_COUNT = (node_num - switch_num) / tors;
 
+    std::cout << "SERVER_COUNT " << SERVER_COUNT  << std::endl;
+
     LINK_COUNT = (link_num - (SERVER_COUNT * tors))/(LEAF_COUNT*SPINE_COUNT); // number of links between each tor-spine pair
 
     flowf >> flow_num;
@@ -1230,7 +1232,7 @@ int main(int argc, char *argv[])
 
             node->AggregateObject (rdma);
             rdma->Init();
-            rdma->TraceConnectWithoutContext("QpComplete", MakeBoundCallback (qp_finish, fctOutput));
+            // rdma->TraceConnectWithoutContext("QpComplete", MakeBoundCallback (qp_finish, fctOutput));
         }
     }
 
@@ -1432,7 +1434,7 @@ std::cout << "apps finished" << std::endl;
     topof.close();
     tracef.close();
     double delay = 1.5 * maxRtt * 1e-9; // 10 micro seconds
-    Simulator::Schedule(Seconds(START_TIME), printBuffer, torStats, torNodes, delay);
+    // Simulator::Schedule(Seconds(START_TIME), printBuffer, torStats, torNodes, delay);
 
     Ipv4GlobalRoutingHelper::PopulateRoutingTables();
     // AsciiTraceHelper ascii;
