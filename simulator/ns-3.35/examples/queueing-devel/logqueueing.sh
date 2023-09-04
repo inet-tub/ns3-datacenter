@@ -42,10 +42,11 @@ egresslossyFrac=0.8
 gamma=0.999
 
 START_TIME=1
-END_TIME=6
-FLOW_LAUNCH_END_TIME=5
-BUFFER_PER_PORT_PER_GBPS=5.12 # in KiloBytes per port per Gbps
+END_TIME=12
+FLOW_LAUNCH_END_TIME=11
+BUFFER_PER_PORT_PER_GBPS=18 #5.12 # in KiloBytes per port per Gbps
 BUFFERSIZE=$(python3 -c "print(8*25*1000*$BUFFER_PER_PORT_PER_GBPS)") # in Bytes
+echo "BUFFERSIZE = $BUFFERSIZE"
 ALPHAFILE=$DIR/alphas
 
 EXP=$1
@@ -53,6 +54,8 @@ EXP=$1
 RDMAREQRATE=2
 TCPREQRATE=2
 
+CDFFILES=("$NS3/workloads/websearch.csv" "$NS3/workloads/datamining.csv" "$NS3/workloads/hadoop.csv" )
+CDFNAMES=("WS" "DM" "HP")
 ############################################################################
 ######### Pure RDMA with a fixed burst size, across loads ########
 rdmaburst=0
@@ -61,6 +64,10 @@ tcpburst=0
 RDMACC=$DCQCNCC
 TCPCC=$CUBIC
 alg=$DT
+
+CDFINDEX=0
+
+for cdf in ${CDFFILES[@]};do
 for rdmaload in ${LOADS[@]};do
 	# tcpload=$(python3 -c "print('%.1f'%(0.8-$rdmaload))")
 	for RDMACC in $DCQCNCC $INTCC $TIMELYCC ;do
@@ -79,17 +86,20 @@ for rdmaload in ${LOADS[@]};do
 			sleep 30;
 			echo "waiting for cores, $N_CORES running..."
 		done
-		FCTFILE=$DUMP_DIR/queueing-$RDMACC-$rdmaload.fct
-		TORFILE=$DUMP_DIR/queueing-$RDMACC-$rdmaload.tor
-		DUMPFILE=$DUMP_DIR/queueing-$RDMACC-$rdmaload.out
-		PFCFILE=$DUMP_DIR/queueing-$RDMACC-$rdmaload.pfc
+		FCTFILE=$DUMP_DIR/queueing-$RDMACC-$rdmaload-${CDFNAMES[$CDFINDEX]}.fct
+		TORFILE=$DUMP_DIR/queueing-$RDMACC-$rdmaload-${CDFNAMES[$CDFINDEX]}.tor
+		DUMPFILE=$DUMP_DIR/queueing-$RDMACC-$rdmaload-${CDFNAMES[$CDFINDEX]}.out
+		DUMPFILE_META=$DUMP_DIR/queueing-$RDMACC-$rdmaload-${CDFNAMES[$CDFINDEX]}.meta
+		PFCFILE=$DUMP_DIR/queueing-$RDMACC-$rdmaload-${CDFNAMES[$CDFINDEX]}.pfc
 		echo $FCTFILE
 		if [[ $EXP == 1 ]];then
-			(time ./waf --run "queueing --powertcp=$POWERTCP --bufferalgIngress=$alg --bufferalgEgress=$alg --rdmacc=$RDMACC --rdmaload=$rdmaload --rdmarequestSize=$rdmaburst --rdmaqueryRequestRate=$RDMAREQRATE --tcpload=$tcpload --tcpcc=$TCPCC --enableEcn=true --tcpqueryRequestRate=$TCPREQRATE --tcprequestSize=$tcpburst --egressLossyShare=$egresslossyFrac --bufferModel=$BUFFERMODEL --gamma=$gamma --START_TIME=$START_TIME --END_TIME=$END_TIME --FLOW_LAUNCH_END_TIME=$FLOW_LAUNCH_END_TIME --buffersize=$BUFFERSIZE --fctOutFile=$FCTFILE --torOutFile=$TORFILE --alphasFile=$ALPHAFILE --pfcOutFile=$PFCFILE" > $DUMPFILE 2> $DUMPFILE)&
+			(time ./waf --run "queueing --cdfFileName=$cdf --powertcp=$POWERTCP --bufferalgIngress=$alg --bufferalgEgress=$alg --rdmacc=$RDMACC --rdmaload=$rdmaload --rdmarequestSize=$rdmaburst --rdmaqueryRequestRate=$RDMAREQRATE --tcpload=$tcpload --tcpcc=$TCPCC --enableEcn=true --tcpqueryRequestRate=$TCPREQRATE --tcprequestSize=$tcpburst --egressLossyShare=$egresslossyFrac --bufferModel=$BUFFERMODEL --gamma=$gamma --START_TIME=$START_TIME --END_TIME=$END_TIME --FLOW_LAUNCH_END_TIME=$FLOW_LAUNCH_END_TIME --buffersize=$BUFFERSIZE --fctOutFile=$FCTFILE --torOutFile=$TORFILE --alphasFile=$ALPHAFILE --pfcOutFile=$PFCFILE" > $DUMPFILE_META 2> $DUMPFILE)&
 			sleep 5
 		fi
 		NUM=$(( $NUM+1  ))
 	done
+done
+CDFINDEX=$(($CDFINDEX+1))
 done
 
 echo "Total $NUM experiments"

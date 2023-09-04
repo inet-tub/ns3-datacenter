@@ -478,7 +478,7 @@ void workload_rdma (int fromLeafId, double requestRate, struct cdf_table *cdfTab
             startTime += poission_gen_interval (requestRate);
         }
     }
-    std::cout << "Finished installation of applications from leaf-" << fromLeafId << std::endl;
+    // std::cout << "Finished installation of applications from leaf-" << fromLeafId << std::endl;
 }
 
 
@@ -979,7 +979,7 @@ int main(int argc, char *argv[])
     }
     conf.close();
 
-    std::cout << "config finished" << std::endl;
+    // std::cout << "config finished" << std::endl;
 
     has_win = rdmaWindowCheck;
     var_win = rdmaVarWin;
@@ -1014,7 +1014,7 @@ int main(int argc, char *argv[])
     SPINE_COUNT = switch_num - tors;
     SERVER_COUNT = (node_num - switch_num) / tors;
 
-    std::cout << "SERVER_COUNT " << SERVER_COUNT  << std::endl;
+    // std::cout << "SERVER_COUNT " << SERVER_COUNT  << std::endl;
 
     LINK_COUNT = (link_num - (SERVER_COUNT * tors))/(LEAF_COUNT*SPINE_COUNT); // number of links between each tor-spine pair
 
@@ -1368,7 +1368,7 @@ int main(int argc, char *argv[])
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     /* Applications Background*/
     double oversubRatio = static_cast<double>(SERVER_COUNT * LEAF_SERVER_CAPACITY) / (SPINE_LEAF_CAPACITY * SPINE_COUNT * LINK_COUNT);
-    std::cout << "SERVER_COUNT " << SERVER_COUNT << " LEAF_COUNT " << LEAF_COUNT << " SPINE_COUNT " << SPINE_COUNT << " LINK_COUNT " << LINK_COUNT << " RDMALOAD " << rdmaload << " TCPLOAD " << tcpload << " oversubRatio " << oversubRatio << std::endl;
+    // std::cout << "SERVER_COUNT " << SERVER_COUNT << " LEAF_COUNT " << LEAF_COUNT << " SPINE_COUNT " << SPINE_COUNT << " LINK_COUNT " << LINK_COUNT << " RDMALOAD " << rdmaload << " TCPLOAD " << tcpload << " oversubRatio " << oversubRatio << std::endl;
     struct cdf_table* cdfTable = new cdf_table ();
     init_cdf (cdfTable);
     load_cdf (cdfTable, cdfFileName.c_str ());
@@ -1430,7 +1430,7 @@ int main(int argc, char *argv[])
             incast_tcp(fromLeafId, tcpqueryRequestRate, tcprequestSize, cdfTable, flowCount, SERVER_COUNT, LEAF_COUNT, START_TIME, END_TIME, FLOW_LAUNCH_END_TIME);
         }
     }
-std::cout << "apps finished" << std::endl;
+// std::cout << "apps finished" << std::endl;
     topof.close();
     tracef.close();
     double delay = 1.5 * maxRtt * 1e-9; // 10 micro seconds
