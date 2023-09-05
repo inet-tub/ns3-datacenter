@@ -263,7 +263,7 @@ filenames=["pfc","incastavgfct","incast95fct","incast99fct","incast999fct","tcp9
 
 for i in range(len(figs)) :
     figs[i].tight_layout()
-    figs[i].savefig(plots+'tcploads-rdmabursts-'+filenames[i]+'.pdf')
+    # figs[i].savefig(plots+'tcploads-rdmabursts-'+filenames[i]+'.pdf')
 
 
 
