@@ -18,8 +18,8 @@ import sys
 
 #%%
 dump="dump_sigcomm/"
-plots="plots_sigcomm/"
-# plots="/home/vamsi/plots_sigcomm/"
+# plots="plots_sigcomm/"
+plots="/home/vamsi/src/phd/writings/reverie/nsdi24/plots/evaluation/"
 
 
 LOSSLESS=0
@@ -1021,3 +1021,214 @@ fig4.savefig(plots+'pfc-fct999.pdf')
 
 # ax.legend()
 # # ax.set_yscale('log')
+
+
+#%%
+
+
+dump="dump_sigcomm/"
+
+loads=["0.2","0.4","0.6","0.8"]
+loadsint=[0.2,0.4,0.6,0.8]
+
+# bursts=["500000", "1000000"]
+bursts=["500000", "1000000","1500000", "2000000", "2500000"]
+
+rdmacc=str(DCQCNCC)
+tcpcc=str(CUBIC)
+rdmaburst="2000000"
+rdmaload="0"
+tcpburst="0"
+tcpload="0.8"
+lossyFracs=["0.2","0.4","0.6","0.8"]
+lossyFracsInt=[0.2,0.4,0.6,0.8]
+
+egresslossyFrac="0.8"
+gamma="0.999"
+
+rdmaload="0"
+
+fig0,ax0 = plt.subplots(1,1,figsize=(4,5))
+fig1,ax1 = plt.subplots(1,1,figsize=(4,5))
+fig2,ax2 = plt.subplots(1,1,figsize=(4,5))
+fig3,ax3 = plt.subplots(1,1,figsize=(4,5))
+fig4,ax4 = plt.subplots(1,1,figsize=(4,5))
+fig5,ax5 = plt.subplots(1,1,figsize=(4,5))
+fig6,ax6 = plt.subplots(1,1,figsize=(4,5))
+fig7,ax7 = plt.subplots(1,1,figsize=(4,5))
+fig8,ax8 = plt.subplots(1,1,figsize=(4,5))
+fig9,ax9 = plt.subplots(1,1,figsize=(4,5))
+
+
+for alg in algs:
+    shortfct95=list()
+    shortfct99=list()
+    shortfct999=list()
+    shortfctavg=list()
+    tcpshortfct99=list()
+    numpfc=list()
+    lossy=list()
+    lossless=list()
+    total=list()
+    longfctav=list()
+    medfctav=list()
+    for egresslossyFrac in lossyFracs:
+        fctfile = dump+"evaluation-"+alg+'-'+rdmacc+'-'+tcpcc+'-'+rdmaload+'-'+tcpload+'-'+rdmaburst+'-'+tcpburst+'-'+egresslossyFrac+'-'+gamma+'.fct'
+        torfile = dump+"evaluation-"+alg+'-'+rdmacc+'-'+tcpcc+'-'+rdmaload+'-'+tcpload+'-'+rdmaburst+'-'+tcpburst+'-'+egresslossyFrac+'-'+gamma+'.tor'
+        outfile = dump+"evaluation-"+alg+'-'+rdmacc+'-'+tcpcc+'-'+rdmaload+'-'+tcpload+'-'+rdmaburst+'-'+tcpburst+'-'+egresslossyFrac+'-'+gamma+'.out'
+        pfcfile = dump+"evaluation-"+alg+'-'+rdmacc+'-'+tcpcc+'-'+rdmaload+'-'+tcpload+'-'+rdmaburst+'-'+tcpburst+'-'+egresslossyFrac+'-'+gamma+'.pfc'
+        
+        fctDF = pd.read_csv(fctfile,delimiter=' ')
+        shortfctDF = fctDF[(fctDF["incastflow"]==1)&(fctDF["priority"]==3)]
+        
+        tcpshortfctDF = fctDF[(fctDF["flowsize"]<100000)&(fctDF["priority"]==1)]
+        shortfct = list(tcpshortfctDF["slowdown"])
+        shortfct.sort()
+        fct99 = shortfct[int(len(shortfct)*0.99)-1]
+        tcpshortfct99.append(fct99)
+        
+        shortfct = list(shortfctDF["slowdown"])
+        shortfct.sort()
+        fct95 = shortfct[int(len(shortfct)*0.95)-1]
+        shortfct95.append(fct95)
+        fct99 = shortfct[int(len(shortfct)*0.99)-1]
+        shortfct99.append(fct99)
+        fct999 = shortfct[int(len(shortfct)*0.999)-1]
+        shortfct999.append(fct999)
+        shortfctavg.append(np.mean(shortfct))
+        
+        pfcDF = pd.read_csv(pfcfile,delimiter=' ')
+        numpfc.append(len(pfcDF))
+        
+        torDF = pd.read_csv(torfile,delimiter=' ')
+        lossybuf = torDF["egressOccupancyLossy"]
+        losslessbuf = torDF["egressOccupancyLossless"]
+        totalbuf = torDF["totalused"]
+        lossybuf = list(100*lossybuf/buffer)
+        losslessbuf = list(100*losslessbuf/buffer)
+        totalbuf = list(100*totalbuf/buffer)
+        lossybuf.sort()
+        losslessbuf.sort()
+        totalbuf.sort()
+        lossy.append(lossybuf[int(len(lossybuf)*0.99)])
+        lossless.append(losslessbuf[int(len(lossybuf)*0.99)])
+        total.append(totalbuf[int(len(lossybuf)*0.99)])
+        
+        longfctDF = fctDF[(fctDF["flowsize"]>1000000)&(fctDF["priority"])==1]
+        longfct = list(longfctDF["slowdown"])
+        longfct.sort()
+        # longfctav.append(longfct[int(len(longfct)*0.99)])
+        longfctav.append(np.mean(longfct))
+        
+        
+        medfctDF = fctDF[(fctDF["flowsize"]<1000000)&(fctDF["flowsize"]>100000)&(fctDF["priority"])==1]
+        medfct = list(longfctDF["slowdown"])
+        medfct.sort()
+        # medfctav.append(medfct[int(len(medfct)*0.99)])
+        medfctav.append(np.mean(medfct))
+        
+        # print (alg,rdmacc,tcpcc,rdmaload,tcpload,rdmaburst,tcpburst,egresslossyFrac,gamma, numpfc[-1],shortfctavg[-1],shortfct95[-1],shortfct99[-1],shortfct999[-1],tcpshortfct99[-1],lossless[-1],lossy[-1],0,0)
+        
+    
+    ax0.plot(lossyFracsInt ,[i/1000 for i in numpfc],label=names[alg],lw=4,marker=markers[alg],c=colors[alg], markersize=20)
+    ax1.plot(lossyFracsInt,shortfctavg,label=names[alg],lw=4,marker=markers[alg],c=colors[alg], markersize=20)
+    ax2.plot(lossyFracsInt,shortfct95,label=names[alg],lw=4,marker=markers[alg],c=colors[alg], markersize=20)
+    ax3.plot(lossyFracsInt,shortfct99,label=names[alg],lw=4,marker=markers[alg],c=colors[alg], markersize=20)
+    ax4.plot(lossyFracsInt,shortfct999,label=names[alg],lw=4,marker=markers[alg],c=colors[alg], markersize=20)
+    ax5.plot(lossyFracsInt,tcpshortfct99,label=names[alg],lw=4,marker=markers[alg],c=colors[alg], markersize=20)
+    ax6.plot(lossyFracsInt,lossless,label=names[alg],lw=4,marker=markers[alg],c=colors[alg], markersize=20)
+    ax7.plot(lossyFracsInt,lossy,label=names[alg],lw=4,marker=markers[alg],c=colors[alg], markersize=20)
+    ax8.plot(lossyFracsInt,longfctav,label=names[alg],lw=4,marker=markers[alg],c=colors[alg], markersize=20)
+    ax9.plot(lossyFracsInt,medfctav,label=names[alg],lw=4,marker=markers[alg],c=colors[alg], markersize=20)
+
+# ax0.legend()
+# ax1.legend()
+# ax2.legend()
+# ax3.legend()
+# ax4.legend()
+# ax5.legend()
+# ax6.legend()
+# ax7.legend()
+# ax8.legend()
+
+ax0.xaxis.grid(True,ls='--')
+ax1.xaxis.grid(True,ls='--')
+ax2.xaxis.grid(True,ls='--')
+ax3.xaxis.grid(True,ls='--')
+ax4.xaxis.grid(True,ls='--')
+ax5.xaxis.grid(True,ls='--')
+ax6.xaxis.grid(True,ls='--')
+ax7.xaxis.grid(True,ls='--')
+ax8.xaxis.grid(True,ls='--')
+ax9.xaxis.grid(True,ls='--')
+
+ax0.yaxis.grid(True,ls='--')
+ax1.yaxis.grid(True,ls='--')
+ax2.yaxis.grid(True,ls='--')
+ax3.yaxis.grid(True,ls='--')
+ax4.yaxis.grid(True,ls='--')
+ax5.yaxis.grid(True,ls='--')
+ax6.yaxis.grid(True,ls='--')
+ax7.yaxis.grid(True,ls='--')
+ax8.yaxis.grid(True,ls='--')
+ax9.yaxis.grid(True,ls='--')
+
+ax0.set_xlabel("Egress lossy pool (%)")
+ax1.set_xlabel("Egress lossy pool (%)")
+ax2.set_xlabel("Egress lossy pool (%)")
+ax3.set_xlabel("Egress lossy pool (%)")
+ax4.set_xlabel("Egress lossy pool (%)")
+ax5.set_xlabel("Egress lossy pool (%)")
+ax6.set_xlabel("Egress lossy pool (%)")
+ax7.set_xlabel("Egress lossy pool (%)")
+ax8.set_xlabel("Egress lossy pool (%)")
+ax9.set_xlabel("Egress lossy pool (%)")
+
+ax0.set_xticks([0.2,0.4,0.6,0.8])
+ax1.set_xticks([0.2,0.4,0.6,0.8])
+ax2.set_xticks([0.2,0.4,0.6,0.8])
+ax3.set_xticks([0.2,0.4,0.6,0.8])
+ax4.set_xticks([0.2,0.4,0.6,0.8])
+ax5.set_xticks([0.2,0.4,0.6,0.8])
+ax6.set_xticks([0.2,0.4,0.6,0.8])
+ax7.set_xticks([0.2,0.4,0.6,0.8])
+ax8.set_xticks([0.2,0.4,0.6,0.8])
+ax9.set_xticks([0.2,0.4,0.6,0.8])
+
+ax0.set_xticklabels(["20","40","60","80"])
+ax1.set_xticklabels(["20","40","60","80"])
+ax2.set_xticklabels(["20","40","60","80"])
+ax3.set_xticklabels(["20","40","60","80"])
+ax4.set_xticklabels(["20","40","60","80"])
+ax5.set_xticklabels(["20","40","60","80"])
+ax6.set_xticklabels(["20","40","60","80"])
+ax7.set_xticklabels(["20","40","60","80"])
+ax8.set_xticklabels(["20","40","60","80"])
+ax9.set_xticklabels(["20","40","60","80"])
+
+ax0.set_ylabel("# PFC pauses (x1000)")
+ax1.set_ylabel("Avg. FCT")
+ax2.set_ylabel("95-pct FCT")
+ax3.set_ylabel("99-pct FCT")
+ax4.set_ylabel("99.9-pct FCT")
+ax5.set_ylabel("99-pct FCT")
+ax6.set_ylabel("99-pct buffer (Lossless)")
+ax7.set_ylabel("99-pct buffer (Lossy)")
+ax8.set_ylabel("Avg. FCT")
+ax9.set_ylabel("Median FCT")
+# ax8.set_yscale('log')
+
+ax0.set_ylim(0,25)
+ax1.set_ylim(10,25)
+ax1.set_yticks([10,15,20,25])
+ax5.set_ylim(5,50)
+ax6.set_ylim(0,50)
+ax7.set_ylim(0,50)
+
+figs=[fig0, fig1, fig2,fig3, fig4,fig5, fig6, fig7, fig8, fig9]
+filenames=["pfc","incastavgfct","incast95fct","incast99fct","incast999fct","tcp99fct","losslessbuf","lossybuf","tcplongfctav","tcpmedfctav"]
+
+for i in range(len(figs)) :
+    figs[i].tight_layout()
+    figs[i].savefig(plots+'lossyfrac-'+filenames[i]+'.pdf')
+
