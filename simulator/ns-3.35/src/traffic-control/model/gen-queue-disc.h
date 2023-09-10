@@ -118,6 +118,8 @@ public:
 
   void TrimPacket(Ptr<Packet> packetCopy);
 
+  bool LongestQueueDrop(uint32_t priority, Ptr<Packet> packet);
+
 
 
 private:
@@ -201,6 +203,7 @@ private:
 
   TracedCallback<Ptr<const Packet>, uint32_t, bool, Ptr<GenQueueDisc>> m_rxTrace; // trace enqueue events
   TracedCallback<Ptr<const Packet>, uint32_t, Ptr<GenQueueDisc>> m_txTrace; // trace dequeue events
+  TracedCallback<Ptr<const Packet>, uint32_t> m_traceLQD; // trace LQD events
 };
 
 } // namespace ns3

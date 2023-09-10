@@ -4,18 +4,6 @@
  *  Created on: May 13, 2020
  *      Author: vamsi
  */
-
-
-
-#include "ns3/log.h"
-#include "ns3/abort.h"
-#include "ns3/uinteger.h"
-#include "ns3/pointer.h"
-#include "ns3/object-vector.h"
-#include "ns3/packet.h"
-#include "ns3/socket.h"
-#include "ns3/unused.h"
-#include "ns3/simulator.h"
 #include "shared-memory.h"
 
 namespace ns3 {
@@ -46,10 +34,16 @@ SharedMemoryBuffer::SharedMemoryBuffer(){
 			saturated[i][j]=0;
 			sumBytes[i][j]=1500;
 			tDiff[i][j]=Seconds(0);
+			queueLength[i][j]=0;
+			averageQueueLength[i][j]=0;
+			threshold[i][j]=0;
 		}
 	}
 
 	OccupiedBuffer=0;
+	numPorts = 0;
+	numQueues = 0;
+	averageSharedOccupancy=0;
 }
 
 SharedMemoryBuffer::~SharedMemoryBuffer ()
@@ -69,13 +63,17 @@ SharedMemoryBuffer::DoDispose (void)
   		for (int j=0;j<8;j++){
   			saturated[i][j]=0;
   			timestamp[i][j]=Seconds(0);
+			queueLength[i][j]=0;
+			averageQueueLength[i][j]=0;
+			threshold[i][j]=0;
   		}
   	}
   	TotalBuffer=0;
   	OccupiedBuffer=0;
   	RemainingBuffer=0;
-  	maxports=0;
-  	maxpriority=0;
+	numPorts = 0;
+	numQueues = 0;
+	averageSharedOccupancy=0;
 
   Object::DoDispose ();
 }
@@ -88,11 +86,18 @@ SharedMemoryBuffer::DoInitialize (void)
   		N[i]=1;
   	}
   	for (int i=0;i<99;i++){
-  		for (int j=0;j<8;j++)
+  		for (int j=0;j<8;j++){
   			saturated[i][j]=0;
+			queueLength[i][j]=0;
+			averageQueueLength[i][j]=0;
+			threshold[i][j]=0;
+		}
   	}
 
   	OccupiedBuffer=0;
+	averageSharedOccupancy=0;
+	numPorts = 0;
+	numQueues = 0;
   Object::DoInitialize ();
 }
 
@@ -113,10 +118,15 @@ void SharedMemoryBuffer::PerPriorityStatDeq(uint32_t size, uint32_t priority){
 	OccupiedBufferPriority[priority] -= size;
 }
 
-bool SharedMemoryBuffer::EnqueueBuffer(uint32_t size){
+uint32_t SharedMemoryBuffer::GetQueueSize(uint32_t port, uint32_t queue){
+	return queueLength[port][queue];
+}
+
+bool SharedMemoryBuffer::EnqueueBuffer(uint32_t size, uint32_t port, uint32_t queue){
 	if(RemainingBuffer>size){
 		RemainingBuffer-=size;
-		OccupiedBuffer+=size;
+		OccupiedBuffer= std::min(OccupiedBuffer+size, TotalBuffer);
+		queueLength[port][queue]+=size;
 		return true;
 	}
 	else{
@@ -124,10 +134,26 @@ bool SharedMemoryBuffer::EnqueueBuffer(uint32_t size){
 	}
 }
 
-void SharedMemoryBuffer::DequeueBuffer(uint32_t size){
+void SharedMemoryBuffer::DequeueBuffer(uint32_t size, uint32_t port, uint32_t queue){
+	double gamma = (std::min((Simulator::Now()-LastUpdatedAverage).GetNanoSeconds(), AverageInterval.GetNanoSeconds())/double(AverageInterval.GetNanoSeconds()));
+	LastUpdatedAverage = Simulator::Now(); 
 	if(OccupiedBuffer>size){
 		OccupiedBuffer-=size;
+		averageSharedOccupancy = gamma*(double(OccupiedBuffer)) + (1-gamma)*double(averageSharedOccupancy);
 		RemainingBuffer+=size;
+	}
+	else{
+		OccupiedBuffer = 0;
+		averageSharedOccupancy = gamma*(double(OccupiedBuffer)) + (1-gamma)*double(averageSharedOccupancy);
+		RemainingBuffer = TotalBuffer;
+	}
+	if (queueLength[port][queue]>size){
+		queueLength[port][queue]-=size;
+		averageQueueLength[port][queue] = gamma*(double(queueLength[port][queue])) + (1-gamma)*double(averageQueueLength[port][queue]);
+	}
+	else{
+		queueLength[port][queue]=0;
+		averageQueueLength[port][queue] = gamma*(double(queueLength[port][queue])) + (1-gamma)*double(averageQueueLength[port][queue]);
 	}
 }
 
@@ -136,6 +162,31 @@ double SharedMemoryBuffer::GetNofP(uint32_t priority){
 		return N[priority];
 	else
 		return 1;
+}
+
+void SharedMemoryBuffer::addQueuePtr(Ptr<QueueDisc> queuePtr, uint32_t port){
+	QueuePtr[port]=queuePtr;
+}
+
+uint32_t SharedMemoryBuffer::findLongestQueue(){
+	uint32_t longestQueueLength = 0;
+	uint32_t longestQueue = 0;
+	for (uint32_t i = 0; i < numPorts; i++){
+		if (queueLength[i][1] > longestQueueLength ){ // For now, this is a single queue case. We assume only queue id 1 at each port receives data packets.
+			longestQueueLength = queueLength[i][1];
+			longestQueue = i;
+		}
+	}
+	return longestQueue;
+}
+
+Ptr<QueueDiscItem> 
+SharedMemoryBuffer::RemoveLongestQueuePacket(){
+	uint32_t longestQueue = findLongestQueue();
+	Ptr<QueueDiscItem> item = QueuePtr[longestQueue]->GetQueueDiscClass (1)->GetQueueDisc ()->GetInternalQueue(0)->Remove();
+	DequeueBuffer(item->GetPacket()->GetSize(), longestQueue, 1);
+	PerPriorityStatDeq(item->GetPacket()->GetSize(), 1);
+	return item;
 }
 
 

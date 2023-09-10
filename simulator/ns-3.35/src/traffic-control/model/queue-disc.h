@@ -544,6 +544,8 @@ protected:
    */
   void DropBeforeEnqueue (Ptr<const QueueDiscItem> item, const char* reason);
 
+  void DropAfterEnqueue (Ptr<const QueueDiscItem> item); // Vamsi: for push-out
+
   /**
    *  \brief Perform the actions required when the queue disc is notified of
    *         a packet dropped after dequeue

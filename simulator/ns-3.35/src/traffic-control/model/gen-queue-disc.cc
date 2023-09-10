@@ -35,12 +35,16 @@
 #include "ns3/custom-priority-tag.h"
 #include "ns3/unsched-tag.h"
 #include "ns3/feedback-tag.h"
+#include "ns3/bufferlog-tag.h"
 
 # define DT 101
 # define FAB 102
 # define CS 103
 # define IB 104
 # define ABM 110
+# define LQD 111
+# define FOLLOWLQD 112
+# define CREDENCE 666
 
 namespace ns3 {
 
@@ -102,6 +106,9 @@ TypeId GenQueueDisc::GetTypeId (void)
                       .AddTraceSource ("genDequeue", "trace dequeue events",
                                        MakeTraceSourceAccessor (&GenQueueDisc::m_txTrace),
                                        "ns3::Packet::TracedCallback")
+                      .AddTraceSource ("traceLQD", "trace LQD events",
+                                       MakeTraceSourceAccessor (&GenQueueDisc::m_traceLQD),
+                                       "ns3::Packet::TracedCallback")
                       ;
   return tid;
 }
@@ -157,7 +164,8 @@ bool GenQueueDisc::DynamicThresholds(uint32_t priority, Ptr<Packet> packet) {
   if (maxSize > UINT32_MAX)
     maxSize = UINT32_MAX - 1500;
 
-  uint32_t qSize = GetQueueDiscClass (priority)->GetQueueDisc ()->GetNBytes();
+  // uint32_t qSize = GetQueueDiscClass (priority)->GetQueueDisc ()->GetNBytes();
+  uint32_t qSize = sharedMemory->GetQueueSize(portId, priority);
   if ( ((qSize + packet->GetSize()) >  maxSize) || (sharedMemory->GetRemainingBuffer() < packet->GetSize())  ) {
     return false; // drop
   }
@@ -232,7 +240,8 @@ bool GenQueueDisc::ActiveBufferManagement(uint32_t priority, Ptr<Packet> packet)
     alpha = alphas[priority];
   }
 
-  uint64_t currentSize = GetQueueDiscClass (priority)->GetQueueDisc ()->GetNBytes();
+  // uint64_t currentSize = GetQueueDiscClass (priority)->GetQueueDisc ()->GetNBytes();
+  uint64_t currentSize = sharedMemory->GetQueueSize(portId, priority);
 
   double satLevel = double(currentSize) / sat;
   if (satLevel > 1) {
@@ -254,7 +263,8 @@ bool GenQueueDisc::ActiveBufferManagement(uint32_t priority, Ptr<Packet> packet)
   if (maxSize > UINT32_MAX)
     maxSize = UINT32_MAX - 1500;
 
-  uint32_t qSize = GetQueueDiscClass (priority)->GetQueueDisc ()->GetNBytes();
+  // uint32_t qSize = GetQueueDiscClass (priority)->GetQueueDisc ()->GetNBytes();
+  uint32_t qSize = sharedMemory->GetQueueSize(portId, priority);
   if ( ((qSize + packet->GetSize()) >  maxSize) || (sharedMemory->GetRemainingBuffer() < packet->GetSize())  ) {
     return false; // drop
   }
@@ -306,7 +316,8 @@ bool GenQueueDisc::FlowAwareBuffer(uint32_t priority, Ptr<Packet> packet) {
     maxSize = UINT32_MAX - 1500;
 
 
-  uint32_t qSize = GetQueueDiscClass (priority)->GetQueueDisc ()->GetNBytes();
+  // uint32_t qSize = GetQueueDiscClass (priority)->GetQueueDisc ()->GetNBytes();
+  uint32_t qSize = sharedMemory->GetQueueSize(portId, priority);
   if ( ((qSize + packet->GetSize()) >  maxSize) || (sharedMemory->GetRemainingBuffer() < packet->GetSize())  ) {
     return false; // drop
   }
@@ -325,6 +336,44 @@ bool GenQueueDisc::CompleteSharing(uint32_t priority, Ptr<Packet> packet) {
   }
 }
 
+
+
+bool GenQueueDisc::LongestQueueDrop(uint32_t priority, Ptr<Packet> packet){ 
+  // std::cout << "available " << sharedMemory->GetRemainingBuffer() << " occupied " << sharedMemory->GetOccupiedBuffer() << std::endl;
+  if (sharedMemory->GetRemainingBuffer() < packet->GetSize()){
+    bool available = false;
+    // std::cout << "using LQD" << std::endl;
+    while (!available){
+      // std::cout << "pushing out" << std::endl;
+      Ptr<QueueDiscItem> item = sharedMemory->RemoveLongestQueuePacket();
+      m_traceLQD(item->GetPacket(), 1); // 0 to indicate accepted, 1 for drop.
+      if (sharedMemory->GetRemainingBuffer() < packet->GetSize())
+        available = false;
+      else
+        available = true;
+    }
+    BufferLogTag buffertag;
+    buffertag.setQueueLength(sharedMemory->GetQueueSize(portId,priority));
+    buffertag.setAverageQueueLength(sharedMemory->getAverageQueueLength(portId,priority));
+    buffertag.setOccupiedBuffer(sharedMemory->GetOccupiedBuffer());
+    buffertag.setAverageOccupiedBuffer(sharedMemory->getAverageOccupancy());
+    packet->AddPacketTag(buffertag);
+    return true;
+  }
+  else{
+    BufferLogTag buffertag;
+    buffertag.setQueueLength(sharedMemory->GetQueueSize(portId,priority));
+    buffertag.setAverageQueueLength(sharedMemory->getAverageQueueLength(portId,priority));
+    buffertag.setOccupiedBuffer(sharedMemory->GetOccupiedBuffer());
+    buffertag.setAverageOccupiedBuffer(sharedMemory->getAverageOccupancy());
+    packet->AddPacketTag(buffertag);
+    return true;
+  }
+}
+
+
+
+
 void
 GenQueueDisc::SetQrefAfd(uint32_t p, uint32_t ref) {
   QRefAfd[p] = ref;
@@ -336,10 +385,11 @@ GenQueueDisc::GetQrefAfd(uint32_t p) {
 
 int
 GenQueueDisc::DropAfd(double prob, uint32_t priority) {
-  uint32_t qsize = GetQueueDiscClass (priority)->GetQueueDisc ()->GetNBytes();
+  // uint32_t qsize = GetQueueDiscClass (priority)->GetQueueDisc ()->GetNBytes();
+  uint32_t qSize = sharedMemory->GetQueueSize(portId, priority);
   double x = double(rand()) / RAND_MAX;
   // 150*1024 is the recommended value for 10Gbps links https://www.cisco.com/c/en/us/products/collateral/switches/nexus-9000-series-switches/white-paper-c11-738488.html
-  return ((x < prob) && (qsize > 150 * 1024));
+  return ((x < prob) && (qSize > 150 * 1024));
 }
 
 
@@ -351,7 +401,8 @@ bool GenQueueDisc::IntelligentBuffer(uint32_t priority, Ptr<Packet> packet) {
       it->second.second = 1; //1 just to avoid divide by zero errors
     }
     for (uint32_t i = 0; i < nPrior; i++) {
-      uint32_t Qnow = GetQueueDiscClass (i)->GetQueueDisc ()->GetNBytes();
+      // uint32_t Qnow = GetQueueDiscClass (i)->GetQueueDisc ()->GetNBytes();
+      uint32_t Qnow = sharedMemory->GetQueueSize(portId, i);
       MFair[i] = MFair[i] - a1 * ((double)Qnow - (double)QRefAfd[i]) + a2 * ((double)Qold[i] - (double)QRefAfd[i]); // a1 and a2 --> 1.8 and 1.7
       if (MFair[i] < 0)
         MFair[i] = 0;
@@ -407,19 +458,22 @@ bool GenQueueDisc::AcceptPacket(uint32_t priority, Ptr<Packet> packet) {
   switch (bufferalg) {
   case DT:
     accept = DynamicThresholds(priority, packet);
-    break;
+    break; // This comment is intended to remind myself and others some basics that break is essential :P
   case ABM:
     accept = ActiveBufferManagement(priority, packet);
-    break;
+    break; // This comment is intended to remind myself and others some basics that break is essential :P
   case FAB:
     accept = FlowAwareBuffer(priority, packet);
-    break;
+    break; // This comment is intended to remind myself and others some basics that break is essential :P
   case CS:
     accept = CompleteSharing(priority, packet);
-    break;
+    break; // This comment is intended to remind myself and others some basics that break is essential :P
   case IB:
     accept = IntelligentBuffer(priority, packet);
-    break;
+    break; // This comment is intended to remind myself and others some basics that break is essential :P
+  case LQD:
+    accept = LongestQueueDrop(priority,packet);
+    break; // This comment is intended to remind myself and others some basics that break is essential :P
   default:
     accept = DynamicThresholds(priority, packet);
   }
@@ -468,7 +522,8 @@ GenQueueDisc::DoEnqueue (Ptr<QueueDiscItem> item)
 
   /* Arrival Statistics*/
   numBytesSent[p] += item->GetSize();
-  uint64_t sizenow = GetQueueDiscClass (p)->GetQueueDisc ()->GetNBytes();
+  // uint64_t sizenow = GetQueueDiscClass (p)->GetQueueDisc ()->GetNBytes();
+  uint64_t sizenow = sharedMemory->GetQueueSize(portId, p);
   if (bufferMax[p] < sizenow) {
     bufferMax[p] = sizenow;
   }
@@ -491,6 +546,7 @@ GenQueueDisc::DoEnqueue (Ptr<QueueDiscItem> item)
     // std::cout << " maxSize " << maxSize << " remaining " << sharedMemory->GetRemainingBuffer() << " packetSize " << item->GetSize() << " priority " << uint32_t(p) << " alpha " << alphas[p] << " thresh " << uint64_t (alphas[p]*(sharedMemory->GetRemainingBuffer())) << " deq " << DeqRate[p] << " N " << sharedMemory->GetNofP(p) << std::endl;
     m_rxTrace(packet, p, false, this); // trace packet arrival event at queue p
     DropBeforeEnqueue (item, LIMIT_EXCEEDED_DROP);
+    // std::cout << "dropped" << std::endl;
     return false;
   }
   else{
@@ -504,12 +560,12 @@ GenQueueDisc::DoEnqueue (Ptr<QueueDiscItem> item)
 
   /*increment shared buffer occupancy*/
   bool retval;
-  if (!sharedMemory->EnqueueBuffer(item->GetSize())) {
+  if (!sharedMemory->EnqueueBuffer(item->GetPacket()->GetSize(), portId, p)) {
     DropBeforeEnqueue (item, LIMIT_EXCEEDED_DROP);
     retval = false;
   }
   else {
-    sharedMemory->PerPriorityStatEnq(item->GetSize(), p);
+    sharedMemory->PerPriorityStatEnq(item->GetPacket()->GetSize(), p);
     retval = GetQueueDiscClass (p)->GetQueueDisc ()->Enqueue (item);
   }
 
@@ -587,6 +643,11 @@ GenQueueDisc::DoDequeue (void)
     Ptr<Packet> packet = item->GetPacket();
     
     m_txTrace(packet, dequeueIndex, this); // trace dequeue event from dequeueIndex queue
+    if (bufferalg == LQD){
+      m_traceLQD(packet, 0); // 0 to indicate accepted, 1 for drop.
+      BufferLogTag buffertag;
+      bool gone = packet->RemovePacketTag (buffertag);
+    }
 
     uint32_t p = dequeueIndex;
 
@@ -597,8 +658,8 @@ GenQueueDisc::DoDequeue (void)
 
     Deq[p] += item->GetSize();
     if (GetCurrentSize().GetValue() + packet->GetSize() > staticBuffer) {
-      sharedMemory->DequeueBuffer(item->GetSize());
-      sharedMemory->PerPriorityStatDeq(item->GetSize(), p);
+      sharedMemory->DequeueBuffer(item->GetPacket()->GetSize(), portId, p);
+      sharedMemory->PerPriorityStatDeq(item->GetPacket()->GetSize(), p);
     }
 
     if (enableINT) {
@@ -606,7 +667,7 @@ GenQueueDisc::DoDequeue (void)
       bool found;
       found = packet->PeekPacketTag(Int);
       if (found) {
-        Int.setTelemetryQlenDeq(Int.getHopCount(), GetQueueDiscClass (p)->GetQueueDisc ()->GetNBytes()); // queue length at dequeue
+        Int.setTelemetryQlenDeq(Int.getHopCount(), sharedMemory->GetQueueSize(portId, p)); // queue length at dequeue
         Int.setTelemetryTsDeq(Int.getHopCount(), Simulator::Now().GetNanoSeconds()); // timestamp at dequeue
         Int.setTelemetryBw(Int.getHopCount(), portBW * 1e9);
         Int.setTelemetryTxBytes(Int.getHopCount(), txBytesInt);

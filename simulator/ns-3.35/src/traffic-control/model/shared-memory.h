@@ -10,9 +10,18 @@
 
 #include "ns3/simulator.h"
 #include "ns3/object.h"
-//#include "ns3/queue-disc.h"
-
+#include "ns3/queue-disc.h"
+#include "fifo-queue-disc.h"
+#include "ns3/queue.h"
 #include "unordered_map"
+#include "ns3/log.h"
+#include "ns3/abort.h"
+#include "ns3/uinteger.h"
+#include "ns3/pointer.h"
+#include "ns3/object-vector.h"
+#include "ns3/packet.h"
+#include "ns3/socket.h"
+#include "ns3/unused.h"
 
 namespace ns3 {
 
@@ -23,13 +32,10 @@ public:
 	virtual ~SharedMemoryBuffer();
 
 	void SetSharedBufferSize(uint32_t size);
-	uint32_t GetSharedBufferSize();
 
-	uint32_t GetOccupiedBuffer(){return OccupiedBuffer;}
-	uint32_t GetRemainingBuffer(){return RemainingBuffer;}
 	double GetNofP(uint32_t priority);
-	bool EnqueueBuffer(uint32_t size);
-	void DequeueBuffer(uint32_t size);
+	bool EnqueueBuffer(uint32_t size, uint32_t port, uint32_t queue);
+	void DequeueBuffer(uint32_t size, uint32_t port, uint32_t queue);
 
 	void AddN(uint32_t group){N[group]++;}
 	void SubN(uint32_t group){N[group]--;}
@@ -52,8 +58,38 @@ public:
 	void PerPriorityStatEnq(uint32_t size, uint32_t priority);
 	void PerPriorityStatDeq(uint32_t size, uint32_t priority);
 
-	uint32_t GetPerPriorityOccupied(uint32_t priority){return OccupiedBufferPriority[priority];}
+	void addQueuePtr(Ptr<QueueDisc> queue, uint32_t port);
 
+	void setPorts(uint32_t ports){
+		numPorts = ports;
+	}
+	void setQueues(uint32_t queues){
+		numQueues = queues;
+	}
+
+	uint32_t findLongestQueue();
+
+	Ptr<QueueDiscItem>  RemoveLongestQueuePacket();
+
+	void setSwitchId(uint32_t id){
+		switchId = id;
+	}
+	void setAverageInteral(Time t){
+		AverageInterval = t;
+	}
+	///////////// USeful for logs ///////////////
+	uint32_t GetSharedBufferSize();
+	uint32_t GetOccupiedBuffer(){return OccupiedBuffer;}
+	uint32_t GetRemainingBuffer(){return RemainingBuffer;}
+	uint32_t GetPerPriorityOccupied(uint32_t priority){return OccupiedBufferPriority[priority];}
+	uint32_t GetQueueSize(uint32_t port, uint32_t queue);
+	uint32_t getAverageQueueLength(uint32_t port, uint32_t queue){
+		return averageQueueLength[port][queue];
+	}
+	uint32_t getAverageOccupancy(){
+		return averageSharedOccupancy;
+	}
+	/////////////////////////////////////////////
 
 protected:
 	void DoInitialize (void);
@@ -68,8 +104,6 @@ private:
 	uint32_t RemainingBuffer;
 	double N[8]; // N corresponds to each queue (one-one mapping with priority) at each port. 8 queues exist at each port.
 	double saturated[100][8]; // 100 ports and 8 queues per node which share the buffer, are supported for now.
-	uint32_t maxports=100;
-	uint32_t maxpriority=8;
 
 	std::unordered_map<uint32_t,uint32_t> PriorityToGroupMap;
 
@@ -79,6 +113,17 @@ private:
 	uint64_t MaxRate;
 	Time timestamp[100][8];
 
+	///////////////
+	uint32_t queueLength[100][8];
+	uint32_t averageQueueLength[100][8];
+	uint32_t threshold[100][8];
+	uint32_t averageSharedOccupancy;
+	Ptr<QueueDisc> QueuePtr[100];
+	uint32_t numPorts;
+	uint32_t numQueues;
+	uint32_t switchId;
+	Time LastUpdatedAverage;
+	Time AverageInterval;
 };
 }
 

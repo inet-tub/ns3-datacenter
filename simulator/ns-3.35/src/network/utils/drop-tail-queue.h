@@ -54,9 +54,11 @@ public:
 private:
   using Queue<Item>::begin;
   using Queue<Item>::end;
+  using Queue<Item>::beforeEnd; // Vamsi
   using Queue<Item>::DoEnqueue;
   using Queue<Item>::DoDequeue;
   using Queue<Item>::DoRemove;
+  using Queue<Item>::DoRemovePushOut;
   using Queue<Item>::DoPeek;
 
   NS_LOG_TEMPLATE_DECLARE;     //!< redefinition of the log component
@@ -127,7 +129,7 @@ DropTailQueue<Item>::Remove (void)
 {
   NS_LOG_FUNCTION (this);
 
-  Ptr<Item> item = DoRemove (begin ());
+  Ptr<Item> item = DoRemovePushOut (beforeEnd ()); // Vamsi
 
   NS_LOG_LOGIC ("Removed " << item);
 

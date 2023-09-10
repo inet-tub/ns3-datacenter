@@ -765,6 +765,16 @@ QueueDisc::DropBeforeEnqueue (Ptr<const QueueDiscItem> item, const char* reason)
 }
 
 void
+QueueDisc::DropAfterEnqueue (Ptr<const QueueDiscItem> item)
+{
+  m_nPackets--;
+  m_nBytes -= item->GetSize ();
+  m_stats.nTotalDroppedPackets++;
+  m_stats.nTotalDroppedBytes += item->GetSize ();
+  m_traceDrop (item);
+}
+
+void
 QueueDisc::DropAfterDequeue (Ptr<const QueueDiscItem> item, const char* reason)
 {
   NS_LOG_FUNCTION (this << item << reason);

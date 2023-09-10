@@ -81,6 +81,7 @@ def build(bld):
         'utils/seq-ts-header.cc',
         'utils/rdma-tag.cc',
         'utils/interface-tag.cc',
+        'utils/bufferlog-tag.cc',
         ]
 
     network_test = bld.create_ns3_module_test_library('network')
@@ -191,6 +192,7 @@ def build(bld):
         'utils/seq-ts-header.h',
         'utils/rdma-tag.h',
         'utils/interface-tag.h',
+        'utils/bufferlog-tag.h',
         ]
 
     if (bld.env['ENABLE_EXAMPLES']):

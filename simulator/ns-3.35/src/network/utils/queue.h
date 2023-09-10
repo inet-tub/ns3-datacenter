@@ -322,6 +322,7 @@ protected:
    * \returns a const iterator which refers to the first item in the queue.
    */
   ConstIterator begin (void) const;
+  ConstIterator beforeEnd (void) const; // Vamsi
 
   /**
    * \brief Get an iterator which refers to the first item in the queue.
@@ -338,6 +339,7 @@ protected:
    * \returns an iterator which refers to the first item in the queue.
    */
   Iterator begin (void);
+  Iterator beforeEnd (void); // Vamsi
 
   /**
    * \brief Get a const iterator which indicates past-the-last item in the queue.
@@ -401,6 +403,7 @@ protected:
    * \return the item.
    */
   Ptr<Item> DoRemove (ConstIterator pos);
+  Ptr<Item> DoRemovePushOut (ConstIterator pos); // Vamsi
 
   /**
    * Peek the front item in the queue
@@ -428,6 +431,9 @@ protected:
    * dropped for other reasons after being dequeued.
    */
   void DropAfterDequeue (Ptr<Item> item);
+
+  void DropAfterEnqueue (Ptr<Item> item); // Vamsi: for push-out
+
 
   void DoDispose (void) override;
 
@@ -579,14 +585,44 @@ Queue<Item>::DoRemove (ConstIterator pos)
       m_nPackets--;
 
       // packets are first dequeued and then dropped
-      NS_LOG_LOGIC ("m_traceDequeue (p)");
-      m_traceDequeue (item);
+      // NS_LOG_LOGIC ("m_traceDequeue (p)");
+      // m_traceDequeue (item);
 
       DropAfterDequeue (item);
     }
   return item;
 }
 
+///////////////////////////////////////////////////////////////////
+// Vamsi
+template <typename Item>
+Ptr<Item>
+Queue<Item>::DoRemovePushOut (ConstIterator pos)
+{
+  NS_LOG_FUNCTION (this);
+
+  if (m_nPackets.Get () == 0)
+    {
+      NS_LOG_LOGIC ("Queue empty");
+      return 0;
+    }
+
+  Ptr<Item> item = *pos;
+  m_packets.erase (pos);
+
+  if (item != 0)
+    {
+      NS_ASSERT (m_nBytes.Get () >= item->GetSize ());
+      NS_ASSERT (m_nPackets.Get () > 0);
+
+      m_nBytes -= item->GetSize ();
+      m_nPackets--;
+
+      DropAfterEnqueue(item);
+    }
+  return item;
+}
+///////////////////////////////////////////////////////////////////
 template <typename Item>
 void
 Queue<Item>::Flush (void)
@@ -621,6 +657,22 @@ Queue<Item>::DoPeek (ConstIterator pos) const
 
   return *pos;
 }
+//////////////////////////////////////////////////////////////
+// Vamsi:
+template <typename Item>
+typename Queue<Item>::ConstIterator Queue<Item>::beforeEnd (void) const
+{
+  auto it = --m_packets.cend();
+  return it;
+}
+
+template <typename Item>
+typename Queue<Item>::Iterator Queue<Item>::beforeEnd (void)
+{
+  auto it = --m_packets.end ();
+  return it;
+}
+/////////////////////////////////////////////////////////////
 
 template <typename Item>
 typename Queue<Item>::ConstIterator Queue<Item>::begin (void) const
@@ -677,6 +729,17 @@ Queue<Item>::DropAfterDequeue (Ptr<Item> item)
   m_traceDrop (item);
   m_traceDropAfterDequeue (item);
 }
+
+template <typename Item>
+void
+Queue<Item>::DropAfterEnqueue (Ptr<Item> item)
+{
+  m_nTotalDroppedPackets++;
+  m_nTotalDroppedBytes += item->GetSize ();
+  m_traceDrop (item);
+}
+
+
 
 // The following explicit template instantiation declarations prevent all the
 // translation units including this header file to implicitly instantiate the
