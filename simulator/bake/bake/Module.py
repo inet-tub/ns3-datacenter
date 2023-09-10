@@ -325,7 +325,7 @@ class Module:
             srcDirTmp = self._source.attribute('module_directory').value
 
         env.start_build(self._name, srcDirTmp,
-                        self._build.supports_objdir)
+                        self._build.objdir)
         if not os.path.isdir(env.objdir) or not os.path.isdir(env.srcdir):
             env.end_build()
             return
@@ -356,7 +356,7 @@ class Module:
         if self._source.attribute('module_directory').value :
             srcDirTmp = self._source.attribute('module_directory').value
             
-        env.start_build(self._name, srcDirTmp, True)
+        env.start_build(self._name, srcDirTmp, self._build.objdir)
         sys.stdout.write(" >> Removing source: " + self._name + ": " + env.srcdir)
         try: 
             shutil.rmtree(env.srcdir)
@@ -446,7 +446,7 @@ class Module:
             srcDirTmp = self._source.attribute('module_directory').value
             
         env.start_build(self._name, srcDirTmp,
-                        self._build.supports_objdir)
+                        self._build.objdir)
         
         # setup the monitor
         monitor = FilesystemMonitor(env.installdir)
@@ -467,7 +467,7 @@ class Module:
 
         if not os.path.isdir(env.installdir):
             os.mkdir(env.installdir)
-        if self._build.supports_objdir and not os.path.isdir(env.objdir):
+        if self._build.objdir != '' and not os.path.isdir(env.objdir):
             os.mkdir(env.objdir)
 
         try:
@@ -523,7 +523,7 @@ class Module:
             srcDirTmp = self._source.attribute('module_directory').value
             
         env.start_build(self._name, srcDirTmp,
-                        self._build.supports_objdir)
+                        self._build.objdir)
         
         retval = self._build.check_version(env)
         env.end_build()
@@ -568,7 +568,7 @@ class Module:
             srcDirTmp = self._source.attribute('module_directory').value
             
         env.start_build(self._name, srcDirTmp,
-                        self._build.supports_objdir)
+                        self._build.objdir)
         env.add_libpaths([env._lib_path()])
         env.end_build()
 
@@ -580,7 +580,7 @@ class Module:
             srcDirTmp = self._source.attribute('module_directory').value
 
         env.start_build(self._name, srcDirTmp,
-                        self._build.supports_objdir)
+                        self._build.objdir)
         if not os.path.isdir(env.objdir) or not os.path.isdir(env.srcdir):
             env.end_build()
             return

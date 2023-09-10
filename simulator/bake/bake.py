@@ -23,10 +23,27 @@
 #
 # Bake executable, in fact it is just a wrapper for the main Bake class.  
 
-import sys
+import sys, os
 import bake
 
 try:
+    dir = oridir = os.getcwd()
+
+    while True:
+        script = os.path.join(dir, "bake.py")
+        if os.path.isfile(script):
+            if dir == oridir:
+                break
+            os.chdir(dir)
+            args = ' '.join(sys.argv[1:])
+            os.system("python bake.py " + args)
+            exit()
+        else:
+            tmp = os.path.dirname(dir)
+            if tmp == dir:
+                break
+            dir = tmp
+    
     b = bake.Bake()
     b.main(sys.argv)
 except SystemExit as e: 

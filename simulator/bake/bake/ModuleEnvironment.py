@@ -45,16 +45,15 @@ class ModuleEnvironment:
      
     (HIGHER, LOWER, EQUAL) = range(0,3)
 
-    def __init__(self, logger, installdir, sourcedir, objdir, debug=False):
+    def __init__(self, logger, installdir, sourcedir, debug=False):
         ''' Internal variables initialization.'''
         
         self._logger = logger
         self._installdir = installdir
         self._sourcedir = sourcedir
-        self._objdir = objdir
+        self._objdir = None
         self._module_name = None
         self._module_dir = None
-        self._module_supports_objdir = None
 #         self._libpaths = set([])
 #         self._binpaths = set([])
 #         self._pkgpaths =  set([])
@@ -108,7 +107,7 @@ class ModuleEnvironment:
         present module.
         '''
         
-        if not self._module_supports_objdir:
+        if self._objdir is None:
             obj = self.srcdir
         else:
             try:
@@ -187,7 +186,6 @@ class ModuleEnvironment:
     def start_source(self, name, dir):
         ''' Sets the environment to be used by the given source module.'''
         
-        assert self._module_supports_objdir is None
         self._module_name = name
         self._module_dir = dir
         self._logger.set_current_module(name)
@@ -205,13 +203,12 @@ class ModuleEnvironment:
         self._module_dir = None
         self._logger.clear_current_module()
 
-    def start_build(self, name, dir, supports_objdir):
+    def start_build(self, name, dir, objdir):
         ''' Sets the environment to be used by the given build module.'''
         
-#        assert self._module_supports_objdir is None
         self._module_name = name
         self._module_dir = dir
-        self._module_supports_objdir = supports_objdir
+        self._objdir = objdir
         self._logger.set_current_module(name)
 
         if not os.path.isdir(self.installdir):
@@ -226,7 +223,6 @@ class ModuleEnvironment:
         
         self._module_name = None
         self._module_dir = None
-        self._module_supports_objdir = None
         self._logger.clear_current_module()
     
     def exist_file(self, file):
@@ -432,7 +428,6 @@ class ModuleEnvironment:
         import re
         tmp = string
         tmp = re.sub('\$INSTALLDIR', self.installdir, tmp)
-        tmp = re.sub('\$OBJDIR', self.objdir, tmp)
         tmp = re.sub('\$SRCDIR', self.srcdir, tmp)
         return tmp
 

@@ -27,14 +27,6 @@ def build_netanim(qmakepath):
     except:
         print("Could not find qmake-qt5 in the default path")
         
-    try:
-        if qmakeFound == False:
-                run_command(['qmake-qt4', '-v'])
-                qmake = 'qmake-qt4'
-                print("qmake-qt4 found")
-    except:
-        print("Could not find qmake-qt4 in the default path")
-        
     if qmakepath:
         print("Setting qmake to user provided path")
         qmake = qmakepath
@@ -54,7 +46,7 @@ def build_netanim(qmakepath):
         pass
 
 def build_ns3(config, build_examples, build_tests, args, build_options):
-    cmd = [sys.executable, "waf", "configure"] + args
+    cmd = [sys.executable, "ns3", "configure"] + args
 
     if build_examples:
         cmd.append("--enable-examples")
@@ -62,28 +54,8 @@ def build_ns3(config, build_examples, build_tests, args, build_options):
     if build_tests:
         cmd.append("--enable-tests")
 
-    try:
-        ns3_traces, = config.getElementsByTagName("ns-3-traces")
-    except ValueError:
-        # Don't print a warning message here since regression traces
-        # are no longer used.
-        pass
-    else:
-        cmd.extend([
-                "--with-regression-traces", os.path.join("..", ns3_traces.getAttribute("dir")),
-                ])
-
-    try:
-        pybindgen, = config.getElementsByTagName("pybindgen")
-    except ValueError:
-        print("Note: configuring ns-3 without pybindgen")
-    else:
-        cmd.extend([
-                "--with-pybindgen", os.path.join("..", pybindgen.getAttribute("dir")),
-        ])
-
-    run_command(cmd) # waf configure ...
-    run_command([sys.executable, "waf", "build"] + build_options)
+    run_command(cmd) # ns3 configure ...
+    run_command([sys.executable, "ns3", "build"] + build_options)
 
 
 def main(argv):
@@ -101,7 +73,7 @@ def main(argv):
                       help=("Do try to build tests (not built by default)"), action="store_true", default=False,
                       dest='enable_tests')
     parser.add_option('--build-options',
-                      help=("Add these options to ns-3's \"waf build\" command"),
+                      help=("Add these options to ns-3's \"ns3 build\" command"),
                       default='', dest='build_options')
     (options, args) = parser.parse_args()
 

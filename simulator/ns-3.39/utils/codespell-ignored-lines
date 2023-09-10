@@ -1,0 +1,121 @@
+#lollipop-counter.h: 341, 343
+        LollipopCounter ans = val;
+        return ans;
+
+#arp-header.cc: 202
+    ReadFrom(i, m_macDest, hardwareAddressLen);   // Read THA (size HLN)
+
+#csma-net-device.cc: 351-352
+            Ptr<Packet> padd = Create<Packet>(buffer, 46 - p->GetSize());
+            p->AddAtEnd(padd);
+
+#epc-gtpu-header.h: 236
+     * This field is used to co-ordinate the data transmission for acknowledged mode
+
+#mobility-model.cc:100, 102
+    Vector oPosition = other->DoGetPosition();
+    return CalculateDistance(position, oPosition);
+
+#statistics.rst:299-300
+    read ANS
+    if [ "$ANS" = "yes" -o "$ANS" = "y" ]
+
+#wifi-example-db.sh:34-35
+  read ANS
+  if [ "$ANS" = "yes" -o "$ANS" = "y" ]
+
+#doxygen.warnings.report.sh:483, 485, 544, 549, 556, 561
+filterin=
+    filterin=$(              \
+#     if [ "$filterin" != "" ] ; then
+#         echo "$filterin"
+if [ "$filterin" != "" ] ; then
+    echo "$filterin"
+
+#./src/visualizer/visualizer/hud.py:93-94
+            tbe = math.log10(dx_over_ndiv)#;   /* looking for approx. 'ndiv' divisions in a length 'dx' */
+            div = pow(10, rint(tbe))#;         /* div: power of 10 closest to dx/ndiv */
+
+#./utils/tests/test-ns3.py:2944
+            'convert {image} -colorspace HSI -channel b -separate +channel -scale 1x1 -format "%[fx:100*u]" info:'
+
+#./doc/tutorial/source/introduction.rst:80
+Network Animator nam.  It is not possible to run a simulation
+
+#./src/internet-apps/model/v4ping.h:37
+ * \brief an application which sends one ICMP ECHO request, waits for a REPLYs
+
+#./src/openflow/model/openflow-switch-net-device.cc:544, 548
+                arp_h->ar_tha);                                       // Target hardware address.
+            arp_h->ar_hln = sizeof arp_h->ar_tha;                     // Hardware address length.
+
+./src/dsr/model/dsr-routing.cc:243, 246, 3360, 3363
+            .AddAttribute("GratReplyHoldoff",
+                          MakeTimeAccessor(&DsrRouting::m_gratReplyHoldoff),
+                                   m_gratReplyHoldoff))) // Find the gratuitous reply entry
+        GraReplyEntry graReplyEntry(source, srcAddress, m_gratReplyHoldoff + Simulator::Now());
+
+./src/dsr/model/dsr-routing.h:882
+    Time m_gratReplyHoldoff; ///< The max gratuitous reply hold off time
+
+./src/dsr/model/dsr-gratuitous-reply-table.cc:75, 76
+            i->m_gratReplyHoldoff =
+                std::max(gratReplyHoldoff + Simulator::Now(), i->m_gratReplyHoldoff);
+
+./src/dsr/model/dsr-gratuitous-reply-table.h:54, 66, 137
+    Time m_gratReplyHoldoff; ///< gratuitous reply holdoff time
+          m_gratReplyHoldoff(h)
+            return (b.m_gratReplyHoldoff < Simulator::Now());
+
+./RELEASE_NOTES.md:1087
+- Bug 2530 - aodv: Rename aodv::SetBalckListTimeout to aodv::SetBlackListTimeout
+
+./doc/installation/source/linux.rst:122
+  apt install gir1.2-goocanvas-2.0 python3-gi python3-gi-cairo python3-pygraphviz gir1.2-gtk-3.0 ipython3
+
+./doc/tutorial/source/getting-started.rst:347:
+  >> Searching for system dependency gir-bindings - OK
+
+./src/wave/examples/vanet-routing-compare.cc:1565, 1971
+static ns3::GlobalValue g_rate("VRCrate",
+    GlobalValue::GetValueByName("VRCrate", stringValue);
+
+./src/lte/model/lte-mi-error-model.h:23:
+ *      for mobIlE Video AppLications) project, which is a
+
+./src/traffic-control/model/codel-queue-disc.h:17:
+ * Codel, the COntrolled DELay Queueing discipline
+
+./src/internet/model/global-route-manager-impl.h:555:
+     * \param vs a list of SPFVertexes
+
+./src/internet/model/candidate-queue.h:166:
+     * SPFVertexes are added into the queue according to the ordering
+
+./src/internet/model/global-route-manager-impl.h:555
+    typedef std::list<SPFVertex*> ListOfSPFVertex_t; //!< container of SPFVertexes
+
+./CHANGES.md:
+  * (dsr) Class `DsrOptionRerrUnsupportHeader` from `dsr-option-header.h` was renamed `DsrOptionRerrUnsupportedHeader`.
+  * (internet) Enumerated value `IPV6_EXT_AUTHENTIFICATION` from `ipv6-header.h` was renamed `IPV6_EXT_AUTHENTICATION`.
+  * (lr-wpan) Constant `aMaxBeaconPayloadLenght` from `lr-wpan-constants.h` was renamed `aMaxBeaconPayloadLength`.
+  * (lte) Enumeration `ControPduType_t` from `lte-rlc-am-header.h` was renamed `ControlPduType_t`.
+  * (lte) Function `LteUeCphySapProvider::StartInSnycDetection()` from `lte-ue-cphy-sap.h` was renamed `LteUeCphySapProvider::StartInSyncDetection()`.
+  * (lte) Function `MemberLteUeCphySapProvider::StartInSnycDetection()` from `lte-ue-cphy-sap.h` was renamed `MemberLteUeCphySapProvider::StartInSyncDetection()`.
+  * (lte) Function `LteUePhy::StartInSnycDetection()` from `lte-ue-phy.h` was renamed `LteUePhy::StartInSyncDetection()`.
+  * (lte) Function `DoUlInfoListElementHarqFeeback` from `lte-enb-phy-sap.h` and `lte-enb-mac.h` was renamed `DoUlInfoListElementHarqFeedback`.
+  * (lte) Function `DoDlInfoListElementHarqFeeback` from `lte-enb-phy-sap.h` and `lte-enb-mac.h` was renamed `DoDlInfoListElementHarqFeedback`.
+  * (mesh) Function `PeerManagementProtocolMac::SetPeerManagerProtcol` from `peer-management-protocol-mac.h` was renamed `PeerManagementProtocolMac::SetPeerManagerProtocol`.
+  * (network) File `lollipop-comparisions.cc` was renamed `lollipop-comparisons.cc`.
+  * (network) Attribute `currentTrimedFromStart` from `packet-metadata.h` was renamed `currentTrimmedFromStart`.
+  * (network) Attribute `currentTrimedFromEnd` from `packet-metadata.h` was renamed `currentTrimmedFromEnd`.
+  * (sixlowpan) Function `SixLowPanNetDevice::Fragments::GetFraments` from `sixlowpan-net-device.cc` was renamed `SixLowPanNetDevice::Fragments::GetFragments`.
+  * (wave) Function `OcbWifiMac::CancleTx()` from `ocb-wifi-mac.h` was renamed `OcbWifiMac::CancelTx()`.
+  * (wifi) Attribute `m_succesMax1` from `aparf-wifi-manager.h` was renamed `m_successMax1`.
+  * (wifi) Attribute `m_succesMax2` from `aparf-wifi-manager.h` was renamed `m_successMax2`.
+  * (wifi) Enumerated value `MDAOP_ADVERTISMENT_REQUEST` from `mgmt-headers.h` was renamed `MDAOP_ADVERTISEMENT_REQUEST`.
+  * (wifi) Enumerated value `MDAOP_ADVERTISMENTS` from `mgmt-headers.h` was renamed `MDAOP_ADVERTISEMENTS`.
+  * (wifi) Define `IE_BEAMLINK_MAINENANCE` from `wifi-information-element.h` was renamed `IE_BEAMLINK_MAINTENANCE`.
+  * (wimax) Attribute `m_nrRecivedFecBlocks` from `simple-ofdm-wimax-phy.h` was renamed `m_nrReceivedFecBlocks`.
+* The spelling of the attribute `IntialCellVoltage` from `LiIonEnergySource` was corrected to `InitialCellVoltage`; this will affect existing users who were using the attribute with the misspelling.
+* The attribute `Recievers` in class `YansWifiPhy` was misspelled, so this has been corrected to `Receivers`.

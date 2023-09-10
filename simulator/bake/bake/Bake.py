@@ -90,7 +90,7 @@ class Bake:
         sys.exit(1)
         
     def _fix_config(self, config, args):
-        """Handles the fix_cinfig command line option. It intends to fix 
+        """Handles the fix_config command line option. It intends to fix 
         manually changed files and updates the in-use configuration with 
         new values."""
         
@@ -100,10 +100,6 @@ class Bake:
                           dest="bakeconf", default="bakeconf.xml",
                           help="The Bake meta-data configuration from where to"
                           " get the updated modules file to use. Default: %default.")
-        parser.add_option("--objdir", action="store", type="string",
-                          dest="objdir", default=None,
-                          help="The per-module directory where the object"
-                          " files of each module will be compiled.")
         parser.add_option("--sourcedir", action="store", type="string",
                           dest="sourcedir", default=None,
                           help="The directory where the source code of all modules "
@@ -161,10 +157,6 @@ class Bake:
             new_config.set_installdir(options.installdir)
         else:
             new_config.set_installdir(old_config.get_installdir())
-        if options.objdir:
-            new_config.set_objdir(options.objdir)
-        else:
-            new_config.set_objdir(old_config.get_objdir())
         if options.sourcedir:
             new_config.set_sourcedir(options.sourcedir)
         else:    
@@ -510,10 +502,6 @@ class Bake:
                           help="Format: module:name=value. A variable to"
                           " append to in the Bake build "
                           "configuration for the especified module.")
-        parser.add_option("--objdir", action="store", type="string",
-                          dest="objdir", default="objdir",
-                          help="The per-module directory where the object"
-                          " files of each module will be compiled.")
         parser.add_option("--sourcedir", action="store", type="string",
                           dest="sourcedir", default="source",
                           help="The directory where the source code of all modules "
@@ -576,7 +564,6 @@ class Bake:
                 self._error('Problem reading Configuration file "%s" \n Error: %s'  % (cconf, str(e)))
                    
         configuration.set_sourcedir(options.sourcedir)
-        configuration.set_objdir(options.objdir)
         configuration.set_installdir(options.installdir)
         
         # if used the predefined settings, reads the predefined configuration
@@ -611,8 +598,6 @@ class Bake:
                         directories = predef.directories
                         if 'sourcedir' in directories:
                             configuration.set_sourcedir(directories['sourcedir'])
-                        if 'objdir' in directories:
-                            configuration.set_objdir(directories['objdir'])
                         if 'installdir' in directories:
                             configuration.set_installdir(directories['installdir'])
                         break
@@ -789,7 +774,6 @@ class Bake:
         env = ModuleEnvironment(logger, 
             configuration.compute_installdir(), 
             configuration.compute_sourcedir(), 
-            configuration.get_objdir(), 
             Bake.main_options.debug)
         return configuration, env
 
@@ -1227,19 +1211,12 @@ class Bake:
         """Handles the check command line option."""
         
         checkPrograms = [['python3', 'Python3'],
-                         ['hg', 'Mercurial'],
-                         # ['cvs', 'CVS'],
                          ['git', 'Git'],
-                         # ['bzr', 'Bazaar'],
                          ['tar', 'Tar tool'],
                          ['unzip', 'Unzip tool'],
-                         # ['unrar', 'Unrar tool'],
-                         # ['7z', '7z  data compression utility'],
-                         # ['unxz', 'XZ data compression utility'],
                          ['make', 'Make'],
-                         ['cmake', 'cMake'],
+                         ['cmake', 'CMake'],
                          ['patch', 'patch tool'],
-                         # ['autoreconf', 'autoreconf tool']
                          ]
         if sys.platform == 'darwin':
             checkPrograms.insert(1,['clang++', 'Clang C++ compiler'])
@@ -1282,7 +1259,7 @@ class Bake:
         logger.set_verbose(verbose)
         logger._update_file(logger._file)
 
-        return ModuleEnvironment(logger, "","","", Bake.main_options.debug)
+        return ModuleEnvironment(logger, "","", Bake.main_options.debug)
 
     def _show_one_builtin(self, builtin, string, variables):
         """Go over the available builtins handling tools."""
@@ -1415,8 +1392,7 @@ class Bake:
         configuration = self._read_config(config)
         logger = StdoutModuleLogger()
         logger.set_verbose(0)
-        env = ModuleEnvironment(logger, "","", 
-            configuration.get_objdir())
+        env = ModuleEnvironment(logger, "","")
         
         for this_key in depend_keys:
             sysDep=systemDependencies[this_key]
@@ -1591,7 +1567,6 @@ class Bake:
         if options.directories:
             print ('installdir   : ' + configuration.compute_installdir())
             print ('sourcedir    : ' + configuration.compute_sourcedir())
-            print ('objdir       : ' + configuration.get_objdir())
 
 
         enabled = []
