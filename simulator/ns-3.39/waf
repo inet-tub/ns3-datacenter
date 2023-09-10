@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+cmd=$1
+args=$2
+if [[ $1 == "--run" ]];then
+	./ns3 run "$2"
+else
+	echo "This waf script is just a temporary hook for running old bash scripts using waf builder. This does not implement a real waf."
+fi
