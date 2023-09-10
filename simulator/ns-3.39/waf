@@ -11,7 +11,7 @@ elif [[ $1 == "distclean" ]];then
 elif [[ $1 == "build" ]];then
 	./ns3 build
 elif [[ $1 == "configure" ]];then
-	echo "Please use configure.sh. Configure with this dummy waf script is not supported since there were many changes to the options naming after waf builder was removed."
+	./configure.sh
 elif [[ $1 == "" ]];then
 	./ns3
 else
