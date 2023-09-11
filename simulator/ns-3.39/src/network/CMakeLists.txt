@@ -69,6 +69,16 @@ set(source_files
     utils/simple-net-device.cc
     utils/sll-header.cc
     utils/timestamp-tag.cc
+    utils/seq-ts-header.cc
+    utils/broadcom-egress-queue.cc
+    utils/bufferlog-tag.cc
+    utils/custom-header.cc
+    utils/custom-priority-tag.cc
+    utils/feedback-tag.cc
+    utils/interface-tag.cc
+    utils/int-header.cc
+    utils/rdma-tag.cc
+    utils/unsched-tag.cc
 )
 
 set(header_files
@@ -148,6 +158,16 @@ set(header_files
     utils/simple-net-device.h
     utils/sll-header.h
     utils/timestamp-tag.h
+    utils/seq-ts-header.h
+    utils/broadcom-egress-queue.h
+    utils/bufferlog-tag.h
+    utils/custom-header.h
+    utils/custom-priority-tag.h
+    utils/feedback-tag.h
+    utils/interface-tag.h
+    utils/int-header.h
+    utils/rdma-tag.h
+    utils/unsched-tag.h
 )
 
 build_lib(

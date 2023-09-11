@@ -210,6 +210,7 @@ set(source_files
     model/realtime-simulator-impl.cc
     model/wall-clock-synchronizer.cc
     model/matrix-array.cc
+    model/random-variable.cc
 )
 
 # Define core lib headers
@@ -316,6 +317,7 @@ set(header_files
     model/wall-clock-synchronizer.h
     model/val-array.h
     model/matrix-array.h
+    model/random-variable.h
 )
 
 set(test_sources

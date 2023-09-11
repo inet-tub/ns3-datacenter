@@ -401,4 +401,20 @@ Node::NotifyDeviceAdded(Ptr<NetDevice> device)
     }
 }
 
+/* Modification */
+uint32_t 
+Node::GetNodeType()
+{
+  return m_node_type;
+}
+
+bool Node::SwitchReceiveFromDevice(Ptr<NetDevice> device, Ptr<Packet> packet, CustomHeader &ch){
+  NS_ASSERT_MSG(false, "Calling SwitchReceiveFromDevice() on a non-switch node or this function is not implemented");
+}
+
+void Node::SwitchNotifyDequeue(uint32_t ifIndex, uint32_t qIndex, Ptr<Packet> p){
+  NS_ASSERT_MSG(false, "Calling NotifyDequeue() on a non-switch node or this function is not implemented");
+}
+/* Modification */ 
+
 } // namespace ns3

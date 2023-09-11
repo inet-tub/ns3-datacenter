@@ -13,7 +13,6 @@ build_lib(
     model/packet-loss-counter.cc
     model/packet-sink.cc
     model/seq-ts-echo-header.cc
-    model/seq-ts-header.cc
     model/seq-ts-size-header.cc
     model/three-gpp-http-client.cc
     model/three-gpp-http-header.cc
@@ -37,7 +36,6 @@ build_lib(
     model/packet-loss-counter.h
     model/packet-sink.h
     model/seq-ts-echo-header.h
-    model/seq-ts-header.h
     model/seq-ts-size-header.h
     model/three-gpp-http-client.h
     model/three-gpp-http-header.h
@@ -50,6 +48,7 @@ build_lib(
     model/udp-trace-client.h
   LIBRARIES_TO_LINK ${libinternet}
                     ${libstats}
+                    ${libnetwork}
   TEST_SOURCES
     test/three-gpp-http-client-server-test.cc
     test/bulk-send-application-test-suite.cc

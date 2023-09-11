@@ -18,6 +18,8 @@ build_lib(
     model/red-queue-disc.cc
     model/tbf-queue-disc.cc
     model/traffic-control-layer.cc
+    model/gen-queue-disc.cc
+    model/shared-memory.cc
   HEADER_FILES
     helper/queue-disc-container.h
     helper/traffic-control-helper.h
@@ -36,7 +38,10 @@ build_lib(
     model/red-queue-disc.h
     model/tbf-queue-disc.h
     model/traffic-control-layer.h
+    model/gen-queue-disc.h
+    model/shared-memory.h
   LIBRARIES_TO_LINK ${libnetwork}
+                    ${libpoint-to-point}
                     ${libcore}
   TEST_SOURCES
     test/adaptive-red-queue-disc-test-suite.cc

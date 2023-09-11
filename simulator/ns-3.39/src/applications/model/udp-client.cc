@@ -19,7 +19,7 @@
  */
 #include "udp-client.h"
 
-#include "seq-ts-header.h"
+#include "ns3/seq-ts-header.h"
 
 #include "ns3/inet-socket-address.h"
 #include "ns3/inet6-socket-address.h"

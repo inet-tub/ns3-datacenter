@@ -1048,4 +1048,10 @@ operator<<(std::ostream& os, const Packet& packet)
     return os;
 }
 
+/* Modification */
+uint8_t* Packet::GetBuffer() const{
+  return m_buffer.GetBuffer();
+}
+/* Modification */
+
 } // namespace ns3

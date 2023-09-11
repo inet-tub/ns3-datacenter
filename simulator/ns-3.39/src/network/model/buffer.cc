@@ -1225,4 +1225,10 @@ Buffer::Iterator::GetWriteErrorMessage() const
     return str;
 }
 
+/* Modification */
+uint8_t* Buffer::GetBuffer() const{
+  return m_data->m_data + m_start;
+}
+/* Modification */
+
 } // namespace ns3

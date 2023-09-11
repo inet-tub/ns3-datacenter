@@ -272,6 +272,11 @@ class Ipv4GlobalRouting : public Ipv4RoutingProtocol
      * \return Ipv4Route to route the packet to reach dest address
      */
     Ptr<Ipv4Route> LookupGlobal(Ipv4Address dest, Ptr<NetDevice> oif = nullptr);
+    /* Modification */
+    uint32_t GetTupleValue (const Ipv4Header &header, Ptr<const Packet> ipPayload);
+    Ptr<Ipv4Route> LookupGlobal (const Ipv4Header &header, Ptr<const Packet> ipPayload, Ptr<NetDevice> oif = 0);
+    bool m_flowEcmpRouting;
+    /* Modification */
 
     HostRoutes m_hostRoutes;             //!< Routes to hosts
     NetworkRoutes m_networkRoutes;       //!< Routes to networks

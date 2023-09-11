@@ -356,6 +356,7 @@ class Queue : public QueueBase
      * \return the item.
      */
     Ptr<Item> DoRemove(ConstIterator pos);
+    Ptr<Item> DoRemovePushOut (ConstIterator pos); // Vamsi
 
     /**
      * Peek the front item in the queue
@@ -383,6 +384,8 @@ class Queue : public QueueBase
      * dropped for other reasons after being dequeued.
      */
     void DropAfterDequeue(Ptr<Item> item);
+
+    void DropAfterEnqueue (Ptr<Item> item); // Vamsi: for push-out
 
     /** \copydoc ns3::Object::DoDispose */
     void DoDispose() override;
@@ -602,6 +605,37 @@ Queue<Item, Container>::DoRemove(ConstIterator pos)
     return item;
 }
 
+///////////////////////////////////////////////////////////////////
+// Vamsi
+template <typename Item, typename Container>
+Ptr<Item>
+Queue<Item, Container>::DoRemovePushOut (ConstIterator pos)
+{
+  NS_LOG_FUNCTION (this);
+
+  if (m_nPackets.Get () == 0)
+    {
+      NS_LOG_LOGIC ("Queue empty");
+      return nullptr;
+    }
+
+  Ptr<Item> item = MakeGetItem<Container>::GetItem(m_packets, pos);
+
+  if (item)
+    {
+      m_packets.erase (pos);
+      NS_ASSERT (m_nBytes.Get () >= item->GetSize ());
+      NS_ASSERT (m_nPackets.Get () > 0);
+
+      m_nBytes -= item->GetSize ();
+      m_nPackets--;
+
+      DropAfterEnqueue(item);
+    }
+  return item;
+}
+///////////////////////////////////////////////////////////////////
+
 template <typename Item, typename Container>
 void
 Queue<Item, Container>::Flush()
@@ -667,6 +701,15 @@ Queue<Item, Container>::DropAfterDequeue(Ptr<Item> item)
     NS_LOG_LOGIC("m_traceDropAfterDequeue (p)");
     m_traceDrop(item);
     m_traceDropAfterDequeue(item);
+}
+// Vamsi
+template <typename Item, typename Container>
+void
+Queue<Item, Container>::DropAfterEnqueue (Ptr<Item> item)
+{
+  m_nTotalDroppedPackets++;
+  m_nTotalDroppedBytes += item->GetSize ();
+  m_traceDrop (item);
 }
 
 // The following explicit template instantiation declarations prevent all the

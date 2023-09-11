@@ -56,6 +56,7 @@ class DropTailQueue : public Queue<Item>
     using Queue<Item>::DoEnqueue;
     using Queue<Item>::DoDequeue;
     using Queue<Item>::DoRemove;
+    using Queue<Item>::DoRemovePushOut;
     using Queue<Item>::DoPeek;
 
     NS_LOG_TEMPLATE_DECLARE; //!< redefinition of the log component
@@ -123,9 +124,9 @@ Ptr<Item>
 DropTailQueue<Item>::Remove()
 {
     NS_LOG_FUNCTION(this);
-
-    Ptr<Item> item = DoRemove(GetContainer().begin());
-
+    auto it = --GetContainer().end();
+    Ptr<Item> item =  DoRemovePushOut (it); // Vamsi changed. Originally: DoRemove(GetContainer().begin());
+    
     NS_LOG_LOGIC("Removed " << item);
 
     return item;
