@@ -126,7 +126,6 @@ for ALG in ${BUF_ALGS[@]};do
 	done
 done
 
-
 LOAD=0.8
 TCP=$POWERTCP
 
