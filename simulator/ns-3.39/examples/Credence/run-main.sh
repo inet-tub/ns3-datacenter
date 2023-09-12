@@ -90,7 +90,7 @@ for ALG in ${BUF_ALGS[@]};do
 		TORFILE="$DUMP_DIR/tor-$TCP-$ALG-$LOAD-$BURST_SIZES-$BURST_FREQ.stat"
 		N=$(( $N+1 ))
 		echo "$N $FLOWFILE"
-		while [[ $(( $(ps aux | grep credence-evaluation-optimized | wc -l) )) -gt 1 ]];do
+		while [[ $(( $(ps aux | grep credence-evaluation-optimized | wc -l) )) -gt $N_CORES ]];do
 			sleep 30;
 			echo "running $N experiment(s)..."
 		done
@@ -115,7 +115,7 @@ for ALG in ${BUF_ALGS[@]};do
 		TORFILE="$DUMP_DIR/tor-$TCP-$ALG-$LOAD-$BURST_SIZES-$BURST_FREQ.stat"
 		N=$(( $N+1 ))
 		echo "$N $FLOWFILE"
-		while [[ $(( $(ps aux | grep credence-evaluation-optimized | wc -l) )) -gt 1 ]];do
+		while [[ $(( $(ps aux | grep credence-evaluation-optimized | wc -l) )) -gt $N_CORES ]];do
 			sleep 30;
 			echo "running $N experiment(s)..."
 		done
@@ -138,7 +138,7 @@ for ALG in ${BUF_ALGS[@]};do
 		TORFILE="$DUMP_DIR/tor-$TCP-$ALG-$LOAD-$BURST_SIZES-$BURST_FREQ.stat"
 		N=$(( $N+1 ))
 		echo "$N $FLOWFILE"
-		while [[ $(( $(ps aux | grep credence-evaluation-optimized | wc -l) )) -gt 1 ]];do
+		while [[ $(( $(ps aux | grep credence-evaluation-optimized | wc -l) )) -gt $N_CORES ]];do
 			sleep 30;
 			echo "running $N experiment(s)..."
 		done
@@ -162,7 +162,7 @@ for ERROR_PROB in ${ERRORS[@]};do
 	TORFILE="$DUMP_DIR/tor-$TCP-$ALG-$LOAD-$BURST_SIZES-$BURST_FREQ-$ERROR_PROB.stat"
 	N=$(( $N+1 ))
 	echo "$N $FLOWFILE"
-	while [[ $(( $(ps aux | grep credence-evaluation-optimized | wc -l) )) -gt 1 ]];do
+	while [[ $(( $(ps aux | grep credence-evaluation-optimized | wc -l) )) -gt $N_CORES ]];do
 		sleep 30;
 		echo "running $N experiment(s)..."
 	done
