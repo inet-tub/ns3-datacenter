@@ -139,7 +139,7 @@ uint32_t SharedMemoryBuffer::findLongestThreshold(){
 
 void SharedMemoryBuffer::UpdateThreshold(uint32_t size, uint32_t port, uint32_t queue){
 	while(totalThreshold + size > TotalBuffer){
-		uint32_t lq = findLongestQueue();
+		uint32_t lq = findLongestThreshold();
 		if (threshold[lq][1] >= 1500){ // 1500 MTU
 			threshold[lq][1] -= 1500;
 		}

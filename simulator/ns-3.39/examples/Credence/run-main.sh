@@ -58,12 +58,12 @@ BUFFER=$(python3 -c "print(int($BUFFER_PER_PORT_PER_GBPS*1024*($SERVERS+$LINKS*$
 
 START_TIME=10
 END_TIME=24
-FLOW_END_TIME=13
+FLOW_END_TIME=20
 
 ENABLE_STATS=1
 ENABLE_LQD_TRCING=0
 LQDOUTDIR="$NS3/examples/Credence/lqd-logs"
-RF_FILE="$NS3/examples/Credence/rf_models/model-2-0.8-0.75-2-WS-" #rfModelFile
+RF_FILE="$NS3/examples/Credence/rf_models/model-2-0.8-0.75-2-WS-1-" #rfModelFile
 ERROR_PROB=0 # errorProb
 AVERAGE_INTERVAL=1 # in RTT
 RANDOM_SEED=8
