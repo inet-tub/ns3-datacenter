@@ -526,6 +526,10 @@ class QueueDisc : public Object
     static constexpr const char* CHILD_QUEUE_DISC_MARK =
         "(Marked by child queue disc) "; //!< Packet marked by a child queue disc
 
+        /* Modification */
+    void DropAfterEnqueue (Ptr<QueueDiscItem> item);
+    /* Modification */
+    
   protected:
     /**
      * \brief Dispose of the object
@@ -562,6 +566,7 @@ class QueueDisc : public Object
      * dropped after dequeue for the specified reason
      */
     void DropAfterDequeue(Ptr<const QueueDiscItem> item, const char* reason);
+
 
     /**
      * \brief Marks the given packet and, if successful, updates the counters

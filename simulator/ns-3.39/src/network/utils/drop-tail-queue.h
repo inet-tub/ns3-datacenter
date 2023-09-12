@@ -49,6 +49,8 @@ class DropTailQueue : public Queue<Item>
     bool Enqueue(Ptr<Item> item) override;
     Ptr<Item> Dequeue() override;
     Ptr<Item> Remove() override;
+    Ptr<Item> PushOut() override;
+    Ptr<const Item> GetTailPacket() const override;
     Ptr<const Item> Peek() const override;
 
   private:
@@ -57,6 +59,7 @@ class DropTailQueue : public Queue<Item>
     using Queue<Item>::DoDequeue;
     using Queue<Item>::DoRemove;
     using Queue<Item>::DoRemovePushOut;
+    using Queue<Item>::DoPeekTail;
     using Queue<Item>::DoPeek;
 
     NS_LOG_TEMPLATE_DECLARE; //!< redefinition of the log component
@@ -124,13 +127,35 @@ Ptr<Item>
 DropTailQueue<Item>::Remove()
 {
     NS_LOG_FUNCTION(this);
-    auto it = --GetContainer().end();
-    Ptr<Item> item =  DoRemovePushOut (it); // Vamsi changed. Originally: DoRemove(GetContainer().begin());
+    Ptr<Item> item =  DoRemove(GetContainer().begin());
     
     NS_LOG_LOGIC("Removed " << item);
 
     return item;
 }
+
+/* Modification */
+template <typename Item>
+Ptr<const Item>
+DropTailQueue<Item>::GetTailPacket() const
+{
+    NS_LOG_FUNCTION(this);
+    Ptr<const Item> item = DoPeekTail(--GetContainer().end());
+    return item;
+}
+/* Modification */
+
+/* Modification */
+template <typename Item>
+Ptr<Item>
+DropTailQueue<Item>::PushOut()
+{
+    NS_LOG_FUNCTION(this);    
+    Ptr<Item> item = DoRemovePushOut (--GetContainer().end());
+    NS_LOG_LOGIC("Removed packet");
+    return item;
+}
+/* Modification */
 
 template <typename Item>
 Ptr<const Item>

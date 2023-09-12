@@ -63,13 +63,16 @@ public:
 	void setPorts(uint32_t ports){
 		numPorts = ports;
 	}
+	uint32_t getPorts(){
+		return numPorts;
+	}
 	void setQueues(uint32_t queues){
 		numQueues = queues;
 	}
 
 	uint32_t findLongestQueue();
 
-	Ptr<QueueDiscItem>  RemoveLongestQueuePacket();
+	uint32_t* RemoveLongestQueuePacket();
 
 	void setSwitchId(uint32_t id){
 		switchId = id;
@@ -77,6 +80,9 @@ public:
 	void setAverageInteral(Time t){
 		AverageInterval = t;
 	}
+	uint32_t findLongestThreshold();
+	void UpdateThreshold(uint32_t size, uint32_t port, uint32_t queue);
+
 	///////////// USeful for logs ///////////////
 	uint32_t GetSharedBufferSize();
 	uint32_t GetOccupiedBuffer(){return OccupiedBuffer;}
@@ -88,6 +94,9 @@ public:
 	}
 	uint32_t getAverageOccupancy(){
 		return averageSharedOccupancy;
+	}
+	uint32_t GetThreshold(uint32_t port, uint32_t queue){
+		return threshold[port][queue];
 	}
 	/////////////////////////////////////////////
 
@@ -117,13 +126,17 @@ private:
 	uint32_t queueLength[100][8];
 	uint32_t averageQueueLength[100][8];
 	uint32_t threshold[100][8];
+	uint32_t totalThreshold;
 	uint32_t averageSharedOccupancy;
 	Ptr<QueueDisc> QueuePtr[100];
 	uint32_t numPorts;
 	uint32_t numQueues;
 	uint32_t switchId;
-	Time LastUpdatedAverage;
+	Time LastUpdatedAverage[100][8];
+	Time LastUpdatedAverageTotal;
 	Time AverageInterval;
+
+	bool thresholdBusy;
 };
 }
 

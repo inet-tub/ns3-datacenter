@@ -175,7 +175,15 @@ Node::AddApplication(Ptr<Application> application)
     Simulator::ScheduleWithContext(GetId(), Seconds(0.0), &Application::Initialize, application);
     return index;
 }
-
+/* Modification */
+void Node::DeleteApplication (Ptr<Application> application){
+  for (auto it = m_applications.begin(); it != m_applications.end(); it++)
+    if (*it == application){
+      m_applications.erase(it);
+      break;
+    }
+}
+/* Modification */
 Ptr<Application>
 Node::GetApplication(uint32_t index) const
 {

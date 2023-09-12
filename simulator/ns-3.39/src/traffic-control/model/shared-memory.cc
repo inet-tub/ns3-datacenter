@@ -44,6 +44,8 @@ SharedMemoryBuffer::SharedMemoryBuffer(){
 	numPorts = 0;
 	numQueues = 0;
 	averageSharedOccupancy=0;
+	thresholdBusy=false;
+	totalThreshold=0;
 }
 
 SharedMemoryBuffer::~SharedMemoryBuffer ()
@@ -122,6 +124,40 @@ uint32_t SharedMemoryBuffer::GetQueueSize(uint32_t port, uint32_t queue){
 	return queueLength[port][queue];
 }
 
+
+uint32_t SharedMemoryBuffer::findLongestThreshold(){
+	uint32_t longestQueueLength = 0;
+	uint32_t longestQueue = 0;
+	for (uint32_t i = 0; i < numPorts; i++){
+		if (threshold[i][1] > longestQueueLength ){ // For now, this is a single queue case. We assume only queue id 1 at each port receives data packets.
+			longestQueueLength = threshold[i][1];
+			longestQueue = i;
+		}
+	}
+	return longestQueue;
+}
+
+void SharedMemoryBuffer::UpdateThreshold(uint32_t size, uint32_t port, uint32_t queue){
+	while(totalThreshold + size > TotalBuffer){
+		uint32_t lq = findLongestQueue();
+		if (threshold[lq][1] >= 1500){ // 1500 MTU
+			threshold[lq][1] -= 1500;
+		}
+		else{
+			threshold[lq][1] = 0;
+		}
+		if (totalThreshold>=1500){
+			totalThreshold -= 1500;
+		}
+		else{
+			totalThreshold = 0;
+		}
+	}
+	threshold[port][queue] = std::min(threshold[port][queue]+size, TotalBuffer);
+	totalThreshold = std::min(totalThreshold+size, TotalBuffer);
+	return;
+}
+
 bool SharedMemoryBuffer::EnqueueBuffer(uint32_t size, uint32_t port, uint32_t queue){
 	if(RemainingBuffer>size){
 		RemainingBuffer-=size;
@@ -135,8 +171,10 @@ bool SharedMemoryBuffer::EnqueueBuffer(uint32_t size, uint32_t port, uint32_t qu
 }
 
 void SharedMemoryBuffer::DequeueBuffer(uint32_t size, uint32_t port, uint32_t queue){
-	double gamma = (std::min((Simulator::Now()-LastUpdatedAverage).GetNanoSeconds(), AverageInterval.GetNanoSeconds())/double(AverageInterval.GetNanoSeconds()));
-	LastUpdatedAverage = Simulator::Now(); 
+	double gammaqueue = (std::min((Simulator::Now()-LastUpdatedAverage[port][queue]).GetNanoSeconds(), AverageInterval.GetNanoSeconds())/double(AverageInterval.GetNanoSeconds()));
+	LastUpdatedAverage[port][queue] = Simulator::Now();
+	double gamma = (std::min((Simulator::Now()-LastUpdatedAverageTotal).GetNanoSeconds(), AverageInterval.GetNanoSeconds())/double(AverageInterval.GetNanoSeconds()));
+	LastUpdatedAverageTotal = Simulator::Now();
 	if(OccupiedBuffer>size){
 		OccupiedBuffer-=size;
 		averageSharedOccupancy = gamma*(double(OccupiedBuffer)) + (1-gamma)*double(averageSharedOccupancy);
@@ -149,11 +187,37 @@ void SharedMemoryBuffer::DequeueBuffer(uint32_t size, uint32_t port, uint32_t qu
 	}
 	if (queueLength[port][queue]>size){
 		queueLength[port][queue]-=size;
-		averageQueueLength[port][queue] = gamma*(double(queueLength[port][queue])) + (1-gamma)*double(averageQueueLength[port][queue]);
+		averageQueueLength[port][queue] = gammaqueue*(double(queueLength[port][queue])) + (1-gammaqueue)*double(averageQueueLength[port][queue]);
 	}
 	else{
 		queueLength[port][queue]=0;
-		averageQueueLength[port][queue] = gamma*(double(queueLength[port][queue])) + (1-gamma)*double(averageQueueLength[port][queue]);
+		averageQueueLength[port][queue] = gammaqueue*(double(queueLength[port][queue])) + (1-gammaqueue)*double(averageQueueLength[port][queue]);
+		if (totalThreshold >= threshold[port][queue]){
+			totalThreshold -= threshold[port][queue];
+			threshold[port][queue] = 0;// reset thresholds when queue drains to zero.
+		}
+		else{
+			totalThreshold = 0;
+			threshold[port][queue] = 0;
+		}
+	}
+	if (threshold[port][queue] >= size){
+		threshold[port][queue] -= size;
+		if (totalThreshold >= size){
+			totalThreshold -= size;
+		}
+		else{
+			totalThreshold = 0;
+		}
+	}
+	else{
+		if (totalThreshold >= threshold[port][queue]){
+			totalThreshold -= threshold[port][queue];
+		}
+		else{
+			threshold[port][queue] = 0;
+			totalThreshold = 0;
+		}
 	}
 }
 
@@ -180,13 +244,33 @@ uint32_t SharedMemoryBuffer::findLongestQueue(){
 	return longestQueue;
 }
 
-Ptr<QueueDiscItem> 
+uint32_t*
 SharedMemoryBuffer::RemoveLongestQueuePacket(){
 	uint32_t longestQueue = findLongestQueue();
-	Ptr<QueueDiscItem> item = QueuePtr[longestQueue]->GetQueueDiscClass (1)->GetQueueDisc ()->GetInternalQueue(0)->Remove();
-	DequeueBuffer(item->GetPacket()->GetSize(), longestQueue, 1);
-	PerPriorityStatDeq(item->GetPacket()->GetSize(), 1);
-	return item;
+	Ptr<const QueueDiscItem> item = QueuePtr[longestQueue]->GetQueueDiscClass (1)->GetQueueDisc ()->GetInternalQueue(0)->GetTailPacket();
+  static uint32_t arr[4]={0,0,0,0};
+  if (item){
+		DequeueBuffer(item->GetPacket()->GetSize(), longestQueue, 1);
+		PerPriorityStatDeq(item->GetPacket()->GetSize(), 1);
+	  BufferLogTag buffertag;
+	  bool found = item->GetPacket()->PeekPacketTag(buffertag);
+	  if(found){
+	    arr[0] = buffertag.getQueueLength();
+	    arr[1] = buffertag.getAverageQueueLength();
+	    arr[2] = buffertag.getOccupiedBuffer();
+	    arr[3] = buffertag.getAverageOccupiedBuffer();
+	  }
+		Ptr<QueueDiscItem> removedItem = QueuePtr[longestQueue]->GetQueueDiscClass (1)->GetQueueDisc ()->GetInternalQueue(0)->PushOut();
+		// std::cout << "removed bytes" << removedItem->GetSize() << std::endl; 
+		QueuePtr[longestQueue]->GetQueueDiscClass(1)->GetQueueDisc()->DropAfterEnqueue(removedItem);
+		// if (removedItem){
+		// 	std::cout << "still not deleted from queue" << std::endl;
+		// }
+	}
+	// else{
+	// 	std::cout << "remove failed " << longestQueue << " " <<  QueuePtr[longestQueue]->GetQueueDiscClass (1)->GetQueueDisc ()->GetNBytes() << std::endl;
+	// }
+	return arr;
 }
 
 

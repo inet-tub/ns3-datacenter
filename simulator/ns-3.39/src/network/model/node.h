@@ -131,6 +131,9 @@ class Node : public Object
      * \param index the index of the requested Application
      * \returns the requested Application.
      */
+    /* Modification */
+    void DeleteApplication (Ptr<Application> application);
+    /* Modification */
     Ptr<Application> GetApplication(uint32_t index) const;
 
     /**

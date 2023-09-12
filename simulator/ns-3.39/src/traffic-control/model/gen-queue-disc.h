@@ -27,6 +27,7 @@
 #include "unordered_map"
 #include "ns3/simulator.h"
 #include "shared-memory.h"
+#include "ns3/random-variable-stream.h"
 
 namespace ns3 {
 
@@ -114,13 +115,17 @@ public:
   void SetDppThreshold(uint32_t n) {DppThreshold = n;}
   bool IntelligentBuffer(uint32_t priority, Ptr<Packet> packet);
 
-  bool AcceptPacket(uint32_t priority, Ptr<Packet> packet);
+  bool AcceptPacket(uint32_t priority, Ptr<Packet> packet, Ptr<QueueDiscItem> item);
 
   void TrimPacket(Ptr<Packet> packetCopy);
 
   bool LongestQueueDrop(uint32_t priority, Ptr<Packet> packet);
 
+  bool Credence(uint32_t priority, Ptr<Packet> packet, Ptr<QueueDiscItem> item);
 
+  void setErr(double err){
+    addErr = err;
+  }
 
 private:
   virtual bool DoEnqueue (Ptr<QueueDiscItem> item);
@@ -203,7 +208,10 @@ private:
 
   TracedCallback<Ptr<const Packet>, uint32_t, bool, Ptr<GenQueueDisc>> m_rxTrace; // trace enqueue events
   TracedCallback<Ptr<const Packet>, uint32_t, Ptr<GenQueueDisc>> m_txTrace; // trace dequeue events
-  TracedCallback<Ptr<const Packet>, uint32_t> m_traceLQD; // trace LQD events
+  TracedCallback<uint32_t, uint32_t, uint32_t, uint32_t,uint32_t> m_traceLQD; // trace LQD events
+  TracedCallback<uint32_t, uint32_t, uint32_t, uint32_t, int &> m_getPrediction; // trace LQD events
+  Ptr<UniformRandomVariable> urv;
+  double addErr;
 };
 
 } // namespace ns3

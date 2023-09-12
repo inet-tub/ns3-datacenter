@@ -85,6 +85,10 @@ TypeId GenQueueDisc::GetTypeId (void)
                                      DoubleValue (10),
                                      MakeDoubleAccessor (&GenQueueDisc::portBW),
                                      MakeDoubleChecker<double> ())
+                      .AddAttribute ("addError", "probability of flipping the actual prediction",
+                                     DoubleValue (0.0),
+                                     MakeDoubleAccessor (&GenQueueDisc::addErr),
+                                     MakeDoubleChecker<double> ())
                       .AddAttribute ("updateInterval", "NANOSECONDS update interval for dequeue rate and N in ActiveBufferManagement", UintegerValue(30000),
                                      MakeUintegerAccessor(&GenQueueDisc::updateInterval),
                                      MakeUintegerChecker<uint64_t>())
@@ -108,6 +112,9 @@ TypeId GenQueueDisc::GetTypeId (void)
                                        "ns3::Packet::TracedCallback")
                       .AddTraceSource ("traceLQD", "trace LQD events",
                                        MakeTraceSourceAccessor (&GenQueueDisc::m_traceLQD),
+                                       "ns3::Packet::TracedCallback")
+                      .AddTraceSource ("getPrediction", "callback to get predictions",
+                                       MakeTraceSourceAccessor (&GenQueueDisc::m_getPrediction),
                                        "ns3::Packet::TracedCallback")
                       ;
   return tid;
@@ -133,6 +140,9 @@ GenQueueDisc::GenQueueDisc ()
     nofP[i] = 0;
     DPPQueue = 1;
   }
+  urv = CreateObject<UniformRandomVariable> ();
+  urv->SetAttribute ("Min", DoubleValue (0));
+  urv->SetAttribute ("Max", DoubleValue (1));
 }
 
 GenQueueDisc::~GenQueueDisc ()
@@ -345,8 +355,13 @@ bool GenQueueDisc::LongestQueueDrop(uint32_t priority, Ptr<Packet> packet){
     // std::cout << "using LQD" << std::endl;
     while (!available){
       // std::cout << "pushing out" << std::endl;
-      Ptr<QueueDiscItem> item = sharedMemory->RemoveLongestQueuePacket();
-      m_traceLQD(item->GetPacket(), 1); // 0 to indicate accepted, 1 for drop.
+      uint32_t *arr = sharedMemory->RemoveLongestQueuePacket();
+      // std::cout << "got arr" << std::endl;
+      // std::cout << arr[0] << std::endl;
+      // std::cout << arr[0] << " " << arr[1] << std::endl;
+      // std::cout << arr[0] << " " << arr[1]<< " " << arr[2] << std::endl;
+      // std::cout << arr[0] << " " << arr[1]<< " " << arr[2] << " " << arr[3] << std::endl;
+      m_traceLQD(arr[0], arr[1], arr[2], arr[3], 1); // 0 to indicate accepted, 1 for drop.
       if (sharedMemory->GetRemainingBuffer() < packet->GetSize())
         available = false;
       else
@@ -367,6 +382,47 @@ bool GenQueueDisc::LongestQueueDrop(uint32_t priority, Ptr<Packet> packet){
     buffertag.setOccupiedBuffer(sharedMemory->GetOccupiedBuffer());
     buffertag.setAverageOccupiedBuffer(sharedMemory->getAverageOccupancy());
     packet->AddPacketTag(buffertag);
+    return true;
+  }
+}
+
+
+bool GenQueueDisc::Credence(uint32_t priority, Ptr<Packet> packet, Ptr<QueueDiscItem> item){
+  sharedMemory->UpdateThreshold(item->GetSize(), portId, priority);
+  uint32_t bufferSize = sharedMemory->GetSharedBufferSize();
+  double numPorts = sharedMemory->getPorts();
+  uint32_t qlen = sharedMemory->GetQueueSize(portId,priority);
+  uint32_t sharedOccupancy = sharedMemory->GetOccupiedBuffer();
+  uint32_t avgqlen = sharedMemory->getAverageQueueLength(portId,priority);
+  uint32_t avgsharedoccupancy = sharedMemory->getAverageOccupancy();
+  uint32_t longestQueueLength = sharedMemory->GetQueueSize(sharedMemory->findLongestQueue(),1);
+
+  int drop = 0;
+
+  if (longestQueueLength > bufferSize/numPorts &&  priority==1){
+      if (qlen + item->GetSize() <= sharedMemory->GetThreshold(portId, priority)){
+        m_getPrediction(qlen, avgqlen, sharedOccupancy, avgsharedoccupancy,drop);
+        bool insertFalse = (urv->GetValue()<addErr);
+        if (insertFalse){
+            if(drop){
+              drop = 0;
+            }
+            else{
+              drop = 1;
+            }
+        }
+        // if (drop){
+        //   std::cout << "drop " << drop << " Time " << Simulator::Now().GetNanoSeconds() << " " << sharedMemory->GetQueueSize(portId,priority) << " " << sharedMemory->getAverageQueueLength(portId,priority) << " " << sharedMemory->GetOccupiedBuffer() << " " << sharedMemory->getAverageOccupancy() << std::endl;
+        // }
+      }
+      else{
+        drop = 1;
+      }
+  }
+  if (drop){
+    return false;
+  }
+  else{
     return true;
   }
 }
@@ -453,8 +509,9 @@ bool GenQueueDisc::IntelligentBuffer(uint32_t priority, Ptr<Packet> packet) {
 
 
 
-bool GenQueueDisc::AcceptPacket(uint32_t priority, Ptr<Packet> packet) {
+bool GenQueueDisc::AcceptPacket(uint32_t priority, Ptr<Packet> packet, Ptr<QueueDiscItem> item) {
   bool accept;
+  int drop = 0;
   switch (bufferalg) {
   case DT:
     accept = DynamicThresholds(priority, packet);
@@ -474,6 +531,9 @@ bool GenQueueDisc::AcceptPacket(uint32_t priority, Ptr<Packet> packet) {
   case LQD:
     accept = LongestQueueDrop(priority,packet);
     break; // This comment is intended to remind myself and others some basics that break is essential :P
+  case CREDENCE:
+    accept = Credence(priority,packet, item);
+    break;
   default:
     accept = DynamicThresholds(priority, packet);
   }
@@ -539,7 +599,7 @@ GenQueueDisc::DoEnqueue (Ptr<QueueDiscItem> item)
   }
 
   /*Check if the packet can be put in the shared buffer*/
-  bool enqueue = AcceptPacket(p, packet);
+  bool enqueue = AcceptPacket(p, packet, item);
   if (!enqueue) {
 
     NS_LOG_LOGIC ("Queue disc limit exceeded -- dropping packet");
@@ -562,6 +622,8 @@ GenQueueDisc::DoEnqueue (Ptr<QueueDiscItem> item)
   bool retval;
   if (!sharedMemory->EnqueueBuffer(item->GetPacket()->GetSize(), portId, p)) {
     DropBeforeEnqueue (item, LIMIT_EXCEEDED_DROP);
+    // std::cout << "droppedTimeEEEEEEEEEEE " << Simulator::Now().GetNanoSeconds() << " priority " << p << " " << sharedMemory->GetQueueSize(portId,p) << " " << sharedMemory->getAverageQueueLength(portId,p) << " " << sharedMemory->GetOccupiedBuffer() << " " << sharedMemory->getAverageOccupancy() << std::endl;
+    // std::cout << "dropped" << std::endl;
     retval = false;
   }
   else {
@@ -644,8 +706,16 @@ GenQueueDisc::DoDequeue (void)
     
     m_txTrace(packet, dequeueIndex, this); // trace dequeue event from dequeueIndex queue
     if (bufferalg == LQD){
-      m_traceLQD(packet, 0); // 0 to indicate accepted, 1 for drop.
+      uint32_t arr[4]={0,0,0,0};
       BufferLogTag buffertag;
+      bool found = item->GetPacket()->PeekPacketTag(buffertag);
+      if(found){
+        arr[0] = buffertag.getQueueLength();
+        arr[1] = buffertag.getAverageQueueLength();
+        arr[2] = buffertag.getOccupiedBuffer();
+        arr[3] = buffertag.getAverageOccupiedBuffer();
+      }
+      m_traceLQD(arr[0], arr[1], arr[2], arr[3], 0); // 0 to indicate accepted, 1 for drop.
       bool gone = packet->RemovePacketTag (buffertag);
     }
 

@@ -35,6 +35,10 @@
 #include <string>
 #include <type_traits>
 
+/* Modification */
+#include "ns3/bufferlog-tag.h"
+/* Modification */
+
 namespace ns3
 {
 
@@ -296,6 +300,9 @@ class Queue : public QueueBase
      */
     virtual Ptr<Item> Remove() = 0;
 
+    virtual Ptr<Item> PushOut(){return nullptr;}; // Vamsi
+    virtual Ptr<const Item> GetTailPacket() const {return nullptr;}; // Vamsi
+
     /**
      * Get a copy of an item in the queue (each subclass defines the position)
      * without removing it
@@ -364,6 +371,8 @@ class Queue : public QueueBase
      * \return the item.
      */
     Ptr<const Item> DoPeek(ConstIterator pos) const;
+
+    Ptr<const Item> DoPeekTail(ConstIterator pos) const;
 
     /**
      * \brief Drop a packet before enqueue
@@ -607,6 +616,22 @@ Queue<Item, Container>::DoRemove(ConstIterator pos)
 
 ///////////////////////////////////////////////////////////////////
 // Vamsi
+
+template <typename Item, typename Container>
+Ptr<const Item>
+Queue<Item, Container>::DoPeekTail(ConstIterator pos) const
+{
+    NS_LOG_FUNCTION(this);
+
+    if (m_nPackets.Get() == 0)
+    {
+        NS_LOG_LOGIC("Queue empty");
+        return nullptr;
+    }
+
+    return MakeGetItem<Container>::GetItem(m_packets, pos);
+}
+
 template <typename Item, typename Container>
 Ptr<Item>
 Queue<Item, Container>::DoRemovePushOut (ConstIterator pos)
@@ -620,7 +645,6 @@ Queue<Item, Container>::DoRemovePushOut (ConstIterator pos)
     }
 
   Ptr<Item> item = MakeGetItem<Container>::GetItem(m_packets, pos);
-
   if (item)
     {
       m_packets.erase (pos);
@@ -632,7 +656,10 @@ Queue<Item, Container>::DoRemovePushOut (ConstIterator pos)
 
       DropAfterEnqueue(item);
     }
-  return item;
+    else{
+      std::cout << "did not find a packet to remove" << std::endl;
+    }
+    return item;
 }
 ///////////////////////////////////////////////////////////////////
 

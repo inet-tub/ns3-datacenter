@@ -762,6 +762,19 @@ QueueDisc::DropBeforeEnqueue(Ptr<const QueueDiscItem> item, const char* reason)
     m_traceDropBeforeEnqueue(item, reason);
 }
 
+/* Modification */
+// Vamsi
+void
+QueueDisc::DropAfterEnqueue (Ptr<QueueDiscItem> item){
+    m_stats.nTotalDroppedPackets++;
+    m_stats.nTotalDroppedBytes += item->GetSize ();
+    m_nPackets--;
+    m_nBytes -= item->GetSize();
+    m_traceDrop (item);
+    // delete item;
+}
+/* Modification */
+
 void
 QueueDisc::DropAfterDequeue(Ptr<const QueueDiscItem> item, const char* reason)
 {
