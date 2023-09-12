@@ -175,7 +175,7 @@ done
 
 # 24 simulations
 LOAD=0.4
-TCP=$POWERTCP
+TCP=$DCTCP
 BURST_SIZES=0.75
 ERROR_PROB=0
 for ALG in ${BUF_ALGS[@]};do
