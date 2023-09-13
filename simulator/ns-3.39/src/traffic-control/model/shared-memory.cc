@@ -142,19 +142,28 @@ void SharedMemoryBuffer::UpdateThreshold(uint32_t size, uint32_t port, uint32_t 
 		uint32_t lq = findLongestThreshold();
 		if (threshold[lq][1] >= 1500){ // 1500 MTU
 			threshold[lq][1] -= 1500;
+			if (totalThreshold>=1500){
+				totalThreshold -= 1500;
+			}
+			else{
+				totalThreshold = 0;
+			}
 		}
 		else{
+			if (totalThreshold>=threshold[lq][1]){
+				totalThreshold -= threshold[lq][1];
+			}
+			else{
+				totalThreshold = 0;
+			}
 			threshold[lq][1] = 0;
-		}
-		if (totalThreshold>=1500){
-			totalThreshold -= 1500;
-		}
-		else{
-			totalThreshold = 0;
 		}
 	}
 	threshold[port][queue] = std::min(threshold[port][queue]+size, TotalBuffer);
 	totalThreshold = std::min(totalThreshold+size, TotalBuffer);
+	// if (switchId==0 && port==17 && queue==1){
+	// 	std::cout << "UpdateThreshold: " << "queuelength " << queueLength[port][queue] << " threshold " << threshold[port][queue] << " totalThreshold " << totalThreshold << " size " << size  << std::endl;
+	// }
 	return;
 }
 
@@ -163,9 +172,15 @@ bool SharedMemoryBuffer::EnqueueBuffer(uint32_t size, uint32_t port, uint32_t qu
 		RemainingBuffer-=size;
 		OccupiedBuffer= std::min(OccupiedBuffer+size, TotalBuffer);
 		queueLength[port][queue]+=size;
+		// if (switchId==0 && port==17 && queue==1){
+		// 	std::cout << "Enqueue: " << "queuelength " << queueLength[port][queue] << " threshold " << threshold[port][queue] << " totalThreshold " << totalThreshold << " size " << size  << std::endl;
+		// }
 		return true;
 	}
 	else{
+		// if (switchId==0 && port==17 && queue==1){
+		// 	std::cout << "Drop: " << "queuelength " << queueLength[port][queue] << " threshold " << threshold[port][queue] << " totalThreshold " << totalThreshold << " size " << size  << std::endl;
+		// }
 		return false;
 	}
 }
@@ -192,6 +207,9 @@ void SharedMemoryBuffer::DequeueBuffer(uint32_t size, uint32_t port, uint32_t qu
 	else{
 		queueLength[port][queue]=0;
 		averageQueueLength[port][queue] = gammaqueue*(double(queueLength[port][queue])) + (1-gammaqueue)*double(averageQueueLength[port][queue]);
+	}
+	// Dequeue thresholds
+	if (queueLength[port][queue]==0){
 		if (totalThreshold >= threshold[port][queue]){
 			totalThreshold -= threshold[port][queue];
 			threshold[port][queue] = 0;// reset thresholds when queue drains to zero.
@@ -201,24 +219,30 @@ void SharedMemoryBuffer::DequeueBuffer(uint32_t size, uint32_t port, uint32_t qu
 			threshold[port][queue] = 0;
 		}
 	}
-	if (threshold[port][queue] >= size){
-		threshold[port][queue] -= size;
-		if (totalThreshold >= size){
-			totalThreshold -= size;
-		}
-		else{
-			totalThreshold = 0;
-		}
-	}
 	else{
-		if (totalThreshold >= threshold[port][queue]){
-			totalThreshold -= threshold[port][queue];
+		if (threshold[port][queue] >=size){
+			threshold[port][queue] -= size;
+			if (totalThreshold>= size){
+				totalThreshold -= size;
+			}
+			else{
+				totalThreshold = 0;
+			}
 		}
 		else{
-			threshold[port][queue] = 0;
-			totalThreshold = 0;
+			if (totalThreshold>= threshold[port][queue]){
+				totalThreshold -= threshold[port][queue];
+				threshold[port][queue] = 0;
+			}
+			else{
+				totalThreshold = 0;
+				threshold[port][queue] = 0;
+			}	
 		}
 	}
+	// if (switchId==0 && port==17 && queue==1){
+	// 	std::cout << "Dequeue: " <<  "queuelength " << queueLength[port][queue] << " threshold " << threshold[port][queue] << " totalThreshold " << totalThreshold << " size " << size << std::endl;
+	// }
 }
 
 double SharedMemoryBuffer::GetNofP(uint32_t priority){

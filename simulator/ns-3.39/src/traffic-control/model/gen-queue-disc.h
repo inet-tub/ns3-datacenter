@@ -212,6 +212,7 @@ private:
   TracedCallback<uint32_t, uint32_t, uint32_t, uint32_t, int &> m_getPrediction; // trace LQD events
   Ptr<UniformRandomVariable> urv;
   double addErr;
+  bool enablePredictions;
 };
 
 } // namespace ns3

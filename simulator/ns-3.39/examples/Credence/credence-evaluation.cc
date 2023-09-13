@@ -832,7 +832,7 @@ main (int argc, char *argv[])
 	ipv4.SetBase ("10.1.0.0", "255.255.252.0");
 	p2p.SetDeviceAttribute ("DataRate", DataRateValue (DataRate (LEAF_SERVER_CAPACITY)));
 	p2p.SetChannelAttribute ("Delay", TimeValue(LINK_LATENCY));
-	p2p.SetQueue ("ns3::DropTailQueue", "MaxSize", StringValue ("10p"));
+	p2p.SetQueue ("ns3::DropTailQueue", "MaxSize", StringValue ("1p"));
 
 	for (uint32_t leaf = 0; leaf < LEAF_COUNT; leaf++) {
 		ipv4.NewNetwork ();
@@ -921,6 +921,7 @@ main (int argc, char *argv[])
 					genDisc->alphas[n] = alpha_values[n];
 				}
 				genDisc->setErr(errorProb);
+				genDisc->SetAttribute("predict",BooleanValue(true));
 				genDisc->TraceConnectWithoutContext("getPrediction", MakeBoundCallback(&getPrediction, rf[leaf], castInteger));
 				break;
 			default:
@@ -947,7 +948,7 @@ main (int argc, char *argv[])
 	/*Leaf <--> Spine*/
 	p2p.SetDeviceAttribute ("DataRate", DataRateValue (DataRate (SPINE_LEAF_CAPACITY)));
 	p2p.SetChannelAttribute ("Delay", TimeValue(LINK_LATENCY));
-	// p2p.SetQueue ("ns3::DropTailQueue", "MaxSize", StringValue ("10p"));
+	p2p.SetQueue ("ns3::DropTailQueue", "MaxSize", StringValue ("1p"));
 	for (uint32_t leaf = 0; leaf < LEAF_COUNT; leaf++) {
 		for (uint32_t spine = 0; spine < SPINE_COUNT; spine++) {
 			for (uint32_t link = 0; link < LINK_COUNT; link++) {
@@ -975,6 +976,8 @@ main (int argc, char *argv[])
 					genDisc[1]->TraceConnectWithoutContext("traceLQD", MakeBoundCallback(&TraceLQD, lqdstats[LEAF_COUNT+spine]));
 				}
 				if (algorithm == CREDENCE){
+					genDisc[0]->SetAttribute("predict",BooleanValue(true));
+					genDisc[1]->SetAttribute("predict",BooleanValue(true));
 					genDisc[0]->setErr(errorProb);
 					genDisc[1]->setErr(errorProb);
 					genDisc[0]->TraceConnectWithoutContext("getPrediction", MakeBoundCallback(&getPrediction, rf[leaf], castInteger));

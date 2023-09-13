@@ -104,6 +104,10 @@ TypeId GenQueueDisc::GetTypeId (void)
                                      UintegerValue (0),
                                      MakeUintegerAccessor (&GenQueueDisc::strict_priority),
                                      MakeUintegerChecker<uint32_t> ())
+                      .AddAttribute ("predict", "whether to use predictions or not in Credence buffer sharing",
+                                     BooleanValue (false),
+                                     MakeBooleanAccessor (&GenQueueDisc::enablePredictions),
+                                     MakeBooleanChecker())
                       .AddTraceSource ("genEnqueue", "trace enqueue events",
                                        MakeTraceSourceAccessor (&GenQueueDisc::m_rxTrace),
                                        "ns3::Packet::TracedCallback")
@@ -388,7 +392,7 @@ bool GenQueueDisc::LongestQueueDrop(uint32_t priority, Ptr<Packet> packet){
 
 
 bool GenQueueDisc::Credence(uint32_t priority, Ptr<Packet> packet, Ptr<QueueDiscItem> item){
-  sharedMemory->UpdateThreshold(item->GetSize(), portId, priority);
+  sharedMemory->UpdateThreshold(packet->GetSize(), portId, priority);
   uint32_t bufferSize = sharedMemory->GetSharedBufferSize();
   double numPorts = sharedMemory->getPorts();
   uint32_t qlen = sharedMemory->GetQueueSize(portId,priority);
@@ -398,12 +402,14 @@ bool GenQueueDisc::Credence(uint32_t priority, Ptr<Packet> packet, Ptr<QueueDisc
   uint32_t longestQueueLength = sharedMemory->GetQueueSize(sharedMemory->findLongestQueue(),1);
 
   int drop = 0;
-
   if (longestQueueLength > bufferSize/numPorts &&  priority==1){
-      if (qlen + item->GetSize() <= sharedMemory->GetThreshold(portId, priority)){
-        m_getPrediction(qlen, avgqlen, sharedOccupancy, avgsharedoccupancy,drop);
+      if (qlen + packet->GetSize() <= sharedMemory->GetThreshold(portId, priority)){
+        if (enablePredictions){
+          m_getPrediction(qlen, avgqlen, sharedOccupancy, avgsharedoccupancy,drop);
+        }
+
         bool insertFalse = (urv->GetValue()<addErr);
-        if (insertFalse){
+        if (insertFalse && addErr>0){
             if(drop){
               drop = 0;
             }
@@ -588,7 +594,7 @@ GenQueueDisc::DoEnqueue (Ptr<QueueDiscItem> item)
     bufferMax[p] = sizenow;
   }
   /*Check if we can use the reserved space*/
-  if (GetCurrentSize().GetValue() + item->GetSize() <= staticBuffer) {
+  if (GetCurrentSize().GetValue() + item->GetSize() < staticBuffer) {
     bool ret = GetQueueDiscClass (p)->GetQueueDisc ()->Enqueue (item);
 
     if (firstSeen[p] == Seconds(0)) {
@@ -680,9 +686,9 @@ GenQueueDisc::DoDequeue (void)
       }
       Deq[dequeueIndex] += 1472;
 
-      dequeueIndex++;
-      if (dequeueIndex >= GetNQueueDiscClasses())
-        dequeueIndex = 0;
+      // dequeueIndex++;
+      // if (dequeueIndex >= GetNQueueDiscClasses())
+      //   dequeueIndex = 0;
     }
   }
   else {
@@ -752,6 +758,11 @@ GenQueueDisc::DoDequeue (void)
     if (dequeueIndex >= GetNQueueDiscClasses())
       dequeueIndex = 0;
 
+  }
+  if (round_robin){
+    dequeueIndex++; // This increment is for the round-robin case.
+    if (dequeueIndex >= GetNQueueDiscClasses())
+      dequeueIndex = 0;
   }
   return item;
 }
