@@ -181,8 +181,8 @@ ERROR_PROB=0
 for ALG in ${BUF_ALGS[@]};do
 	for LATENCY in 8 4 3 2 1;do
 		BURST_SIZE=$(python3 -c "print($BURST_SIZES*$BUFFER)")
-		FLOWFILE="$DUMP_DIR/fct-$TCP-$ALG-$LOAD-$BURST_SIZES-$BURST_FREQ-$BUFFER_PER_PORT_PER_GBPS.fct"
-		TORFILE="$DUMP_DIR/tor-$TCP-$ALG-$LOAD-$BURST_SIZES-$BURST_FREQ-$BUFFER_PER_PORT_PER_GBPS.stat"
+		FLOWFILE="$DUMP_DIR/fct-$TCP-$ALG-$LOAD-$BURST_SIZES-$BURST_FREQ-$LATENCY.fct"
+		TORFILE="$DUMP_DIR/tor-$TCP-$ALG-$LOAD-$BURST_SIZES-$BURST_FREQ-$LATENCY.stat"
 		N=$(( $N+1 ))
 		echo "$N $FLOWFILE"
 		while [[ $(( $(ps aux | grep credence-evaluation-optimized | wc -l) )) -gt $N_CORES ]];do
