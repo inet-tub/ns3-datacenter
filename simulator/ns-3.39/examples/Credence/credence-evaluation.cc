@@ -150,7 +150,7 @@ InvokeToRStats(Ptr<OutputStreamWrapper> stream, uint32_t BufferSize, uint32_t le
 	totalThroughput = totalThroughput / queues.GetN();
 
 	*stream->GetStream()
-	        << " " << Simulator::Now().GetSeconds()
+	        << Simulator::Now().GetSeconds()
 	        << " " << leafId
 	        << " " << double(BufferSize) / 1e6
 	        << " " << 100 * double(sm->GetOccupiedBuffer()) / BufferSize
@@ -178,7 +178,7 @@ InvokePerPortToRStats(Ptr<OutputStreamWrapper> stream, uint32_t BufferSize, uint
 		Ptr<GenQueueDisc> genDisc = DynamicCast<GenQueueDisc>(queues.Get(i));
 		double totalThroughput = genDisc->GetThroughputPort(nanodelay);
 		*stream->GetStream()
-		        << " " << Simulator::Now().GetSeconds()
+		        << Simulator::Now().GetSeconds()
 		        << " " << leafId
 		        << " " << genDisc->getPortId()
 		        << " " << double(BufferSize) / 1e6
@@ -323,7 +323,7 @@ void install_applications (int txLeaf, NodeContainer* servers, double requestRat
 			bulksend->SetAttribute("FlowId", UintegerValue(flowCount++));
 			bulksend->SetAttribute("priorityCustom", UintegerValue(prior));
 			bulksend->SetAttribute("Remote", AddressValue(sinkAddress));
-			bulksend->SetAttribute("InitialCwnd", UintegerValue (30)); // BDP 
+			bulksend->SetAttribute("InitialCwnd", UintegerValue (30));
 			bulksend->SetAttribute("priority", UintegerValue(prior));
 			bulksend->SetStartTime (Seconds(startTime));
 			bulksend->SetStopTime (Seconds (END_TIME));
@@ -396,7 +396,7 @@ main (int argc, char *argv[])
 	uint32_t LINK_COUNT = 1;
 	uint64_t spineLeafCapacity = 10; //Gbps
 	uint64_t leafServerCapacity = 10; //Gbps
-	double linkLatency = 4;
+	double linkLatency = 3;
 	cmd.AddValue ("serverCount", "The Server count", SERVER_COUNT);
 	cmd.AddValue ("spineCount", "The Spine count", SPINE_COUNT);
 	cmd.AddValue ("leafCount", "The Leaf count", LEAF_COUNT);
@@ -428,7 +428,7 @@ main (int argc, char *argv[])
 	std::string sched = "roundRobin";
 	cmd.AddValue ("sched", "scheduling", sched);
 
-	uint32_t requestSize = 0.75 * BufferSize;
+	uint32_t requestSize = 0.5 * BufferSize;
 	double queryRequestRate = 2; // at each server (per second)
 	cmd.AddValue ("request", "Query Size in Bytes", requestSize);
 	cmd.AddValue("queryRequestRate", "Query request rate (poisson arrivals)", queryRequestRate);

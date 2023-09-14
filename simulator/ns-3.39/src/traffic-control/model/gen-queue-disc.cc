@@ -686,9 +686,9 @@ GenQueueDisc::DoDequeue (void)
       }
       Deq[dequeueIndex] += 1472;
 
-      // dequeueIndex++;
-      // if (dequeueIndex >= GetNQueueDiscClasses())
-      //   dequeueIndex = 0;
+      dequeueIndex++;
+      if (dequeueIndex >= GetNQueueDiscClasses())
+        dequeueIndex = 0;
     }
   }
   else {
@@ -759,11 +759,11 @@ GenQueueDisc::DoDequeue (void)
       dequeueIndex = 0;
 
   }
-  if (round_robin){
-    dequeueIndex++; // This increment is for the round-robin case.
-    if (dequeueIndex >= GetNQueueDiscClasses())
-      dequeueIndex = 0;
-  }
+  // if (round_robin){
+  //   dequeueIndex++; // This increment is for the round-robin case.
+  //   if (dequeueIndex >= GetNQueueDiscClasses())
+  //     dequeueIndex = 0;
+  // }
   return item;
 }
 
