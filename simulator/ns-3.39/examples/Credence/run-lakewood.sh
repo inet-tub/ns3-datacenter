@@ -58,7 +58,7 @@ BUFFER=$(python3 -c "print(int($BUFFER_PER_PORT_PER_GBPS*1024*($SERVERS+$LINKS*$
 
 START_TIME=10
 END_TIME=24
-FLOW_END_TIME=13
+FLOW_END_TIME=22
 
 ENABLE_STATS=1
 ENABLE_LQD_TRCING=0
@@ -150,72 +150,72 @@ for ERROR_PROB in ${ERRORS[@]};do
 done
 
 
-# 24 simulations
-LOAD=0.4
-TCP=$POWERTCP
-ERROR_PROB=0
-for ALG in ${BUF_ALGS[@]};do
-	for BURST_SIZES in ${BURSTS[@]};do
-		BURST_SIZE=$(python3 -c "print($BURST_SIZES*$BUFFER)")
-		FLOWFILE="$DUMP_DIR/fct-$TCP-$ALG-$LOAD-$BURST_SIZES-$BURST_FREQ.fct"
-		TORFILE="$DUMP_DIR/tor-$TCP-$ALG-$LOAD-$BURST_SIZES-$BURST_FREQ.stat"
-		N=$(( $N+1 ))
-		echo "$N $FLOWFILE"
-		while [[ $(( $(ps aux | grep credence-evaluation-optimized | wc -l) )) -gt $N_CORES ]];do
-			sleep 30;
-			echo "running $N experiment(s)..."
-		done
-		if [[ $EXP == 1 ]];then
-			(time ./waf --run "credence-evaluation --rfModelFile=$RF_FILE --errorProb=$ERROR_PROB --load=$LOAD --StartTime=$START_TIME --EndTime=$END_TIME --FlowLaunchEndTime=$FLOW_END_TIME --serverCount=$SERVERS --spineCount=$SPINES --leafCount=$LEAVES --linkCount=$LINKS --spineLeafCapacity=$LEAF_SPINE_CAP --leafServerCapacity=$SERVER_LEAF_CAP --linkLatency=$LATENCY --TcpProt=$TCP --BufferSize=$BUFFER --statBuf=$STATIC_BUFFER --algorithm=$ALG --RedMinTh=$RED_MIN --RedMaxTh=$RED_MAX --request=$BURST_SIZE --queryRequestRate=$BURST_FREQ --nPrior=$N_PRIO --alphasFile=$ALPHAFILE --cdfFileName=$CDFFILE --alphaUpdateInterval=$ALPHA_UPDATE_INT --fctOutFile=$FLOWFILE --torOutFile=$TORFILE --averageIntervalNano=$AVERAGE_INTERVAL --randomSeed=$RANDOM_SEED --enableStats=$ENABLE_STATS --enableLqdTracing=$ENABLE_LQD_TRCING"; echo "$FLOWFILE")&
-			sleep 10
-		fi
-	done
-done
+# # 24 simulations
+# LOAD=0.4
+# TCP=$POWERTCP
+# ERROR_PROB=0
+# for ALG in ${BUF_ALGS[@]};do
+# 	for BURST_SIZES in ${BURSTS[@]};do
+# 		BURST_SIZE=$(python3 -c "print($BURST_SIZES*$BUFFER)")
+# 		FLOWFILE="$DUMP_DIR/fct-$TCP-$ALG-$LOAD-$BURST_SIZES-$BURST_FREQ.fct"
+# 		TORFILE="$DUMP_DIR/tor-$TCP-$ALG-$LOAD-$BURST_SIZES-$BURST_FREQ.stat"
+# 		N=$(( $N+1 ))
+# 		echo "$N $FLOWFILE"
+# 		while [[ $(( $(ps aux | grep credence-evaluation-optimized | wc -l) )) -gt $N_CORES ]];do
+# 			sleep 30;
+# 			echo "running $N experiment(s)..."
+# 		done
+# 		if [[ $EXP == 1 ]];then
+# 			(time ./waf --run "credence-evaluation --rfModelFile=$RF_FILE --errorProb=$ERROR_PROB --load=$LOAD --StartTime=$START_TIME --EndTime=$END_TIME --FlowLaunchEndTime=$FLOW_END_TIME --serverCount=$SERVERS --spineCount=$SPINES --leafCount=$LEAVES --linkCount=$LINKS --spineLeafCapacity=$LEAF_SPINE_CAP --leafServerCapacity=$SERVER_LEAF_CAP --linkLatency=$LATENCY --TcpProt=$TCP --BufferSize=$BUFFER --statBuf=$STATIC_BUFFER --algorithm=$ALG --RedMinTh=$RED_MIN --RedMaxTh=$RED_MAX --request=$BURST_SIZE --queryRequestRate=$BURST_FREQ --nPrior=$N_PRIO --alphasFile=$ALPHAFILE --cdfFileName=$CDFFILE --alphaUpdateInterval=$ALPHA_UPDATE_INT --fctOutFile=$FLOWFILE --torOutFile=$TORFILE --averageIntervalNano=$AVERAGE_INTERVAL --randomSeed=$RANDOM_SEED --enableStats=$ENABLE_STATS --enableLqdTracing=$ENABLE_LQD_TRCING"; echo "$FLOWFILE")&
+# 			sleep 10
+# 		fi
+# 	done
+# done
 
 
-# 10 simulations
-LOAD=0.4
-TCP=$DCTCP
-BURST_SIZES=0.5
-ERROR_PROB=0
-BUF_ALGS=($ABM $CREDENCE)
-for ALG in ${BUF_ALGS[@]};do
-	for LATENCY in 8 4 3 2 1;do
-		BURST_SIZE=$(python3 -c "print($BURST_SIZES*$BUFFER)")
-		FLOWFILE="$DUMP_DIR/fct-$TCP-$ALG-$LOAD-$BURST_SIZES-$BURST_FREQ-$LATENCY.fct"
-		TORFILE="$DUMP_DIR/tor-$TCP-$ALG-$LOAD-$BURST_SIZES-$BURST_FREQ-$LATENCY.stat"
-		N=$(( $N+1 ))
-		echo "$N $FLOWFILE"
-		while [[ $(( $(ps aux | grep credence-evaluation-optimized | wc -l) )) -gt $N_CORES ]];do
-			sleep 30;
-			echo "running $N experiment(s)..."
-		done
-		if [[ $EXP == 1 ]];then
-			(time ./waf --run "credence-evaluation --rfModelFile=$RF_FILE --errorProb=$ERROR_PROB --load=$LOAD --StartTime=$START_TIME --EndTime=$END_TIME --FlowLaunchEndTime=$FLOW_END_TIME --serverCount=$SERVERS --spineCount=$SPINES --leafCount=$LEAVES --linkCount=$LINKS --spineLeafCapacity=$LEAF_SPINE_CAP --leafServerCapacity=$SERVER_LEAF_CAP --linkLatency=$LATENCY --TcpProt=$TCP --BufferSize=$BUFFER --statBuf=$STATIC_BUFFER --algorithm=$ALG --RedMinTh=$RED_MIN --RedMaxTh=$RED_MAX --request=$BURST_SIZE --queryRequestRate=$BURST_FREQ --nPrior=$N_PRIO --alphasFile=$ALPHAFILE --cdfFileName=$CDFFILE --alphaUpdateInterval=$ALPHA_UPDATE_INT --fctOutFile=$FLOWFILE --torOutFile=$TORFILE --averageIntervalNano=$AVERAGE_INTERVAL --randomSeed=$RANDOM_SEED --enableStats=$ENABLE_STATS --enableLqdTracing=$ENABLE_LQD_TRCING"; echo "$FLOWFILE")&
-			sleep 10
-		fi
-	done
-done
+# # 10 simulations
+# LOAD=0.4
+# TCP=$DCTCP
+# BURST_SIZES=0.5
+# ERROR_PROB=0
+# BUF_ALGS=($ABM $CREDENCE)
+# for ALG in ${BUF_ALGS[@]};do
+# 	for LATENCY in 8 4 3 2 1;do
+# 		BURST_SIZE=$(python3 -c "print($BURST_SIZES*$BUFFER)")
+# 		FLOWFILE="$DUMP_DIR/fct-$TCP-$ALG-$LOAD-$BURST_SIZES-$BURST_FREQ-$LATENCY.fct"
+# 		TORFILE="$DUMP_DIR/tor-$TCP-$ALG-$LOAD-$BURST_SIZES-$BURST_FREQ-$LATENCY.stat"
+# 		N=$(( $N+1 ))
+# 		echo "$N $FLOWFILE"
+# 		while [[ $(( $(ps aux | grep credence-evaluation-optimized | wc -l) )) -gt $N_CORES ]];do
+# 			sleep 30;
+# 			echo "running $N experiment(s)..."
+# 		done
+# 		if [[ $EXP == 1 ]];then
+# 			(time ./waf --run "credence-evaluation --rfModelFile=$RF_FILE --errorProb=$ERROR_PROB --load=$LOAD --StartTime=$START_TIME --EndTime=$END_TIME --FlowLaunchEndTime=$FLOW_END_TIME --serverCount=$SERVERS --spineCount=$SPINES --leafCount=$LEAVES --linkCount=$LINKS --spineLeafCapacity=$LEAF_SPINE_CAP --leafServerCapacity=$SERVER_LEAF_CAP --linkLatency=$LATENCY --TcpProt=$TCP --BufferSize=$BUFFER --statBuf=$STATIC_BUFFER --algorithm=$ALG --RedMinTh=$RED_MIN --RedMaxTh=$RED_MAX --request=$BURST_SIZE --queryRequestRate=$BURST_FREQ --nPrior=$N_PRIO --alphasFile=$ALPHAFILE --cdfFileName=$CDFFILE --alphaUpdateInterval=$ALPHA_UPDATE_INT --fctOutFile=$FLOWFILE --torOutFile=$TORFILE --averageIntervalNano=$AVERAGE_INTERVAL --randomSeed=$RANDOM_SEED --enableStats=$ENABLE_STATS --enableLqdTracing=$ENABLE_LQD_TRCING"; echo "$FLOWFILE")&
+# 			sleep 10
+# 		fi
+# 	done
+# done
 
 
-# 3 simulations
-LOAD=0.4
-BURST_SIZES=0.5
-TCP=$DCTCP
-ALG=$CREDENCE
-ERRORS=(0.01 0.05 0.1)
-for ERROR_PROB in ${ERRORS[@]};do
-	BURST_SIZE=$(python3 -c "print($BURST_SIZES*$BUFFER)")
-	FLOWFILE="$DUMP_DIR/fct-$TCP-$ALG-$LOAD-$BURST_SIZES-$BURST_FREQ-$ERROR_PROB.fct"
-	TORFILE="$DUMP_DIR/tor-$TCP-$ALG-$LOAD-$BURST_SIZES-$BURST_FREQ-$ERROR_PROB.stat"
-	N=$(( $N+1 ))
-	echo "$N $FLOWFILE"
-	while [[ $(( $(ps aux | grep credence-evaluation-optimized | wc -l) )) -gt $N_CORES ]];do
-		sleep 30;
-		echo "running $N experiment(s)..."
-	done
-	if [[ $EXP == 1 ]];then
-		(time ./waf --run "credence-evaluation --rfModelFile=$RF_FILE --errorProb=$ERROR_PROB --load=$LOAD --StartTime=$START_TIME --EndTime=$END_TIME --FlowLaunchEndTime=$FLOW_END_TIME --serverCount=$SERVERS --spineCount=$SPINES --leafCount=$LEAVES --linkCount=$LINKS --spineLeafCapacity=$LEAF_SPINE_CAP --leafServerCapacity=$SERVER_LEAF_CAP --linkLatency=$LATENCY --TcpProt=$TCP --BufferSize=$BUFFER --statBuf=$STATIC_BUFFER --algorithm=$ALG --RedMinTh=$RED_MIN --RedMaxTh=$RED_MAX --request=$BURST_SIZE --queryRequestRate=$BURST_FREQ --nPrior=$N_PRIO --alphasFile=$ALPHAFILE --cdfFileName=$CDFFILE --alphaUpdateInterval=$ALPHA_UPDATE_INT --fctOutFile=$FLOWFILE --torOutFile=$TORFILE --averageIntervalNano=$AVERAGE_INTERVAL --randomSeed=$RANDOM_SEED --enableStats=$ENABLE_STATS --enableLqdTracing=$ENABLE_LQD_TRCING"; echo "$FLOWFILE")&
-		sleep 10
-	fi
-done
+# # 3 simulations
+# LOAD=0.4
+# BURST_SIZES=0.5
+# TCP=$DCTCP
+# ALG=$CREDENCE
+# ERRORS=(0.01 0.05 0.1)
+# for ERROR_PROB in ${ERRORS[@]};do
+# 	BURST_SIZE=$(python3 -c "print($BURST_SIZES*$BUFFER)")
+# 	FLOWFILE="$DUMP_DIR/fct-$TCP-$ALG-$LOAD-$BURST_SIZES-$BURST_FREQ-$ERROR_PROB.fct"
+# 	TORFILE="$DUMP_DIR/tor-$TCP-$ALG-$LOAD-$BURST_SIZES-$BURST_FREQ-$ERROR_PROB.stat"
+# 	N=$(( $N+1 ))
+# 	echo "$N $FLOWFILE"
+# 	while [[ $(( $(ps aux | grep credence-evaluation-optimized | wc -l) )) -gt $N_CORES ]];do
+# 		sleep 30;
+# 		echo "running $N experiment(s)..."
+# 	done
+# 	if [[ $EXP == 1 ]];then
+# 		(time ./waf --run "credence-evaluation --rfModelFile=$RF_FILE --errorProb=$ERROR_PROB --load=$LOAD --StartTime=$START_TIME --EndTime=$END_TIME --FlowLaunchEndTime=$FLOW_END_TIME --serverCount=$SERVERS --spineCount=$SPINES --leafCount=$LEAVES --linkCount=$LINKS --spineLeafCapacity=$LEAF_SPINE_CAP --leafServerCapacity=$SERVER_LEAF_CAP --linkLatency=$LATENCY --TcpProt=$TCP --BufferSize=$BUFFER --statBuf=$STATIC_BUFFER --algorithm=$ALG --RedMinTh=$RED_MIN --RedMaxTh=$RED_MAX --request=$BURST_SIZE --queryRequestRate=$BURST_FREQ --nPrior=$N_PRIO --alphasFile=$ALPHAFILE --cdfFileName=$CDFFILE --alphaUpdateInterval=$ALPHA_UPDATE_INT --fctOutFile=$FLOWFILE --torOutFile=$TORFILE --averageIntervalNano=$AVERAGE_INTERVAL --randomSeed=$RANDOM_SEED --enableStats=$ENABLE_STATS --enableLqdTracing=$ENABLE_LQD_TRCING"; echo "$FLOWFILE")&
+# 		sleep 10
+# 	fi
+# done
