@@ -116,7 +116,7 @@ TcpLinuxReno::IncreaseWindow(Ptr<TcpSocketState> tcb, uint32_t segmentsAcked)
     NS_LOG_FUNCTION(this << tcb << segmentsAcked);
 
     // Linux tcp_in_slow_start() condition
-    if (tcb->m_cWnd < tcb->m_ssThresh)
+    if (tcb->m_cWnd < tcb->m_ssThresh && tcb->m_useSS)
     {
         NS_LOG_DEBUG("In slow start, m_cWnd " << tcb->m_cWnd << " m_ssThresh " << tcb->m_ssThresh);
         segmentsAcked = SlowStart(tcb, segmentsAcked);

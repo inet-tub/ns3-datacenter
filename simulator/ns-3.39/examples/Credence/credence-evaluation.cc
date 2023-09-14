@@ -323,7 +323,7 @@ void install_applications (int txLeaf, NodeContainer* servers, double requestRat
 			bulksend->SetAttribute("FlowId", UintegerValue(flowCount++));
 			bulksend->SetAttribute("priorityCustom", UintegerValue(prior));
 			bulksend->SetAttribute("Remote", AddressValue(sinkAddress));
-			bulksend->SetAttribute("InitialCwnd", UintegerValue (30));
+			bulksend->SetAttribute("InitialCwnd", UintegerValue (22));
 			bulksend->SetAttribute("priority", UintegerValue(prior));
 			bulksend->SetStartTime (Seconds(startTime));
 			bulksend->SetStopTime (Seconds (END_TIME));
@@ -584,6 +584,8 @@ main (int argc, char *argv[])
 		return 0;
 	}
 
+	RedMinTh = RedMaxTh = std::max( uint32_t(10), uint32_t((RTTBytes/7.0)/double(PACKET_SIZE)) ); // min must be at least the default initial cwnd value.
+
 	Config::SetDefault("ns3::GenQueueDisc::updateInterval", UintegerValue(alphaUpdateInterval * linkLatency * 8 * 1000));
 	Config::SetDefault("ns3::GenQueueDisc::staticBuffer", UintegerValue(staticBuffer));
 	Config::SetDefault("ns3::GenQueueDisc::BufferAlgorithm", UintegerValue(algorithm));
@@ -648,6 +650,7 @@ main (int argc, char *argv[])
 		Config::SetDefault ("ns3::RedQueueDisc::Gentle", BooleanValue (false));
 		Config::SetDefault ("ns3::RedQueueDisc::MeanPktSize", UintegerValue (PACKET_SIZE));
 		Config::SetDefault ("ns3::Ipv4GlobalRouting::FlowEcmpRouting", BooleanValue(true));
+		Config::SetDefault("ns3::TcpSocketState::m_useSS", BooleanValue(false));
 		UseEcn = 1;
 		ecnEnabled = "EcnEnabled";
 		Config::SetDefault("ns3::GenQueueDisc::nPrior", UintegerValue(nPrior));

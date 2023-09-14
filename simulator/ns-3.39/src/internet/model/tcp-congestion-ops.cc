@@ -214,12 +214,12 @@ TcpNewReno::IncreaseWindow(Ptr<TcpSocketState> tcb, uint32_t segmentsAcked)
 {
     NS_LOG_FUNCTION(this << tcb << segmentsAcked);
 
-    if (tcb->m_cWnd < tcb->m_ssThresh)
+    if (tcb->m_cWnd < tcb->m_ssThresh && tcb->m_useSS)
     {
         segmentsAcked = SlowStart(tcb, segmentsAcked);
     }
 
-    if (tcb->m_cWnd >= tcb->m_ssThresh)
+    if (tcb->m_cWnd >= tcb->m_ssThresh || (!tcb->m_useSS))
     {
         CongestionAvoidance(tcb, segmentsAcked);
     }
