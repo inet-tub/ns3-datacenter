@@ -104,8 +104,6 @@ for ALG in ${BUF_ALGS[@]};do
 	done
 done
 
-N=0
-echo ""
 # 32 simulations
 LOAD=0.4
 TCP=$DCTCP
@@ -129,8 +127,6 @@ for ALG in ${BUF_ALGS[@]};do
 done
 
 
-N=0
-echo ""
 # 2 simulations
 LOAD=0.4
 BURST_SIZES=0.5
@@ -153,8 +149,7 @@ for ERROR_PROB in ${ERRORS[@]};do
 	fi
 done
 
-N=0
-echo ""
+
 # 24 simulations
 LOAD=0.4
 TCP_ALGS=($POWERTCP)
@@ -183,8 +178,6 @@ done
 
 ###################################################################################################################################################################
 
-N=0
-echo ""
 # 10 simulations
 LOAD=0.4
 TCP=$DCTCP
@@ -209,8 +202,6 @@ for ALG in ${BUF_ALGS[@]};do
 	done
 done
 
-N=0
-echo ""
 # 3 simulations
 LOAD=0.4
 BURST_SIZES=0.5
@@ -233,8 +224,6 @@ for ERROR_PROB in ${ERRORS[@]};do
 	fi
 done
 
-N=0
-echo ""
 # 48 simulations
 LOAD=0.4
 TCP_ALGS=($TIMELY $HPCC)
