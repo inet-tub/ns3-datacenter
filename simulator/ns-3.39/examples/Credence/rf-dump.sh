@@ -48,7 +48,7 @@ N_ESTIMATORS=8
 BURST_SIZES=0.75
 for SWITCH in 0 1 2 3 4 5;do
 	DUMPSCOREFILE="$DUMP_DIR/model-$TCP-$LOAD-$BURST_SIZES-$BURST_FREQ-$CDFNAME-$SWITCH.score"
-	echo "accuracy precision recall f1score trees depth" > $DUMPSCOREFILE
+	echo "accuracy precision recall f1score trees depth errorinv" > $DUMPSCOREFILE
 	LQDOUTFILE="$LQD_DIR/lqdtrace-$TCP-$LOAD-$BURST_SIZES-$BURST_FREQ-$CDFNAME-$SWITCH.csv"
 	DUMPMODELFILE="$DUMP_DIR/model-$TCP-$LOAD-$BURST_SIZES-$BURST_FREQ-$CDFNAME"
 	N=$(( $N+1 ))

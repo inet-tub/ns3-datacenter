@@ -14,19 +14,20 @@ from sklearn.model_selection import RandomizedSearchCV, train_test_split
 from scipy.stats import randint
 from sklearn.tree import export_graphviz
 from IPython.display import Image
-import graphviz
+# import graphviz
 # from sklearn.externals import joblib
 import joblib
 import sys
 #%%
 csvfile=str(sys.argv[1])
-# csvfile="/home/vamsi/lakewood/src/phd/codebase/ns3-datacenter-Old/simulator/ns-3.35/examples/Credence/lqd-logs/lqdtrace-2-0.8-0.875-2-WS-0.csv"
+# csvfile="/home/vamsi/lakewood/src/phd/codebase/ns3-datacenter-Old/simulator/ns-3.35/examples/Credence/lqd-logs/lqdtrace-2-0.8-0.75-2-WS-0.csv"
 dumpfile=str(sys.argv[2])
-# dumpfile="/home/vamsi/lakewood/src/phd/codebase/ns3-datacenter-Old/simulator/ns-3.35/examples/Credence/rf_models/model-2-0.8-0.875-2-WS-0.joblib"
+# dumpfile="/home/vamsi/lakewood/src/phd/codebase/ns3-datacenter-Old/simulator/ns-3.35/examples/Credence/rf_models/model-2-0.8-0.75-2-WS-0.joblib"
 maxDepth=int(sys.argv[3])
 switchId=str(sys.argv[4])
 # maxDepth=4
-# numTrees=int(sys.argv[4])
+# switchId=0
+numTrees=int(sys.argv[4])
 # numTrees=1
 #%%
 data = pd.read_csv(csvfile,delimiter=' ',usecols=[0,1,2,3,4])
@@ -35,13 +36,15 @@ X = data.drop('drop',axis=1).values
 y = data['drop'].values
 
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.6)
-
+#%%
 trees=[1,2,4,8,16,32,64,128]
 for numTrees in trees:
     rf = RandomForestClassifier(max_depth=maxDepth, n_jobs=-1,n_estimators=numTrees)
     rf.fit(X_train, y_train)
 
     y_pred = rf.predict(X_test)
+    
+    cm = confusion_matrix(y_test, y_pred)
 
     try:
         accuracy = accuracy_score(y_test, y_pred)
@@ -67,9 +70,20 @@ for numTrees in trees:
         f1score = 1
     if (f1score==0):
         f1score = 1
-    print(accuracy,precision,recall,f1score,numTrees,maxDepth)
+        
+    try:
+        tn = cm[0][0]
+        fp = cm[0][1]
+        fn = cm[1][0]
+        tp = cm[1][1]
+        myScore = 1/((tn+fp)/(tn - min([(19)*fn,tn])))
+    except:
+        myScore=1
+    if myScore==0:
+        myScore=1
+    print(accuracy,precision,recall,f1score,numTrees,maxDepth,myScore)
 
-    joblib.dump(rf,dumpfile+'-'+str(numTrees)+'-'+switchId+'.joblib')
+    # joblib.dump(rf,dumpfile+'-'+str(numTrees)+'-'+switchId+'.joblib')
 
 
 
