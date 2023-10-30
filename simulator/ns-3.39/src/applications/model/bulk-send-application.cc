@@ -205,10 +205,13 @@ void BulkSendApplication::StartApplication (void) // Called at time specified by
           NS_FATAL_ERROR ("Failed to bind socket");
         }
 
+      /* Modification */
+        m_socket->SetPriority(priority);
+        m_socket->SetAttribute("InitialCwnd",UintegerValue(InitialCwnd));
+        m_socket->SetAttribute("flowId",UintegerValue(m_flowId));
+        m_socket->SetAttribute("mypriority",UintegerValue(m_priorCustom));
+      /* Modification */
       m_socket->Connect (m_peer);
-      /* Modification */
-      m_socket->SetPriority(priority);
-      /* Modification */
       m_socket->ShutdownRecv ();
       m_socket->SetConnectCallback (
         MakeCallback (&BulkSendApplication::ConnectionSucceeded, this),

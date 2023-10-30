@@ -166,10 +166,12 @@ void PacketSink::StartApplication ()    // Called at time specified by Start
         {
           NS_FATAL_ERROR ("Failed to bind socket");
         }
-      m_socket->Listen ();
       /* Modification */
       m_socket->SetPriority(priority);
+      m_socket->SetAttribute("flowId",UintegerValue(flowId));
+      m_socket->SetAttribute("mypriority",UintegerValue(m_priorCustom));
       /* Modification */
+      m_socket->Listen ();
       m_socket->ShutdownSend ();
       if (addressUtils::IsMulticast (m_local))
         {
@@ -198,6 +200,12 @@ void PacketSink::StartApplication ()    // Called at time specified by Start
     {
       m_localPort = 0;
     }
+
+  /* Modification */
+      m_socket->SetPriority(priority);
+      m_socket->SetAttribute("flowId",UintegerValue(flowId));
+      m_socket->SetAttribute("mypriority",UintegerValue(m_priorCustom));
+  /* Modification */
   m_socket->SetRecvCallback (MakeCallback (&PacketSink::HandleRead, this));
   m_socket->SetRecvPktInfo (true);
   m_socket->SetAcceptCallback (
@@ -352,6 +360,11 @@ void PacketSink::HandlePeerError (Ptr<Socket> socket)
 void PacketSink::HandleAccept (Ptr<Socket> s, const Address& from)
 {
   NS_LOG_FUNCTION (this << s << from);
+  /* Modification */
+    s->SetPriority(priority);
+    s->SetAttribute("flowId",UintegerValue(flowId));
+    s->SetAttribute("mypriority",UintegerValue(m_priorCustom));
+  /* Modification */
   s->SetRecvCallback (MakeCallback (&PacketSink::HandleRead, this));
   m_socketList.push_back (s);
 }

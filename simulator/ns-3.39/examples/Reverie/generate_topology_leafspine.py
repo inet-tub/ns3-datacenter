@@ -5,17 +5,13 @@ import sys
 
 # leaf spine topology
 serversPerTor=16
-torSwitches=2
+torSwitches=16
 spineSwitches=4
-
-serverDataRate=25
-allOtherDataRate=25
-
 serverTorDelay="2us"
 torSpineDelay="2us"
-
+serverDataRate=25
+allOtherDataRate=25
 errorRate=0
-
 
 switch_num = torSwitches + spineSwitches
 node_num = serversPerTor*torSwitches + switch_num
@@ -39,3 +35,5 @@ spineIndexBegin=serversPerTor*torSwitches+torSwitches
 for i in range(torSwitches):
 	for j in range(spineSwitches):
 		print(str(torIndexBegin + i)+" "+str(spineIndexBegin + j )+" "+str(int(allOtherDataRate*1e9))+" "+torSpineDelay+" "+str(errorRate))
+
+

@@ -210,9 +210,13 @@ private:
   TracedCallback<Ptr<const Packet>, uint32_t, Ptr<GenQueueDisc>> m_txTrace; // trace dequeue events
   TracedCallback<uint32_t, uint32_t, uint32_t, uint32_t,uint32_t> m_traceLQD; // trace LQD events
   TracedCallback<uint32_t, uint32_t, uint32_t, uint32_t, int &> m_getPrediction; // trace LQD events
+  TracedCallback<uint32_t,uint32_t,uint32_t,uint32_t,uint64_t, double, uint32_t, uint32_t, uint32_t, uint32_t > m_arrival;
+  TracedCallback<uint32_t,uint32_t,uint32_t,uint32_t,uint64_t, double, uint32_t, uint32_t, uint32_t, uint32_t> m_departure;
   Ptr<UniformRandomVariable> urv;
   double addErr;
   bool enablePredictions;
+  uint32_t numPackets_big;
+  uint32_t numPackets_small;
 };
 
 } // namespace ns3

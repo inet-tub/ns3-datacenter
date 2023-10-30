@@ -1513,6 +1513,7 @@ TcpSocketBase::DoForwardUp(Ptr<Packet> packet, const Address& fromAddress, const
             h.SetDestinationPort(tcpHeader.GetSourcePort());
             h.SetWindowSize(AdvertisedWindowSize());
             AddOptions(h);
+            AddSocketTags(p);
             m_txTrace(p, h, this);
             m_tcp->SendPacket(p, h, toAddress, fromAddress, m_boundnetdevice);
         }
@@ -3200,7 +3201,7 @@ TcpSocketBase::AddSocketTags(const Ptr<Packet>& p) const
   
   MyPriorityTag a;
   if (p->GetSize() > 70) // considering that less than 70 bytes are all control packets like syn ack etc.  TODO
-    a.SetPriority(mypriority);
+      a.SetPriority(mypriority); // setting all packets to a single priority. (For a specific use case).
   else
     a.SetPriority(0);
 //       std::cout << uint32_t(priority) << std::endl;

@@ -120,6 +120,12 @@ TypeId GenQueueDisc::GetTypeId (void)
                       .AddTraceSource ("getPrediction", "callback to get predictions",
                                        MakeTraceSourceAccessor (&GenQueueDisc::m_getPrediction),
                                        "ns3::Packet::TracedCallback")
+                      .AddTraceSource ("arrival", "callback arrival",
+                                       MakeTraceSourceAccessor (&GenQueueDisc::m_arrival),
+                                       "ns3::Packet::TracedCallback")
+                      .AddTraceSource ("departure", "callback departure",
+                                       MakeTraceSourceAccessor (&GenQueueDisc::m_departure),
+                                       "ns3::Packet::TracedCallback")
                       ;
   return tid;
 }
@@ -147,6 +153,9 @@ GenQueueDisc::GenQueueDisc ()
   urv = CreateObject<UniformRandomVariable> ();
   urv->SetAttribute ("Min", DoubleValue (0));
   urv->SetAttribute ("Max", DoubleValue (1));
+
+  numPackets_big = 0;
+  numPackets_small = 0;
 }
 
 GenQueueDisc::~GenQueueDisc ()
@@ -581,9 +590,11 @@ GenQueueDisc::DoEnqueue (Ptr<QueueDiscItem> item)
   bool found;
   MyPriorityTag a;
   found = packet->PeekPacketTag(a);
-  if (found)p = a.GetPriority();
+  if (found){
+    p = a.GetPriority();
+  }
 
-  if (uint32_t(p) >= nPrior)
+  if (p >= nPrior)
     p = uint32_t(nPrior - 1);
 
   /* Arrival Statistics*/
@@ -626,14 +637,32 @@ GenQueueDisc::DoEnqueue (Ptr<QueueDiscItem> item)
 
   /*increment shared buffer occupancy*/
   bool retval;
+  uint32_t unsched = 0;
+  UnSchedTag tag;
+  found = packet->PeekPacketTag (tag);
+  if (found) {
+    unsched = tag.GetValue();
+  }
   if (!sharedMemory->EnqueueBuffer(item->GetPacket()->GetSize(), portId, p)) {
     DropBeforeEnqueue (item, LIMIT_EXCEEDED_DROP);
     // std::cout << "droppedTimeEEEEEEEEEEE " << Simulator::Now().GetNanoSeconds() << " priority " << p << " " << sharedMemory->GetQueueSize(portId,p) << " " << sharedMemory->getAverageQueueLength(portId,p) << " " << sharedMemory->GetOccupiedBuffer() << " " << sharedMemory->getAverageOccupancy() << std::endl;
     // std::cout << "dropped" << std::endl;
     retval = false;
+    if (p==1){
+      m_arrival(item->GetPacket()->GetSize(), numPackets_big, numPackets_small, unsched, Simulator::Now().GetNanoSeconds(), Simulator::Now().GetSeconds(), sharedMemory->GetQueueSize(portId, p), 0, portId, p);
+    }
   }
   else {
     sharedMemory->PerPriorityStatEnq(item->GetPacket()->GetSize(), p);
+    if (p==1){
+      if (item->GetPacket()->GetSize() > 32){
+        numPackets_big += 1;
+      }
+      else{
+        numPackets_small += 1;
+      }
+      m_arrival(item->GetPacket()->GetSize(), numPackets_big, numPackets_small, unsched, Simulator::Now().GetNanoSeconds(), Simulator::Now().GetSeconds(), sharedMemory->GetQueueSize(portId, p), 1, portId, p);
+    }
     retval = GetQueueDiscClass (p)->GetQueueDisc ()->Enqueue (item);
   }
 
@@ -752,6 +781,23 @@ GenQueueDisc::DoDequeue (void)
         // std::cout << "found " << Int.getHopCount() << std::endl;
       }
       txBytesInt += packet->GetSize();
+    }
+
+
+    if (p==1){
+      uint32_t unsched = 0;
+      UnSchedTag tag;
+      bool found = packet->PeekPacketTag (tag);
+      if (found) {
+        unsched = tag.GetValue();
+      }
+      if (item->GetPacket()->GetSize() > 32){
+        numPackets_big = (numPackets_big==0)?0:numPackets_big-1;
+      }
+      else{
+        numPackets_small = (numPackets_small==0)?0:numPackets_small-1;
+      }
+      m_departure(item->GetPacket()->GetSize(), numPackets_big, numPackets_small, unsched, Simulator::Now().GetNanoSeconds(), Simulator::Now().GetSeconds(), sharedMemory->GetQueueSize(portId, p), 2, portId, p);
     }
 
     dequeueIndex++; // This increment is for the round-robin case.
