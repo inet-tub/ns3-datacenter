@@ -1,7 +1,0 @@
-#!/bin/sh
-
-ChangeLog=$(dirname $0)/ChangeLog
-	
-chmod u+w $ChangeLog 2> /dev/null
-git log > $ChangeLog
-chmod a-w $ChangeLog

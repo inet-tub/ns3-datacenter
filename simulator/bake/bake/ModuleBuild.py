@@ -94,8 +94,8 @@ class ModuleBuild(ModuleAttributeBase):
         return None
 
     @property
-    def supports_objdir(self):
-        return self.attribute('objdir').value == 'yes'
+    def objdir(self):
+        return self.attribute('objdir').value
     def build(self, env, jobs):
         raise NotImplemented()
     def clean(self, env):
@@ -502,12 +502,10 @@ class Cmake(ModuleBuild):
         self.add_attribute('CFLAGS', '', 'Flags to use for C compiler')
         self.add_attribute('CXXFLAGS', '', 'Flags to use for C++ compiler')
         self.add_attribute('LDFLAGS', '', 'Flags to use for Linker')
-        self.add_attribute('build_arguments', '', 'Targets to make before'
-                           ' install')
         self.add_attribute('cmake_arguments', '', 'Command-line arguments'
-                           ' to pass to cmake')
+                           ' to pass to cmake --build')
         self.add_attribute('configure_arguments', '', 'Command-line arguments'
-                           ' to pass to cmake')
+                           ' to pass to cmake configuration')
         self.add_attribute('install_arguments', '', 'Command-line arguments'
                            ' to pass to make install')
 
@@ -518,7 +516,7 @@ class Cmake(ModuleBuild):
         return 'cmake'
 
     def _variables(self):
-        """ Verifies if the main environment variables where defined and 
+        """ Verifies if the main environment variables were defined and 
         sets them accordingly.
         """
 
@@ -535,42 +533,40 @@ class Cmake(ModuleBuild):
 
     def build(self, env, jobs):
         """ Specific build implementation method. In order: 
-        1. Call cmake to create the make files
-        2. Call make to build the code, 
-        3. Call make with the set build arguments 
-        4. Call make with the install parameters. 
+        1. Call cmake to create the make files, with configure arguments
+        2. Call cmake --build to build the code, with cmake arguments
+        3. Call 'cmake --build . --target install' with install arguments
         """
 
-        options = []
-        if self.attribute('cmake_arguments').value != '':
-            options = bake.Utils.split_args(
-                          env.replace_variables(self.attribute('cmake_arguments').value))
-        
-        # if the object directory does not exist, it should create it, to
-        # avoid build error, since the cmake does not create the directory
-        # it also makes it orthogonal to waf, that creates the target object dir
+        # Check that objdir was set for cmake
+        if env.objdir is None:
+            raise TaskError('objdir not configured; please configure objdir for cmake')
+        # Check that ModuleEnvironment.start_build() created objdir
         try:
-            env.run(['mkdir', env.objdir],
+            env.run(['test', '-d', env.objdir],
                     directory=env.srcdir)
-        except TaskError as e:
-            # assume that if an error is thrown is because the directory already 
-            # exist, otherwise re-propagates the error
-            if not "error 1" in e._reason :
-                raise TaskError(e._reason)
+        except:
+            raise TaskError('objdir %s configured but missing; possible problem in ModuleEnvironment.start_build()' % env.objdir)
 
         jobsrt=[]
         if not jobs == -1:
             jobsrt = ['-j', str(jobs)]
 
-        env.run(['cmake', env.srcdir, '-DCMAKE_INSTALL_PREFIX:PATH=' + env.installdir] + 
-                self._variables() + options,
-                directory=env.objdir)
-        env.run(['make']+ jobsrt, directory=env.objdir)
+        options = []
+        if self.attribute('configure_arguments').value != '':
+            options = bake.Utils.split_args(
+                          env.replace_variables(self.attribute('configure_arguments').value))
+
+        env.run(['cmake', env.srcdir, '-DCMAKE_INSTALL_PREFIX:PATH='
+            + env.installdir] + self._variables() + options, directory=env.objdir)
         
-        if self.attribute('build_arguments').value != '':
-            env.run(['make'] + bake.Utils.split_args(env.replace_variables(self.attribute('build_arguments').value)),
-                    directory=env.objdir)
-            
+        options = []
+        if self.attribute('cmake_arguments').value != '':
+            options = bake.Utils.split_args(
+                          env.replace_variables(self.attribute('cmake_arguments').value))
+
+        env.run(['cmake', '--build', env.objdir] + options + jobsrt, directory=env.objdir)
+
         if self.attribute('no_installation').value != True:
 
             sudoOp=[]
@@ -579,7 +575,7 @@ class Cmake(ModuleBuild):
 
             try:
                 options = bake.Utils.split_args(env.replace_variables(self.attribute('install_arguments').value))
-                env.run(sudoOp + ['make', 'install'] + options, directory=env.objdir)
+                env.run(sudoOp + ['cmake', '--build', '.', '--target', 'install'] + options, directory=env.objdir)
             except TaskError as e:
                 print('    Could not install, probably you do not have permission to'
                       ' install  %s: Verify if you have the required rights. Original'
@@ -644,17 +640,14 @@ class Make(ModuleBuild):
         3. Call make with the install arguments.
         """
 
-        # if the object directory does not exist, it should create it, to
-        # avoid build error, since the make does not create the directory
-        # it also makes it orthogonal to waf, that creates the target object dir
-        try:
-            env.run(['mkdir', env.objdir],
-                    directory=env.srcdir)
-        except TaskError as e:
-            # assume that if an error is thrown is because the directory already 
-            # exist, otherwise re-propagates the error
-            if not "error 1" in e._reason :
-                raise TaskError(e._reason)
+        # Check that objdir was created if set for make
+        if env.objdir is not None:
+            # Check that ModuleEnvironment.start_build() created objdir
+            try:
+                env.run(['test', '-d', env.objdir],
+                        directory=env.srcdir)
+            except:
+                raise TaskError('objdir %s configured but missing; possible problem in ModuleEnvironment.start_build()' % env.objdir)
 
         # Configures make, if there is a configuration argument that was passed as parameter
         options = []      
