@@ -5,7 +5,7 @@ This repository contains the source code used for [PowerTCP (NSDI 2022)](https:/
 
 **V1.0 Release**
 
-We extend ns-3.35 to support some of the recent advancements in the datacenter context.
+We extend ns-3.39 to support some of the recent advancements in the datacenter context.
 - Various datacenter congestion control algorithms including PowerTCP over both TCP/IP and RDMA stacks can be used simulataneously. 
 - The switch MMU is based on SONIC buffer model (purely based on our understanding only). 
 - Support for several Buffer Management algorithms including ABM.
