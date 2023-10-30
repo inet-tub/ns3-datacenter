@@ -10,6 +10,8 @@ We extend ns-3.39 to support some of the recent advancements in the datacenter c
 - The switch MMU is based on SONIC buffer model (purely based on our understanding only). 
 - Support for several Buffer Management algorithms including ABM.
 
+Previous versions of the repository can be found here: [Releases](https://github.com/inet-tub/ns3-datacenter/releases/)
+
 Many additions to the source code are based on prior work: [ns3-rdma](https://github.com/bobzhuyb/ns3-rdma) and [HPCC](https://github.com/alibaba-edu/High-Precision-Congestion-Control). Please consider citing the following papers if you use this repository in your research.
 
 ```bib
