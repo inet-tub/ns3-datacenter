@@ -97,11 +97,11 @@ main (int argc, char *argv[])
 
 	*throughputOutput[0]->GetStream ()
 		<< "time" << ","
-		<< "cwnd" << std::endl;
+		<< "rate" << std::endl;
 
 	*throughputOutput[1]->GetStream ()
 		<< "time" << ","
-		<< "cwnd" << std::endl;
+		<< "rate" << std::endl;
 
 	Config::SetDefault ("ns3::FifoQueueDisc::MaxSize", QueueSizeValue (QueueSize (QueueSizeUnit::BYTES, BufferSize)));
 
@@ -235,14 +235,14 @@ main (int argc, char *argv[])
 	/////////////////////////////////////////////////////////////////////////////////////////////////
 	/* Node 1 to Node 3 */
 	startTime = 2;
-	flowSize = 4*GIGA/8.0;
+	flowSize = 2*GIGA/8.0;
 	
 	Ptr<Node> rxNode1 = servers.Get (3);
 	Ptr<Ipv4> ipv4Ptr1 = rxNode1->GetObject<Ipv4> ();
 	Ipv4InterfaceAddress rxInterface1 = ipv4Ptr1->GetAddress (1, 0);
 	Ipv4Address rxAddress1 = rxInterface1.GetLocal ();
 
-	InetSocketAddress ad1 (rxAddress1, port);
+	InetSocketAddress ad1 (rxAddress1, port+1);
 	Address sinkAddress1(ad1);
 	Ptr<BulkSendApplication> bulksend1 = CreateObject<BulkSendApplication>();
 	bulksend1->SetAttribute("Protocol", TypeIdValue(TcpSocketFactory::GetTypeId()));
@@ -256,7 +256,7 @@ main (int argc, char *argv[])
 
 	Simulator::Schedule(Seconds(startTime)+NanoSeconds(10), scheduleConnect, 1);
 
-	PacketSinkHelper sink1 ("ns3::TcpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), port));
+	PacketSinkHelper sink1 ("ns3::TcpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), port+1));
 	ApplicationContainer sinkApp1 = sink1.Install (servers.Get(3));
 	sinkApp1.Get(0)->SetAttribute("TotalQueryBytes", UintegerValue(flowSize));
 	sinkApp1.Start (Seconds(startTime));
