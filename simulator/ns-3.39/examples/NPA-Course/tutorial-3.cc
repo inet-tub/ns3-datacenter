@@ -57,7 +57,7 @@ main (int argc, char *argv[])
 	CommandLine cmd;
 
 	double START_TIME = 0;
-	double END_TIME = 10;
+	double END_TIME = 20;
 
 	uint64_t linkCapacity = 1*GIGA;
 	uint32_t linkLatency = 1000; // in microseconds
@@ -203,7 +203,7 @@ main (int argc, char *argv[])
 
 
 	uint32_t port = 4444;
-	uint64_t flowSize = 10*GIGA;
+	uint64_t flowSize = 20*GIGA/8.0;
 	double startTime = START_TIME+0.1;
 
 	/////////////////////////////////////////////////////////////////////////////////////////////////
@@ -235,6 +235,7 @@ main (int argc, char *argv[])
 	/////////////////////////////////////////////////////////////////////////////////////////////////
 	/* Node 1 to Node 3 */
 	startTime = 2;
+	flowSize = 4*GIGA/8.0;
 	
 	Ptr<Node> rxNode1 = servers.Get (3);
 	Ptr<Ipv4> ipv4Ptr1 = rxNode1->GetObject<Ipv4> ();
@@ -250,7 +251,7 @@ main (int argc, char *argv[])
 	bulksend1->SetAttribute("Remote", AddressValue(sinkAddress1));
 	bulksend1->SetAttribute("InitialCwnd", UintegerValue (2));
 	bulksend1->SetStartTime (Seconds(startTime));
-	bulksend1->SetStopTime (Seconds (8));
+	bulksend1->SetStopTime (Seconds (END_TIME));
 	servers.Get (1)->AddApplication(bulksend1);
 
 	Simulator::Schedule(Seconds(startTime)+NanoSeconds(10), scheduleConnect, 1);
@@ -259,7 +260,7 @@ main (int argc, char *argv[])
 	ApplicationContainer sinkApp1 = sink1.Install (servers.Get(3));
 	sinkApp1.Get(0)->SetAttribute("TotalQueryBytes", UintegerValue(flowSize));
 	sinkApp1.Start (Seconds(startTime));
-	sinkApp1.Stop (Seconds (8));
+	sinkApp1.Stop (Seconds (END_TIME));
 
 // AsciiTraceHelper ascii;
 //    p2p.EnableAsciiAll (ascii.CreateFileStream ("eval.tr"));
