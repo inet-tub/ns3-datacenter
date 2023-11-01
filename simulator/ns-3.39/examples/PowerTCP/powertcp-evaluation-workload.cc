@@ -574,8 +574,8 @@ int main(int argc, char *argv[])
 	uint32_t algorithm = 3;
 	uint32_t windowCheck = 1;
 
-	std::string confFile = "/home/vamsi/src/phd/ns3-datacenter/simulator/ns-3.35/examples/PowerTCP/config-workload.txt";
-	std::string cdfFileName = "/home/vamsi/src/phd/ns3-datacenter/simulator/ns-3.35/examples/PowerTCP/websearch.txt";
+	std::string confFile = "/home/vamsi/src/phd/codebase/ns3-datacenter/simulator/ns-3.39/examples/PowerTCP/config-workload.txt";
+	std::string cdfFileName = "/home/vamsi/src/phd/codebase/ns3-datacenter/simulator/ns-3.39/examples/PowerTCP/websearch.txt";
 
 	unsigned randomSeed = 7;
 
