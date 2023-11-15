@@ -76,7 +76,7 @@ main (int argc, char *argv[])
 	uint32_t BufferSize = 100 * PACKET_SIZE; // For example:./waf --run "tutorial-4_5 --TcpProt=0 --BufferSize=1000000"
 	cmd.AddValue ("BufferSize", "BufferSize in Bytes", BufferSize);
 
-	uint32_t rto = 10 * 1000; // in MicroSeconds, 10 milliseconds. // For example: ./waf --run "tutorial-4_5 --TcpProt=0 --BufferSize=1000000 --rto=10000"
+	uint32_t rto = 100 * 1000; // in MicroSeconds, 10 milliseconds. // For example: ./waf --run "tutorial-4_5 --TcpProt=0 --BufferSize=1000000 --rto=10000"
 	cmd.AddValue ("rto", "min Retransmission timeout value in MicroSeconds", rto);
 
 	std::string scenario = "oneflow"; // DONT pass this argument for now. We only use oneflow scenario for tutorial 4_5
@@ -119,7 +119,7 @@ main (int argc, char *argv[])
 	TrafficControlHelper tc;
 
 	/*General TCP Socket settings. Mostly used by various congestion control algorithms in common*/
-	Config::SetDefault ("ns3::TcpSocket::ConnTimeout", TimeValue (MilliSeconds (10))); // syn retry interval
+	Config::SetDefault ("ns3::TcpSocket::ConnTimeout", TimeValue (MilliSeconds (100))); // syn retry interval
 	Config::SetDefault ("ns3::TcpSocketBase::MinRto", TimeValue (MicroSeconds (rto)) );  //(MilliSeconds (5))
 	Config::SetDefault ("ns3::TcpSocketBase::ClockGranularity", TimeValue (NanoSeconds (10))); //(MicroSeconds (100))
 	Config::SetDefault ("ns3::TcpSocket::InitialSlowStartThreshold", UintegerValue (ssThresh));
