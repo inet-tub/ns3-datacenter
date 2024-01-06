@@ -1,7 +1,7 @@
 
 # ns3-datacenter
 
-This repository contains the source code used for [PowerTCP (NSDI 2022)](https://www.usenix.org/conference/nsdi22/presentation/addanki) and [ABM (SIGCOMM 2022)](https://dl.acm.org/doi/10.1145/3544216.3544252).
+This repository contains the source code used for [PowerTCP (NSDI 2022)](https://www.usenix.org/conference/nsdi22/presentation/addanki), [ABM (SIGCOMM 2022)](https://dl.acm.org/doi/10.1145/3544216.3544252) and [CREDENCE (NSDI 2024)](https://www.usenix.org/conference/nsdi24).
 
 **V1.0 Release**
 
@@ -33,6 +33,14 @@ Many additions to the source code are based on prior work: [ns3-rdma](https://gi
   month = {August},
   booktitle = {Proceedings of the ACM SIGCOMM 2022 Conference},
   address = {Amsterdam, Netherlands}
+}
+
+
+@inproceedings{credence,
+  author = {Addanki, Vamsi and Pacut, Maciej and Schmid, Stefan},
+  title = {Credence: Augmenting Datacenter Switch Buffer Sharing with ML Predictions},
+  year = {2024},
+  booktitle = {USENIX Symposium on Networked Systems Design and Implementation (NSDI 24)}
 }
 
 ```
