@@ -4,7 +4,7 @@
 This repository contains the source code used for the following papers: 
 - [PowerTCP (NSDI 2022)](https://www.usenix.org/conference/nsdi22/presentation/addanki)
 - [ABM (SIGCOMM 2022)](https://dl.acm.org/doi/10.1145/3544216.3544252)
-- [Reverie (NSDI 2024)](https://www.usenix.org/conference/nsdi24).
+- [Reverie (NSDI 2024)](https://www.usenix.org/conference/nsdi24)
 - [Credence (NSDI 2024)](https://www.usenix.org/conference/nsdi24)
 
 **V1.0 Release**
