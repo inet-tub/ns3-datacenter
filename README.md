@@ -1,7 +1,11 @@
 
 # ns3-datacenter
 
-This repository contains the source code used for [PowerTCP (NSDI 2022)](https://www.usenix.org/conference/nsdi22/presentation/addanki), [ABM (SIGCOMM 2022)](https://dl.acm.org/doi/10.1145/3544216.3544252), [Credence (NSDI 2024)](https://www.usenix.org/conference/nsdi24) and [Reverie (NSDI 2024)](https://www.usenix.org/conference/nsdi24).
+This repository contains the source code used for the following papers: 
+- [PowerTCP (NSDI 2022)](https://www.usenix.org/conference/nsdi22/presentation/addanki)
+- [ABM (SIGCOMM 2022)](https://dl.acm.org/doi/10.1145/3544216.3544252)
+- [Reverie (NSDI 2024)](https://www.usenix.org/conference/nsdi24).
+- [Credence (NSDI 2024)](https://www.usenix.org/conference/nsdi24)
 
 **V1.0 Release**
 
@@ -9,6 +13,7 @@ We extend ns-3.39 to support some of the recent advancements in the datacenter c
 - Various datacenter congestion control algorithms including PowerTCP over both TCP/IP and RDMA stacks can be used simulataneously. 
 - The switch MMU is based on SONIC buffer model (purely based on our understanding only). The switch MMU can also be configured based on Reverie model. 
 - Support for several Buffer Management algorithms including ABM, Reverie and Credence.
+- Integration with pybind11 enables interesting applications such as obtaining predictions from a scikit-learn trained model (see Credence examples).
 
 Previous versions of the repository can be found here: [Releases](https://github.com/inet-tub/ns3-datacenter/releases/)
 
@@ -35,6 +40,15 @@ Many additions to the source code are based on prior work: [ns3-rdma](https://gi
   address = {Amsterdam, Netherlands}
 }
 
+@inproceedings{reverie,
+  author = {Addanki, Vamsi and Bai, Wei and Schmid, Stefan and Apostolaki, Maria},
+  title = {Reverie: Low Pass Filter-Based Switch Buffer Sharing for Datacenters with RDMA and TCP Traffic},
+  year = {2024},
+  month = {April},
+  booktitle = {21th USENIX Symposium on Networked Systems Design and Implementation (NSDI 24)},
+  address = {Santa Clara, CA},
+  publisher = {USENIX Association}
+}
 
 @inproceedings{credence,
   author = {Addanki, Vamsi and Pacut, Maciej and Schmid, Stefan},
@@ -46,15 +60,6 @@ Many additions to the source code are based on prior work: [ns3-rdma](https://gi
   publisher = {USENIX Association}
 }
 
-@inproceedings{reverie,
-  author = {Addanki, Vamsi and Bai, Wei and Schmid, Stefan and Apostolaki, Maria},
-  title = {Reverie: Low Pass Filter-Based Switch Buffer Sharing for Datacenters with RDMA and TCP Traffic},
-  year = {2024},
-  month = {April},
-  booktitle = {21th USENIX Symposium on Networked Systems Design and Implementation (NSDI 24)},
-  address = {Santa Clara, CA},
-  publisher = {USENIX Association}
-}
 
 ```
 
