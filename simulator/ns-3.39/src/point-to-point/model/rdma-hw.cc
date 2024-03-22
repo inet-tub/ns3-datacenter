@@ -987,12 +987,12 @@ void RdmaHw::UpdateRatePower(Ptr<RdmaQueuePair> qp, Ptr<Packet> p, CustomHeader 
 	double rtt;
 
 	if (it != qp->rates.end()) {
-		qp->rates.erase(it);
 		prevRtt = Simulator::Now().GetNanoSeconds() - it->second;
 		if (PowerTCPdelay) {
 			qp->m_baseRtt = std::min(uint64_t(Simulator::Now().GetNanoSeconds() - it->second), qp->m_baseRtt);
 		}
 		prevCompletion = Simulator::Now().GetNanoSeconds();
+        qp->rates.erase(it);
 	}
 	if (qp->hp.m_lastUpdateSeq == 0 && !PowerTCPdelay) {
 		qp->prevRtt = prevRtt;
