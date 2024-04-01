@@ -179,7 +179,7 @@ for query in ${REQ_SIZE[@]};do
 		N=$(( $N+1 ))
 		RESULT_FILE="$RES_DUMP/evaluation-${algNames[$algorithm]}-$load-$req-$query.out"
 		# echo "time ./waf --run "evaluation-fairness --algorithm=${CCMODE[$algorithm]} --wien=$wien --delayWien=$delay --windowCheck=$window""
-		time ./waf --run "evaluation-workload --conf=$configFile --algorithm=${CCMODE[$algorithm]} --wien=$wien --delayWien=$delay --windowCheck=$window --queryRequestRate=$req --load=$load --START_TIME=$START --END_TIME=$END --FLOW_LAUNCH_END_TIME=$FLOWEND --incast=10 --cdfFileName=$cdf --request=$query" > $RESULT_FILE  2> $RESULT_FILE &
+		time ./waf --run "powertcp-evaluation-workload --conf=$configFile --algorithm=${CCMODE[$algorithm]} --wien=$wien --delayWien=$delay --windowCheck=$window --queryRequestRate=$req --load=$load --START_TIME=$START --END_TIME=$END --FLOW_LAUNCH_END_TIME=$FLOWEND --incast=10 --cdfFileName=$cdf --request=$query" > $RESULT_FILE  2> $RESULT_FILE &
 		
 		# cat $RESULT_FILE | grep 'FCT' | grep 'flowSize' > $RES_RESULTS/result-${algNames[$algorithm]}-$load-$req.fct
 		# cat $RESULT_FILE | grep 'switch 0' | grep 'total' > $RES_RESULTS/result-${algNames[$algorithm]}-$load-$req.buf
