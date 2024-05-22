@@ -19,7 +19,7 @@ import sys
 #%%
 dump="dump_sigcomm/"
 # plots="plots_sigcomm/"
-plots="/home/vamsi/src/phd/writings/reverie/nsdi24/plots/evaluation/"
+plots="/home/vamsi/src/phd/writings/reverie/nsdi24-CRV/plots/evaluation/"
 
 
 LOSSLESS=0
@@ -241,8 +241,8 @@ ax7.set_xticklabels(["20","40","60","80"])
 ax8.set_xticklabels(["20","40","60","80"])
 
 ax0.set_ylabel("# PFC pauses (x1000)")
-ax1.set_ylabel("Avg. FCT")
-ax2.set_ylabel("95-pct FCT")
+ax1.set_ylabel("Avg. FCT slowdown")
+ax2.set_ylabel("95-pct FCT slowdown")
 ax3.set_ylabel("99-pct FCT")
 ax4.set_ylabel("99.9-pct FCT")
 ax5.set_ylabel("99-pct FCT")
