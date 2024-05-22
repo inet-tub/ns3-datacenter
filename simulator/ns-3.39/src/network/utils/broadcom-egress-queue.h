@@ -74,8 +74,10 @@ namespace ns3 {
 		std::vector<Ptr<Queue<Packet>> > m_queues; // uc queues
 		// vamsi
 		uint64_t numTxBytes; // for throughput calculations
+
+        NS_LOG_TEMPLATE_DECLARE;
 	};
 
 } // namespace ns3
 
-#endif /* DROPTAIL_H */
+#endif /* BROADCOM_EGRESS_H */

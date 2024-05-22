@@ -3,4 +3,5 @@ build_lib_example(
   SOURCE_FILES main-attribute-value.cc
   LIBRARIES_TO_LINK ${libnetwork}
                     ${libpoint-to-point}
+                    ${libinternet}
 )

@@ -47,7 +47,7 @@ namespace ns3 {
 
 QbbHelper::QbbHelper ()
 {
-  m_queueFactory.SetTypeId ("ns3::DropTailQueue");
+  m_queueFactory.SetTypeId("ns3::DropTailQueue<Packet>");
   m_deviceFactory.SetTypeId ("ns3::QbbNetDevice");
   m_channelFactory.SetTypeId ("ns3::QbbChannel");
   m_remoteChannelFactory.SetTypeId ("ns3::QbbRemoteChannel");

@@ -1,14 +1,19 @@
 
 # ns3-datacenter
 
-This repository contains the source code used for [PowerTCP (NSDI 2022)](https://www.usenix.org/conference/nsdi22/presentation/addanki) and [ABM (SIGCOMM 2022)](https://dl.acm.org/doi/10.1145/3544216.3544252).
+This repository contains the source code used for the following papers: 
+- [PowerTCP (NSDI 2022)](https://www.usenix.org/conference/nsdi22/presentation/addanki)
+- [ABM (SIGCOMM 2022)](https://dl.acm.org/doi/10.1145/3544216.3544252)
+- [Reverie (NSDI 2024)](https://www.usenix.org/conference/nsdi24)
+- [Credence (NSDI 2024)](https://www.usenix.org/conference/nsdi24)
 
 **V1.0 Release**
 
 We extend ns-3.39 to support some of the recent advancements in the datacenter context.
 - Various datacenter congestion control algorithms including PowerTCP over both TCP/IP and RDMA stacks can be used simulataneously. 
-- The switch MMU is based on SONIC buffer model (purely based on our understanding only). 
-- Support for several Buffer Management algorithms including ABM.
+- The switch MMU is based on SONIC buffer model (purely based on our understanding only). The switch MMU can also be configured based on Reverie model. 
+- Support for several Buffer Management algorithms including ABM, Reverie and Credence.
+- Integration with pybind11 enables interesting applications such as obtaining predictions from a scikit-learn trained model (see Credence examples).
 
 Previous versions of the repository can be found here: [Releases](https://github.com/inet-tub/ns3-datacenter/releases/)
 
@@ -20,10 +25,10 @@ Many additions to the source code are based on prior work: [ns3-rdma](https://gi
   title = {{PowerTCP}: Pushing the Performance Limits of Datacenter Networks},
   booktitle = {19th USENIX Symposium on Networked Systems Design and Implementation (NSDI 22)},
   year = {2022},
+  month = {April},
   address = {Renton, WA},
   url = {https://www.usenix.org/conference/nsdi22/presentation/addanki},
   publisher = {USENIX Association},
-  month = {April},
 }
 
 @inproceedings{abm,
@@ -34,6 +39,27 @@ Many additions to the source code are based on prior work: [ns3-rdma](https://gi
   booktitle = {Proceedings of the ACM SIGCOMM 2022 Conference},
   address = {Amsterdam, Netherlands}
 }
+
+@inproceedings{reverie,
+  author = {Addanki, Vamsi and Bai, Wei and Schmid, Stefan and Apostolaki, Maria},
+  title = {Reverie: Low Pass Filter-Based Switch Buffer Sharing for Datacenters with RDMA and TCP Traffic},
+  year = {2024},
+  month = {April},
+  booktitle = {21th USENIX Symposium on Networked Systems Design and Implementation (NSDI 24)},
+  address = {Santa Clara, CA},
+  publisher = {USENIX Association}
+}
+
+@inproceedings{credence,
+  author = {Addanki, Vamsi and Pacut, Maciej and Schmid, Stefan},
+  title = {Credence: Augmenting Datacenter Switch Buffer Sharing with ML Predictions},
+  year = {2024},
+  month = {April},
+  booktitle = {21th USENIX Symposium on Networked Systems Design and Implementation (NSDI 24)},
+  address = {Santa Clara, CA},
+  publisher = {USENIX Association}
+}
+
 
 ```
 
@@ -62,6 +88,11 @@ Checkout [`simulator/ns-3.39/examples/PowerTCP`](https://github.com/inet-tub/ns3
 
 Checkout [`simulator/ns-3.39/examples/ABM`](https://github.com/inet-tub/ns3-datacenter/tree/master/simulator/ns-3.39/examples/ABM) for simulation files and scripts to run ABM and other buffer management algorithms. **Note:** This only runs in the TCP/IP stack and this is what we used in the paper. Checkout [`switch MMU`](simulator/ns-3.39/src/point-to-point/model/switch-mmu.cc) for a more general implementation of ABM suited for both RDMA stack and mixed stacks (RDMA + TCP/IP sharing the buffer).
 
+# Running Credence
+Checkout [`simulator/ns-3.39/examples/Credence`](https://github.com/inet-tub/ns3-datacenter/tree/master/simulator/ns-3.39/examples/Credence). Sanitized code and documentation will be updated soon...
+
+# Running Reverie
+Checkout [`simulator/ns-3.39/examples/Reverie`](https://github.com/inet-tub/ns3-datacenter/tree/master/simulator/ns-3.39/examples/Reverie). Sanitized code and documentation will be updated by soon...
 
 # Important Files
 

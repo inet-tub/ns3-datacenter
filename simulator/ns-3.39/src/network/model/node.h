@@ -238,7 +238,7 @@ class Node : public Object
   // private:
     /* Modification */
   //yibo
-  uint32_t m_node_type;
+  uint32_t m_node_type=0;
 // private:
 /* Modification */
     /**

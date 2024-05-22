@@ -28,6 +28,7 @@
 
 
 namespace ns3 {
+    NS_LOG_COMPONENT_DEFINE("BEgressQueue");
 
 	NS_OBJECT_ENSURE_REGISTERED(BEgressQueue);
 
@@ -47,7 +48,7 @@ namespace ns3 {
 	}
 
 	BEgressQueue::BEgressQueue() :
-		Queue()
+		Queue(), NS_LOG_TEMPLATE_DEFINE("BEgressQueue")
 	{
 		NS_LOG_FUNCTION_NOARGS();
 		m_bytesInQueueTotal = 0;
