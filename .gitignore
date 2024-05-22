@@ -35,3 +35,6 @@
 ./__pycache__/
 .lock*
 .waf*
+
+# IDEs
+*.spyproject
