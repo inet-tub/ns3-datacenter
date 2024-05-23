@@ -6,7 +6,7 @@ import sys
 # leaf spine topology
 serversPerTor=16
 torSwitches=16
-spineSwitches=4
+spineSwitches=16
 serverTorDelay="2us"
 torSpineDelay="2us"
 serverDataRate=25

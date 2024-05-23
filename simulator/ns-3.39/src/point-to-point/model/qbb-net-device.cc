@@ -58,6 +58,8 @@ namespace ns3 {
 
 uint32_t RdmaEgressQueue::ack_q_idx = 3;
 uint32_t RdmaEgressQueue::tcpip_q_idx = 1;
+uint32_t RdmaEgressQueue::maxActiveQpsWindow = UINT32_MAX;
+uint32_t RdmaEgressQueue::randomize = 0;
 // RdmaEgressQueue
 TypeId RdmaEgressQueue::GetTypeId (void)
 {
@@ -72,7 +74,10 @@ TypeId RdmaEgressQueue::GetTypeId (void)
 }
 
 RdmaEgressQueue::RdmaEgressQueue() {
-	m_rrlast = 0;
+	if(randomize)
+		m_rrlast = std::rand() % (maxActiveQpsWindow); // randomize the inital rr
+	else
+		m_rrlast = 0;
 	m_qlast = 0;
 	m_ackQ = CreateObject<DropTailQueue<Packet>>();
 	m_ackQ->SetAttribute("MaxSize", QueueSizeValue (QueueSize (BYTES, 0xffffffff))); // queue limit is on a higher level, not here
@@ -92,7 +97,8 @@ Ptr<Packet> RdmaEgressQueue::DequeueQindex(int qIndex) {
 	}
 	if (qIndex >= 0) { // qp
 		Ptr<Packet> p = m_rdmaGetNxtPkt(m_qpGrp->Get(qIndex));
-		m_rrlast = qIndex;
+		// m_rrlast = qIndex;
+		m_rrlast++;
 		m_qlast = qIndex;
 		m_traceRdmaDequeue(p, m_qpGrp->Get(qIndex)->m_pg);
 		UnSchedTag tag;
@@ -114,7 +120,7 @@ int RdmaEgressQueue::GetNextQindex(bool paused[]) {
 	for (uint32_t dorr = 0; dorr < 2; dorr++) {
 		hostDequeueIndex++;
 		if (hostDequeueIndex % 2) {
-			uint32_t fcount = m_qpGrp->GetN();
+			uint32_t fcount = std::min(m_qpGrp->GetN(), maxActiveQpsWindow);
 			uint32_t min_finish_id = 0xffffffff;
 			for (qIndex = 1; qIndex <= fcount; qIndex++) {
 				uint32_t idx = (qIndex + m_rrlast) % fcount;
@@ -133,7 +139,7 @@ int RdmaEgressQueue::GetNextQindex(bool paused[]) {
 			if (min_finish_id < 0xffffffff) {
 				int nxt = min_finish_id;
 				auto &qps = m_qpGrp->m_qps;
-				for (int i = min_finish_id + 1; i < fcount; i++) if (!qps[i]->IsFinished()) {
+				for (int i = min_finish_id + 1; i < m_qpGrp->GetN(); i++) if (!qps[i]->IsFinished()) {
 						if (i == res) // update res to the idx after removing finished qp
 							res = nxt;
 						qps[nxt] = qps[i];

@@ -177,6 +177,10 @@ struct FlowInput
 FlowInput flow_input = {0};
 uint32_t flow_num;
 
+uint32_t totalTransfersInCollective = 0;
+uint32_t totalFinishedTransfers = 0;
+uint32_t nextCollective = 0;
+
 void ReadFlowInput()
 {
     if (flow_input.idx < flow_num)
@@ -248,6 +252,20 @@ void qp_finish(Ptr<OutputStreamWrapper> fout, Ptr<RdmaQueuePair> q)
     Ptr<Node> dstNode = n.Get(did);
     Ptr<RdmaDriver> rdma = dstNode->GetObject<RdmaDriver>();
     rdma->m_rdma->DeleteRxQp(q->sip.Get(), q->m_pg, q->sport);
+
+    totalFinishedTransfers+=1;
+    // std::cout << totalFinishedTransfers << " " << totalTransfersInCollective << std::endl;
+    if (totalFinishedTransfers == totalTransfersInCollective){
+        if (nextCollective == 0){
+            Simulator::Stop(Seconds(0));
+            // std::cout << "Done." << std::endl;
+        }
+        else{
+            totalTransfersInCollective = 0;
+            totalFinishedTransfers = 0;
+            // Todo? trigger next collective....
+        }
+    }
 }
 
 void get_pfc(Ptr<OutputStreamWrapper> fout, Ptr<QbbNetDevice> dev, uint32_t type)
@@ -395,6 +413,7 @@ uint32_t FAN = 5;
 void collective_rdma(double START_TIME, uint32_t collective, uint32_t transferSize, uint32_t algorithm, uint32_t LEAF_COUNT,
                      uint32_t SERVER_COUNT)
 {
+    totalTransfersInCollective = 0;
     double startTime = START_TIME;
     switch (collective)
     {
@@ -427,6 +446,7 @@ void collective_rdma(double START_TIME, uint32_t collective, uint32_t transferSi
                 // std::cout << " from " << fromServerIndex << " to " << destServerIndex <<  " fromLeadId " <<
                 // fromLeafId << " serverCount " << SERVER_COUNT << " leafCount " << LEAF_COUNT <<  std::endl;
                 appCon.Start(Seconds(startTime));
+                totalTransfersInCollective +=1;
             }
         }
         std::cout << "Finished installation of applications for All-to-All collective" << std::endl;
@@ -561,7 +581,7 @@ int main(int argc, char *argv[])
     uint32_t collectiveAlgorithm = RING;
     cmd.AddValue("collectiveAlgorithm", "algorithm to use for the specified collective", collectiveAlgorithm);
 
-    uint32_t transferSize = 1000000;
+    uint32_t transferSize = 10000;
     cmd.AddValue("transferSize", "size of the trasfer from each node in the specified collective", transferSize);
 
 
@@ -858,6 +878,9 @@ int main(int argc, char *argv[])
 
     has_win = rdmaWindowCheck;
     var_win = rdmaVarWin;
+
+    RdmaEgressQueue::maxActiveQpsWindow = UINT32_MAX; // Window for the number of active Qps.
+    RdmaEgressQueue::randomize = 1; // randomize the initial round-robin pointer
 
     Config::SetDefault("ns3::QbbNetDevice::PauseTime", UintegerValue(pause_time));
     Config::SetDefault("ns3::QbbNetDevice::QcnEnabled", BooleanValue(enable_qcn));
