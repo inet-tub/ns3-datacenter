@@ -1,2 +1,5 @@
 build/*
 cmake-cache/
+fcts.txt
+tor.txt
+pfc.txt

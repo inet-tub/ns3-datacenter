@@ -2,6 +2,9 @@
 
 cmd=$1
 args=$2
+# TODO: This seems to solve the error "libstdc++.so.6: version `GLIBCXX_3.4.32' not found"
+# But check why this error is popping up now suddenly. Due to gcc 13?
+export LD_LIBRARY_PATH=/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH
 if [[ $1 == "--run" ]];then
 	./ns3 run "$2"
 elif [[ $1 == "clean" ]];then
