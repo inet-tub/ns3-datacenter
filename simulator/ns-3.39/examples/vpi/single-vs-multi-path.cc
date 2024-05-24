@@ -54,7 +54,9 @@ using namespace std;
 #define DCQCNCC 1
 #define INTCC 3
 #define TIMELYCC 7
+#define DCTCPCC 8
 #define PINTCC 10
+#define MULTIPATHCC 11
 
 #define CUBIC 2
 #define DCTCP 4
@@ -64,6 +66,10 @@ using namespace std;
 
 #define RING 777
 #define TREE 778
+
+#define FLOW_ECMP 0
+#define RANDOM_ECMP 1
+#define SOURCE_ROUTING 2
 
 NS_LOG_COMPONENT_DEFINE("SINGLE_VS_MULTI_PATH");
 
@@ -180,6 +186,7 @@ uint32_t flow_num;
 uint32_t totalTransfersInCollective = 0;
 uint32_t totalFinishedTransfers = 0;
 uint32_t nextCollective = 0;
+uint64_t collectiveBytes = 0;
 
 void ReadFlowInput()
 {
@@ -255,7 +262,9 @@ void qp_finish(Ptr<OutputStreamWrapper> fout, Ptr<RdmaQueuePair> q)
 
     totalFinishedTransfers+=1;
     // std::cout << totalFinishedTransfers << " " << totalTransfersInCollective << std::endl;
+    collectiveBytes += total_bytes;
     if (totalFinishedTransfers == totalTransfersInCollective){
+        // TODO: print the completion time for collective
         if (nextCollective == 0){
             Simulator::Stop(Seconds(0));
             // std::cout << "Done." << std::endl;
@@ -263,6 +272,7 @@ void qp_finish(Ptr<OutputStreamWrapper> fout, Ptr<RdmaQueuePair> q)
         else{
             totalTransfersInCollective = 0;
             totalFinishedTransfers = 0;
+            collectiveBytes = 0;
             // Todo? trigger next collective....
         }
     }
@@ -541,7 +551,7 @@ int main(int argc, char *argv[])
     uint32_t rdmaVarWin = 0;
     cmd.AddValue("rdmaVarWin", "windowCheck", rdmaVarWin);
 
-    uint64_t buffer_size = 2610000; // 5.4;
+    uint64_t buffer_size = 17694720; // 5.4;
     cmd.AddValue("buffersize", "buffer size in MB", buffer_size);
 
     uint32_t bufferalgIngress = DT;
@@ -583,6 +593,15 @@ int main(int argc, char *argv[])
 
     uint32_t transferSize = 10000;
     cmd.AddValue("transferSize", "size of the trasfer from each node in the specified collective", transferSize);
+
+    uint32_t routing = FLOW_ECMP;
+    cmd.AddValue("routing","routing/load balancing algorithm used", routing);
+
+    bool enableMultiPath = false;
+    cmd.AddValue("enableMultiPath","Enable if the transport is multipath. This will enable out-of-order packet handling at the NIC", enableMultiPath);
+
+    double rdmaRto = 4; // specify in multiples of RTT here. This will later be converted to Nanoseconds based on the topology
+    cmd.AddValue("rdmaRto","retransmission timeout for multipath rdma", rdmaRto);
 
 
     cmd.Parse(argc, argv);
@@ -879,7 +898,7 @@ int main(int argc, char *argv[])
     has_win = rdmaWindowCheck;
     var_win = rdmaVarWin;
 
-    RdmaEgressQueue::maxActiveQpsWindow = UINT32_MAX; // Window for the number of active Qps.
+    RdmaEgressQueue::maxActiveQpsWindow = 256; // Window for the number of active Qps.
     RdmaEgressQueue::randomize = 1; // randomize the initial round-robin pointer
 
     Config::SetDefault("ns3::QbbNetDevice::PauseTime", UintegerValue(pause_time));
@@ -1098,6 +1117,46 @@ int main(int argc, char *argv[])
 
     nic_rate = get_nic_rate(n);
 
+    // set ACK priority on hosts
+    if (ack_high_prio)
+        RdmaEgressQueue::ack_q_idx = 0;
+    else
+        RdmaEgressQueue::ack_q_idx = 3;
+
+    // calculate routing tables
+    CalculateRoutes(n);
+    //
+    // get BDP and delay
+    //
+    maxRtt = maxBdp = 0;
+    uint64_t minRtt = 1e9;
+    for (uint32_t i = 0; i < node_num; i++)
+    {
+        if (n.Get(i)->GetNodeType() != 0)
+            continue;
+        for (uint32_t j = 0; j < node_num; j++)
+        {
+            if (n.Get(j)->GetNodeType() != 0)
+                continue;
+            if (i == j)
+                continue;
+            uint64_t delay = pairDelay[n.Get(i)][n.Get(j)];
+            uint64_t txDelay = pairTxDelay[n.Get(i)][n.Get(j)];
+            uint64_t rtt = delay * 2 + txDelay;
+            uint64_t bw = pairBw[i][j];
+            uint64_t bdp = rtt * bw / 1000000000 / 8;
+            pairBdp[n.Get(i)][n.Get(j)] = bdp;
+            pairRtt[i][j] = rtt;
+            if (bdp > maxBdp)
+                maxBdp = bdp;
+            if (rtt > maxRtt)
+                maxRtt = rtt;
+            if (rtt < minRtt)
+                minRtt = rtt;
+        }
+    }
+    printf("maxRtt=%lu maxBdp=%lu minRtt=%lu\n", maxRtt, maxBdp, minRtt);
+
 #if ENABLE_QP
     //
     // install RDMA driver
@@ -1142,51 +1201,18 @@ int main(int argc, char *argv[])
             node->AggregateObject(rdma);
             rdma->Init();
             rdma->TraceConnectWithoutContext("QpComplete", MakeBoundCallback(qp_finish, fctOutput));
+
+            rdmaHw->SetAttribute("enableMultiPath",BooleanValue(enableMultiPath));
+            rdmaHw->SetAttribute("rto",DoubleValue(rdmaRto*maxRtt));
+            if (routing == RANDOM_ECMP || routing == SOURCE_ROUTING)
+                NS_ASSERT_MSG(enableMultiPath, "Bad configuration! Per-packet ECMP with single-path CC triggers reoordering and resulting issues with retransmissions...");
         }
     }
 
 #endif
 
-    // set ACK priority on hosts
-    if (ack_high_prio)
-        RdmaEgressQueue::ack_q_idx = 0;
-    else
-        RdmaEgressQueue::ack_q_idx = 3;
-
-    // setup routing
-    CalculateRoutes(n);
+    // Setup routing tables
     SetRoutingEntries();
-    //
-    // get BDP and delay
-    //
-    maxRtt = maxBdp = 0;
-    uint64_t minRtt = 1e9;
-    for (uint32_t i = 0; i < node_num; i++)
-    {
-        if (n.Get(i)->GetNodeType() != 0)
-            continue;
-        for (uint32_t j = 0; j < node_num; j++)
-        {
-            if (n.Get(j)->GetNodeType() != 0)
-                continue;
-            if (i == j)
-                continue;
-            uint64_t delay = pairDelay[n.Get(i)][n.Get(j)];
-            uint64_t txDelay = pairTxDelay[n.Get(i)][n.Get(j)];
-            uint64_t rtt = delay * 2 + txDelay;
-            uint64_t bw = pairBw[i][j];
-            uint64_t bdp = rtt * bw / 1000000000 / 8;
-            pairBdp[n.Get(i)][n.Get(j)] = bdp;
-            pairRtt[i][j] = rtt;
-            if (bdp > maxBdp)
-                maxBdp = bdp;
-            if (rtt > maxRtt)
-                maxRtt = rtt;
-            if (rtt < minRtt)
-                minRtt = rtt;
-        }
-    }
-    printf("maxRtt=%lu maxBdp=%lu minRtt=%lu\n", maxRtt, maxBdp, minRtt);
 
     // config switch
     // The switch mmu runs Dynamic Thresholds (DT) by default.
@@ -1255,7 +1281,7 @@ int main(int argc, char *argv[])
                       << buffer_size - totalHeadroom << std::endl;
     }
     //
-    // setup switch CC
+    // setup switch CC and routing
     //
     for (uint32_t i = 0; i < node_num; i++)
     {
@@ -1265,6 +1291,12 @@ int main(int argc, char *argv[])
             sw->SetAttribute("CcMode", UintegerValue(rdmacc));
             sw->SetAttribute("MaxRtt", UintegerValue(maxRtt));
             sw->SetAttribute("PowerEnabled", BooleanValue(powertcp));
+            if (routing == RANDOM_ECMP){
+                sw->SetAttribute("randomEcmp", BooleanValue(true));
+            }
+            else if (routing == SOURCE_ROUTING)
+                sw->SetAttribute("sourceRouting", BooleanValue(true));
+            // SwitchNode runs Flow ECMP by default if nothing is specified.
         }
     }
 

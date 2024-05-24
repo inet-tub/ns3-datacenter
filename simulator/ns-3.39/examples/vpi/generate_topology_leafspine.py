@@ -9,8 +9,8 @@ torSwitches=16
 spineSwitches=16
 serverTorDelay="2us"
 torSpineDelay="2us"
-serverDataRate=25
-allOtherDataRate=25
+serverDataRate=100
+allOtherDataRate=100
 errorRate=0
 
 switch_num = torSwitches + spineSwitches

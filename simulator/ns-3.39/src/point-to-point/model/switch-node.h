@@ -6,6 +6,7 @@
 #include "qbb-net-device.h"
 #include "switch-mmu.h"
 #include "pint.h"
+#include "ns3/random-variable-stream.h"
 
 namespace ns3 {
 
@@ -36,6 +37,9 @@ protected:
 
 	// vamsi
 	bool PowerEnabled;
+	bool randomECMP;
+	bool sourceRouting;
+	Ptr<UniformRandomVariable> m_rand;
 
 private:
 	int GetOutDev(Ptr<const Packet>, CustomHeader &ch);

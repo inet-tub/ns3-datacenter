@@ -13,6 +13,7 @@
 #include "qbb-header.h"
 #include "cn-header.h"
 #include "ns3/unsched-tag.h"
+#include <algorithm> 
 
 namespace ns3 {
 
@@ -177,6 +178,8 @@ TypeId RdmaHw::GetTypeId (void)
 	                                  MakeUintegerChecker<uint32_t>())
 	                    .AddAttribute("PowerTCPEnabled", "to enable PowerTCP", BooleanValue(false), MakeBooleanAccessor(&RdmaHw::PowerTCPEnabled), MakeBooleanChecker())
 	                    .AddAttribute("PowerTCPdelay", "to enable PowerTCP in delaymode", BooleanValue(false), MakeBooleanAccessor(&RdmaHw::PowerTCPdelay), MakeBooleanChecker())
+	                    .AddAttribute("enableMultiPath","this enables handling out-of-order packets",BooleanValue(false), MakeBooleanAccessor(&RdmaHw::enableMultiPath), MakeBooleanChecker())
+	                    .AddAttribute("rto","retransmission timeout",DoubleValue(UINT64_MAX), MakeDoubleAccessor(&RdmaHw::rto), MakeDoubleChecker<double>())
 	                    ;
 	return tid;
 }
@@ -357,6 +360,21 @@ int RdmaHw::ReceiveUdp(Ptr<Packet> p, CustomHeader &ch) {
 		uint32_t nic_idx = GetNicIdxOfRxQp(rxQp);
 		m_nic[nic_idx].dev->RdmaEnqueueHighPrioQ(newp);
 		m_nic[nic_idx].dev->TriggerTransmit();
+
+		uint32_t reOrderPkt = 0;
+	    for(uint32_t i = 0; i < rxQp->reOrderBuffer.size(); i++){
+	      if (std::get<0>(rxQp->reOrderBuffer[i]) != rxQp->ReceiverNextExpectedSeq){
+	        break;
+	      }
+	      else{
+	      	reOrderPkt += 1;
+	      	rxQp->ReceiverNextExpectedSeq += std::get<1>(rxQp->reOrderBuffer[i]);
+	      }
+	    }
+	    while (reOrderPkt){
+	    	rxQp->reOrderBuffer.erase(rxQp->reOrderBuffer.begin());
+	    	reOrderPkt--;
+	    }
 	}
 	return 0;
 }
@@ -422,13 +440,51 @@ int RdmaHw::ReceiveAck(Ptr<Packet> p, CustomHeader &ch) {
 	if (m_ack_interval == 0)
 		std::cout << "ERROR: shouldn't receive ack\n";
 	else {
-		if (!m_backto0) {
-			qp->Acknowledge(seq);
-		} else {
+		if (m_backto0) {
 			uint32_t goback_seq = seq / m_chunk * m_chunk;
 			qp->Acknowledge(goback_seq);
+		} else {
+			if (!enableMultiPath)
+				qp->Acknowledge(seq);
+			else{
+				if (!qp->pktsInflight.empty() && std::get<0>(qp->pktsInflight[0])==seq){
+					uint32_t ackedUntil = 1;
+				    for(uint32_t i = 1; i < qp->pktsInflight.size()+1; i++){
+				      if (std::get<2>(qp->pktsInflight[i-1]) != true){
+				        ackedUntil = i;
+				        break;
+				      }
+				    }
+				    // std::cout <<"ackedUntil " << ackedUntil << " pktsInflight " << qp->pktsInflight.size() << std::endl;
+				    uint32_t oldSeq;
+				    while (ackedUntil){
+						oldSeq = std::get<0>(qp->pktsInflight[0]);
+				      	qp->Acknowledge(oldSeq);
+						qp->pktsInflight.erase(qp->pktsInflight.begin());
+						ackedUntil--;
+				    }
+					if (qp->timeout.IsRunning()){
+						qp->timeout.Cancel();
+					}
+					qp->timeout = Simulator::Schedule(NanoSeconds(rto),&RdmaHw::RecoverQueue,this,qp);
+				}
+				else{
+					for(uint32_t i = 0; i < qp->pktsInflight.size(); i++){
+						if (std::get<0>(qp->pktsInflight[i]) == seq){
+							std::get<2>(qp->pktsInflight[i]) = true;
+							break;
+						}
+					}
+				}
+				if (!qp->timeout.IsRunning()){
+					qp->timeout = Simulator::Schedule(NanoSeconds(rto),&RdmaHw::RecoverQueue,this,qp);
+				}
+			}
 		}
 		if (qp->IsFinished()) {
+			if (qp->timeout.IsRunning()){
+				qp->timeout.Cancel();
+			}
 			QpComplete(qp);
 		}
 	}
@@ -483,7 +539,35 @@ int RdmaHw::ReceiverCheckSeq(uint32_t seq, Ptr<RdmaRxQueuePair> q, uint32_t size
 		}
 	} else if (seq > expected) {
 		// Generate NACK
-		if (Simulator::Now() >= q->m_nackTimer || q->m_lastNACK != expected) {
+		if (enableMultiPath){ // Don't send a NACK for out-of-order packets
+
+			auto insert_sorted = [q](const std::tuple<uint32_t, uint32_t>& value) {
+			    auto it = std::lower_bound(q->reOrderBuffer.begin(), q->reOrderBuffer.end(), value,
+			        [](const std::tuple<uint32_t, uint32_t>& a, const std::tuple<uint32_t, uint32_t>& b) {
+			            return std::get<0>(a) < std::get<0>(b);
+			        });
+		        if (it != q->reOrderBuffer.end() && std::get<0>(*it) == std::get<0>(value)) {
+		            *it = value;
+		        } else {
+		            // Insert the new element
+		            q->reOrderBuffer.insert(it, value);
+		        }
+			};
+			insert_sorted(std::make_tuple(seq,size));
+
+
+			if (Simulator::Now() >= q->m_nackTimer && q->m_lastNACK!=0){
+				q->m_nackTimer = Simulator::Now() + MicroSeconds(m_nack_interval);
+				q->m_lastNACK = expected;
+				return 2;
+			}
+			else if (q->m_lastNACK==0){
+				q->m_nackTimer = Simulator::Now() + MicroSeconds(m_nack_interval);
+				q->m_lastNACK = expected;
+			}
+			return 1; //Generate ACK
+		}
+		else if (Simulator::Now() >= q->m_nackTimer || q->m_lastNACK != expected) {
 			q->m_nackTimer = Simulator::Now() + MicroSeconds(m_nack_interval);
 			q->m_lastNACK = expected;
 			if (m_backto0) {
@@ -608,7 +692,12 @@ Ptr<Packet> RdmaHw::GetNxtPacket(Ptr<RdmaQueuePair> qp) {
 
 	// update state
 	qp->snd_nxt += payload_size;
+	qp->pktsInflight.push_back(std::make_tuple(qp->snd_nxt,payload_size,false));
 	qp->m_ipid++;
+
+	if (qp->timeout.IsExpired() && enableMultiPath){
+		qp->timeout = Simulator::Schedule(NanoSeconds(rto),&RdmaHw::RecoverQueue,this,qp);
+	}
 
 	// return
 	return p;

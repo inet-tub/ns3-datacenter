@@ -17,6 +17,8 @@
 #include "ns3/custom-priority-tag.h"
 #include "ns3/feedback-tag.h"
 #include "ns3/unsched-tag.h"
+#include <cstdlib> 
+#include <ctime>
 
 namespace ns3 {
 
@@ -50,6 +52,16 @@ TypeId SwitchNode::GetTypeId (void)
 	                                  BooleanValue(false),
 	                                  MakeBooleanAccessor(&SwitchNode::PowerEnabled),
 	                                  MakeBooleanChecker())
+	                    .AddAttribute("randomEcmp",
+	                    				"per packet ECMP",
+	                    				BooleanValue(false),
+	                    				MakeBooleanAccessor(&SwitchNode::randomECMP),
+	                    				MakeBooleanChecker())
+	                    .AddAttribute("sourceRouting",
+	                    				"source will specify the route",
+	                    				BooleanValue(false),
+	                    				MakeBooleanAccessor(&SwitchNode::sourceRouting),
+	                    				MakeBooleanChecker())
 
 	                    ;
 	return tid;
@@ -69,6 +81,8 @@ SwitchNode::SwitchNode() {
 		m_lastPktSize[i] = m_lastPktTs[i] = 0;
 	for (uint32_t i = 0; i < pCnt; i++)
 		m_u[i] = 0;
+
+	m_rand = CreateObject<UniformRandomVariable>();
 }
 
 int SwitchNode::GetOutDev(Ptr<const Packet> p, CustomHeader &ch) {
@@ -86,24 +100,33 @@ int SwitchNode::GetOutDev(Ptr<const Packet> p, CustomHeader &ch) {
 	// entry found
 	auto &nexthops = entry->second;
 
-	// pick one next hop based on hash
-	union {
-		uint8_t u8[4 + 4 + 2 + 2];
-		uint32_t u32[3];
-	} buf;
-	buf.u32[0] = ih.GetSource().Get();
-	buf.u32[1] = ih.GetDestination().Get();
-	if (ih.GetProtocol() == 0x6) {
-		TcpHeader th; cp->PeekHeader(th);
-		buf.u32[2] = th.GetSourcePort() | ((uint32_t)th.GetDestinationPort() << 16);
+	uint32_t idx;
+	if (randomECMP){
+		idx = m_rand->GetInteger (0, nexthops.size()-1);
 	}
-	else if (ch.l3Prot == 0x11) {
-		buf.u32[2] = ch.udp.sport | ((uint32_t)ch.udp.dport << 16);
+	else if (sourceRouting){
+		return 0; // TODO
 	}
-	else if (ch.l3Prot == 0xFC || ch.l3Prot == 0xFD)
-		buf.u32[2] = ch.ack.sport | ((uint32_t)ch.ack.dport << 16);
+	else{
+		// pick one next hop based on hash
+		union {
+			uint8_t u8[4 + 4 + 2 + 2];
+			uint32_t u32[3];
+		} buf;
+		buf.u32[0] = ih.GetSource().Get();
+		buf.u32[1] = ih.GetDestination().Get();
+		if (ih.GetProtocol() == 0x6) {
+			TcpHeader th; cp->PeekHeader(th);
+			buf.u32[2] = th.GetSourcePort() | ((uint32_t)th.GetDestinationPort() << 16);
+		}
+		else if (ch.l3Prot == 0x11) {
+			buf.u32[2] = ch.udp.sport | ((uint32_t)ch.udp.dport << 16);
+		}
+		else if (ch.l3Prot == 0xFC || ch.l3Prot == 0xFD)
+			buf.u32[2] = ch.ack.sport | ((uint32_t)ch.ack.dport << 16);
 
-	uint32_t idx = EcmpHash(buf.u8, 12, m_ecmpSeed) % nexthops.size();
+		idx = EcmpHash(buf.u8, 12, m_ecmpSeed) % nexthops.size();		
+	}
 	// if (nexthops.size()>1){ std::cout << "selected " << idx << std::endl; }
 	return nexthops[idx];
 }

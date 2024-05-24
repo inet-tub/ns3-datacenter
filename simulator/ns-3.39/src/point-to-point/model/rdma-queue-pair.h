@@ -38,6 +38,8 @@ public:
 	double prevCompletion;
 	bool powerEnabled;
 	Time stopTime;
+	EventId timeout;
+	std::vector<std::tuple<uint32_t, uint32_t, bool>> pktsInflight; // expectedAckNum, pktsize, acked
 
 	/******************************
 	 * runtime states
@@ -150,6 +152,7 @@ public:
 	static TypeId GetTypeId (void);
 	RdmaRxQueuePair();
 	uint32_t GetHash(void);
+	std::vector<std::tuple<uint32_t, uint32_t>> reOrderBuffer; // seq, pktsize
 };
 
 class RdmaQueuePairGroup : public Object {
