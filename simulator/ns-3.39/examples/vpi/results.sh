@@ -87,7 +87,7 @@ for TRANSFER_SIZE in ${TRANSFER_SIZES[@]};do
 	# 		for QP_RANDOMIZE in "true" "false";do
 
 	MULTI_PATH="true"
-	ROUTING="RANDOM_ECMP"
+	ROUTING=$RANDOM_ECMP
 	QP_RANDOMIZE="false"
 
 	FCTFILE=$DUMP_DIR/evaluation-$RDMACC-$MULTI_PATH-$ROUTING-$QP_RANDOMIZE-$QP_WINDOW-$TRANSFER_SIZE.fct
@@ -100,7 +100,7 @@ for TRANSFER_SIZE in ${TRANSFER_SIZES[@]};do
 	###################################################################################
 
 	MULTI_PATH="true"
-	ROUTING="RANDOM_ECMP"
+	ROUTING=$RANDOM_ECMP
 	QP_RANDOMIZE="true"
 
 	FCTFILE=$DUMP_DIR/evaluation-$RDMACC-$MULTI_PATH-$ROUTING-$QP_RANDOMIZE-$QP_WINDOW-$TRANSFER_SIZE.fct
@@ -113,7 +113,7 @@ for TRANSFER_SIZE in ${TRANSFER_SIZES[@]};do
 	###################################################################################
 
 	MULTI_PATH="false"
-	ROUTING="FLOW_ECMP"
+	ROUTING=$FLOW_ECMP
 	QP_RANDOMIZE="false"
 
 	FCTFILE=$DUMP_DIR/evaluation-$RDMACC-$MULTI_PATH-$ROUTING-$QP_RANDOMIZE-$QP_WINDOW-$TRANSFER_SIZE.fct
@@ -126,7 +126,7 @@ for TRANSFER_SIZE in ${TRANSFER_SIZES[@]};do
 	###################################################################################
 
 	MULTI_PATH="false"
-	ROUTING="FLOW_ECMP"
+	ROUTING=$FLOW_ECMP
 	QP_RANDOMIZE="true"
 
 	FCTFILE=$DUMP_DIR/evaluation-$RDMACC-$MULTI_PATH-$ROUTING-$QP_RANDOMIZE-$QP_WINDOW-$TRANSFER_SIZE.fct
