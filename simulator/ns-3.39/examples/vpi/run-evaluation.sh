@@ -69,20 +69,15 @@ RDMACC=$DCTCPCC
 
 for TRANSFER_SIZE in ${TRANSFER_SIZES[@]};do
 	
-	for MULTI_PATH in "true" "false";do
+	for ROUTING in $FLOW_ECMP $RANDOM_ECMP $SOURCE_ROUTING;do
 
-		if [[ $MULTI_PATH == "true" ]];then
-			ROUTING=$RANDOM_ECMP
+		if [[ $ROUTING == $RANDOM_ECMP ]];then
+			MULTI_PATH="true"
 		else
-			ROUTING=$FLOW_ECMP
+			MULTI_PATH="false"
 		fi
 
 		for QP_WINDOW in ${QP_WINDOWS[@]};do
-
-			# if [[ $MULTI_PATH == "true" && $QP_WINDOW < 256 ]];then
-			# 	echo "Hello"
-			# 	continue
-			# fi
 
 			for QP_RANDOMIZE in "true" "false";do
 

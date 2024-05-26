@@ -60,6 +60,7 @@ uint32_t RdmaEgressQueue::ack_q_idx = 3;
 uint32_t RdmaEgressQueue::tcpip_q_idx = 1;
 uint32_t RdmaEgressQueue::maxActiveQpsWindow = UINT32_MAX;
 uint32_t RdmaEgressQueue::randomize = 0;
+bool RdmaEgressQueue::sourceRouting = false;
 // RdmaEgressQueue
 TypeId RdmaEgressQueue::GetTypeId (void)
 {
@@ -77,10 +78,12 @@ RdmaEgressQueue::RdmaEgressQueue() {
 	if(randomize){
 		m_rand = CreateObject<UniformRandomVariable>();
 		m_rrlast = m_rand->GetInteger (0, UINT16_MAX); // randomize the inital rr
+		m_lastPath = m_rand->GetInteger (0, UINT16_MAX);
 	}
 	else
 		m_rrlast = 0;
 	m_qlast = 0;
+	sourceRouting = false;
 	m_ackQ = CreateObject<DropTailQueue<Packet>>();
 	m_ackQ->SetAttribute("MaxSize", QueueSizeValue (QueueSize (BYTES, 0xffffffff))); // queue limit is on a higher level, not here
 }
@@ -103,6 +106,7 @@ Ptr<Packet> RdmaEgressQueue::DequeueQindex(int qIndex) {
 		// m_rrlast = m_rand->GetInteger (0, GetFlowCount()-1);
 		// m_rrlast++;
 		m_qlast = qIndex;
+		m_lastPath = m_qpGrp->Get(qIndex)->pathId;
 		m_traceRdmaDequeue(p, m_qpGrp->Get(qIndex)->m_pg);
 		UnSchedTag tag;
 		bool found = p->PeekPacketTag(tag);
@@ -125,22 +129,50 @@ int RdmaEgressQueue::GetNextQindex(bool paused[]) {
 		if (hostDequeueIndex % 2) {
 			uint32_t fcount = std::min(m_qpGrp->GetN(), maxActiveQpsWindow);
 			uint32_t min_finish_id = 0xffffffff;
-			for (qIndex = 1; qIndex <= fcount; qIndex++) {
-				uint32_t idx = (qIndex + m_rrlast) % fcount;
-				Ptr<RdmaQueuePair> qp = m_qpGrp->Get(idx);
-				if (!paused[qp->m_pg] && qp->GetBytesLeft() > 0 && !qp->IsWinBound()) {
-					if (m_qpGrp->Get(idx)->m_nextAvail.GetTimeStep() > Simulator::Now().GetTimeStep()){ //not available now
-						// std::cout << "Unavailable " << idx << " paused " << paused[qp->m_pg] << " BytesLeft " << qp->GetBytesLeft() 
-						// << " wind " << qp->IsWinBound() << " " << qp->m_nextAvail.GetSeconds() 
-						// << " now " << Simulator::Now().GetSeconds()
-						// << " N " << m_qpGrp->GetN()
-						// << std::endl;
-						continue;
+
+			if (!sourceRouting){
+				for (qIndex = 1; qIndex <= fcount; qIndex++) {
+					uint32_t idx = (qIndex + m_rrlast) % fcount;
+					Ptr<RdmaQueuePair> qp = m_qpGrp->Get(idx);
+					if (!paused[qp->m_pg] && qp->GetBytesLeft() > 0 && !qp->IsWinBound()) {
+						if (m_qpGrp->Get(idx)->m_nextAvail.GetTimeStep() > Simulator::Now().GetTimeStep()){ //not available now
+							// std::cout << "Unavailable " << idx << " paused " << paused[qp->m_pg] << " BytesLeft " << qp->GetBytesLeft() 
+							// << " wind " << qp->IsWinBound() << " " << qp->m_nextAvail.GetSeconds() 
+							// << " now " << Simulator::Now().GetSeconds()
+							// << " N " << m_qpGrp->GetN()
+							// << std::endl;
+							continue;
+						}
+						res = idx;
+						break;
+					} else if (qp->IsFinished()) {
+						min_finish_id = idx < min_finish_id ? idx : min_finish_id;
 					}
-					res = idx;
-					break;
-				} else if (qp->IsFinished()) {
-					min_finish_id = idx < min_finish_id ? idx : min_finish_id;
+				}
+			}
+			else{
+				for (uint32_t path = 1; path <= 1024; path++){
+					uint32_t currPath  = (path + m_lastPath)%1024;
+					fcount = std::min(static_cast<uint32_t>(path_qpId[currPath].size()), maxActiveQpsWindow);
+					for (qIndex = 1; qIndex <= fcount; qIndex++){
+						uint32_t idx = path_qpId[currPath][ (qIndex + m_rrlastSr[currPath]) % fcount ];
+						Ptr<RdmaQueuePair> qp = m_qpGrp->Get(idx);
+						if (!paused[qp->m_pg] && qp->GetBytesLeft() > 0 && !qp->IsWinBound()) {
+							if (m_qpGrp->Get(idx)->m_nextAvail.GetTimeStep() > Simulator::Now().GetTimeStep()){ //not available now
+								// std::cout << "Unavailable " << idx << " paused " << paused[qp->m_pg] << " BytesLeft " << qp->GetBytesLeft() 
+								// << " wind " << qp->IsWinBound() << " " << qp->m_nextAvail.GetSeconds() 
+								// << " now " << Simulator::Now().GetSeconds()
+								// << " N " << m_qpGrp->GetN()
+								// << std::endl;
+								continue;
+							}
+							res = idx;
+							m_rrlastSr[currPath] = qIndex;
+							break;
+						} else if (qp->IsFinished()) {
+							min_finish_id = idx < min_finish_id ? idx : min_finish_id;
+						}
+					}
 				}
 			}
 
@@ -658,10 +690,19 @@ bool QbbNetDevice::IsQbb(void) const {
 	return true;
 }
 
-void QbbNetDevice::NewQp(Ptr<RdmaQueuePair> qp) {
+void QbbNetDevice::TriggerDequeue(Ptr<RdmaQueuePair> qp){
 	qp->m_nextAvail = Simulator::Now();
-	if (m_rdmaEQ->randomize)
+	DequeueAndTransmit();
+}
+
+void QbbNetDevice::NewQp(Ptr<RdmaQueuePair> qp) {
+	if (m_rdmaEQ->randomize){
+		m_rdmaEQ->path_qpId[qp->pathId].push_back(m_rdmaEQ->m_qpGrp->GetN()-1);
+		Simulator::Schedule(NanoSeconds(m_rdmaEQ->m_rand->GetInteger(0,m_channel->GetDelay().GetNanoSeconds())), &QbbNetDevice::TriggerDequeue, this, qp);
 		m_rdmaEQ->m_rrlast = m_rdmaEQ->m_rand->GetInteger (0, m_rdmaEQ->GetFlowCount()-1);
+		return;
+	}
+	qp->m_nextAvail = Simulator::Now();
 	DequeueAndTransmit();
 }
 void QbbNetDevice::ReassignedQp(Ptr<RdmaQueuePair> qp) {

@@ -44,6 +44,7 @@ public:
 	static uint32_t tcpip_q_idx;
 	static uint32_t maxActiveQpsWindow;
 	static uint32_t randomize;
+	static bool sourceRouting;
 	int m_qlast;
 	uint32_t m_rrlast;
 	Ptr<DropTailQueue<Packet>> m_ackQ; // highest priority queue
@@ -72,6 +73,9 @@ public:
 	bool dummy_paused[8];
 	uint64_t hostDequeueIndex;
 	Ptr<UniformRandomVariable> m_rand;
+	std::vector<uint32_t> path_qpId[1024]; 
+	uint32_t m_rrlastSr[1024];
+	uint32_t m_lastPath;
 };
 
 /**
@@ -176,6 +180,8 @@ public:
 		numRxBytesLast=totalBytesRcvd;
 		return temp;
 	}
+
+	void TriggerDequeue(Ptr<RdmaQueuePair> qp);
 
 protected:
 

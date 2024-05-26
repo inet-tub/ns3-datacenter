@@ -584,16 +584,16 @@ int main(int argc, char *argv[])
     uint32_t transferSize = 1024*100;
     cmd.AddValue("transferSize", "size of the trasfer from each node in the specified collective", transferSize);
 
-    uint32_t routing = RANDOM_ECMP;
+    uint32_t routing = SOURCE_ROUTING;
     cmd.AddValue("routing","routing/load balancing algorithm used", routing);
 
-    bool enableMultiPath = true;
+    bool enableMultiPath = false;
     cmd.AddValue("enableMultiPath","Enable if the transport is multipath. This will enable out-of-order packet handling at the NIC", enableMultiPath);
 
     double rdmaRto = 1000; // specify in multiples of RTT here. This will later be converted to Nanoseconds based on the topology
     cmd.AddValue("rdmaRto","retransmission timeout for multipath rdma", rdmaRto);
 
-    uint32_t qpWindow = 2;
+    uint32_t qpWindow = 32;
     cmd.AddValue("qpWindow","window for active Queue pairs in QbbNetDevice (NIC)", qpWindow);
 
     bool qpRandomize = true;
@@ -611,6 +611,7 @@ int main(int argc, char *argv[])
     // Having a window would imply that ALL servers would transmit towards a small set of servers (window would be the same at all servers), creating massive incasts. 
     RdmaEgressQueue::maxActiveQpsWindow = qpWindow; // Window for the number of active Qps.
     RdmaEgressQueue::randomize = qpRandomize; // randomize the initial round-robin pointer
+    RdmaEgressQueue::sourceRouting = routing==SOURCE_ROUTING? true : false;
 
     fctOutput = asciiTraceHelper.CreateFileStream(fctOutFile);
 
@@ -1208,7 +1209,7 @@ int main(int argc, char *argv[])
                 rdmaHw->SetAttribute("nSpines", UintegerValue(SPINE_COUNT));
             }
             
-            if (routing == RANDOM_ECMP || routing == SOURCE_ROUTING)
+            if (routing == RANDOM_ECMP)
                 NS_ASSERT_MSG(enableMultiPath, "Bad configuration! Per-packet ECMP with single-path CC triggers reoordering and resulting issues with retransmissions...");
         }
     }

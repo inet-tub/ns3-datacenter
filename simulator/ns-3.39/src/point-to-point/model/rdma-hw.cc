@@ -309,6 +309,7 @@ void RdmaHw::AddQueuePair(uint64_t size, uint16_t pg, Ipv4Address sip, Ipv4Addre
 
 	// Notify Nic
 	m_nic[nic_idx].dev->NewQp(qp);
+	m_nic[nic_idx].dev->m_rdmaEQ->sourceRouting = sourceRouting;
 }
 
 void RdmaHw::DeleteQueuePair(Ptr<RdmaQueuePair> qp) {
