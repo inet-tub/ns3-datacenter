@@ -41,6 +41,7 @@ public:
 	EventId timeout;
 	std::map<uint32_t, std::tuple<uint32_t,bool, EventId, uint32_t>> pktsInflight; // expectedAckNum, tuple(pktsize, acked, EventId, numTimeouts)
 	std::vector<std::pair<uint32_t, uint32_t>> retransmitQueue; // sequenceNumber, pktsize
+	uint32_t pathId;
 
 	/******************************
 	 * runtime states
@@ -154,6 +155,7 @@ public:
 	RdmaRxQueuePair();
 	uint32_t GetHash(void);
 	std::map<uint32_t, uint32_t> reOrderBuffer; // seq, pktsize
+	uint32_t pathId;
 };
 
 class RdmaQueuePairGroup : public Object {

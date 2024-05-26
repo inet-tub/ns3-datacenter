@@ -8,6 +8,7 @@
 #include "qbb-net-device.h"
 #include <unordered_map>
 #include "pint.h"
+#include "ns3/random-variable-stream.h"
 
 namespace ns3 {
 
@@ -160,9 +161,12 @@ public:
 	void UpdateRateHpPint(Ptr<RdmaQueuePair> qp, Ptr<Packet> p, CustomHeader &ch, bool fast_react);
 
 	bool enableMultiPath;
+	bool sourceRouting;
 	double rto;
 	void RetransmitPacket(Ptr<RdmaQueuePair> qp, uint32_t expectedAckSeq);
 	uint64_t initCwnd;
+	uint32_t nSpines;
+	Ptr<UniformRandomVariable> m_rand;
 };
 
 } /* namespace ns3 */

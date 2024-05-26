@@ -181,6 +181,8 @@ TypeId RdmaHw::GetTypeId (void)
 	                    .AddAttribute("enableMultiPath","this enables handling out-of-order packets",BooleanValue(false), MakeBooleanAccessor(&RdmaHw::enableMultiPath), MakeBooleanChecker())
 	                    .AddAttribute("rto","retransmission timeout",DoubleValue(UINT64_MAX), MakeDoubleAccessor(&RdmaHw::rto), MakeDoubleChecker<double>())
 	                    .AddAttribute("IntialCwnd","Initial congestion window in Bytes",UintegerValue(UINT64_MAX), MakeUintegerAccessor(&RdmaHw::initCwnd), MakeUintegerChecker<uint64_t>())
+	                    .AddAttribute("nSpines", "number of paths to choose from (assuming Leaf/Spine topology)", UintegerValue(UINT32_MAX), MakeUintegerAccessor(&RdmaHw::nSpines), MakeUintegerChecker<uint32_t>())
+	                    .AddAttribute("sourceRouting", "specify the path within the packets", BooleanValue(false), MakeBooleanAccessor(&RdmaHw::sourceRouting), MakeBooleanChecker())
 	                    ;
 	return tid;
 }
@@ -207,6 +209,8 @@ void RdmaHw::Setup(QpCompleteCallback cb) {
 	}
 	// setup qp complete callback
 	m_qpCompleteCallback = cb;
+
+	m_rand = CreateObject<UniformRandomVariable>();
 }
 
 uint32_t RdmaHw::GetNicIdxOfQp(Ptr<RdmaQueuePair> qp) {
@@ -244,8 +248,30 @@ void RdmaHw::AddQueuePair(uint64_t size, uint16_t pg, Ipv4Address sip, Ipv4Addre
 		qp->incastFlow = 0;
 	}
 
-	// add qp
 	uint32_t nic_idx = GetNicIdxOfQp(qp);
+
+	if (sourceRouting){
+		std::map<uint32_t, uint32_t> numBytesPerPath; // path, numBytes
+		int minBytesPath = -1;
+		uint64_t minBytes = UINT64_MAX;
+		for (uint32_t i = 0; i < m_nic[nic_idx].dev->m_rdmaEQ->m_qpGrp->GetN(); i++){
+			Ptr<RdmaQueuePair> qp = m_nic[nic_idx].dev->m_rdmaEQ->m_qpGrp->Get(i);
+			if (numBytesPerPath.find(i) != numBytesPerPath.end())
+				numBytesPerPath[i] += qp->GetBytesLeft();
+			else
+				numBytesPerPath[i] = qp->GetBytesLeft();
+		}
+		for (auto it = numBytesPerPath.begin(); it != numBytesPerPath.end(); ++it ){
+			if (it->second < minBytes){
+				minBytes = it->second;
+				minBytesPath = it->first;
+			}
+		}
+		NS_ASSERT_MSG(minBytesPath >=0, "could not find a path for QP in source routing");
+		qp->pathId = minBytesPath;
+	}
+
+	// add qp
 	m_nic[nic_idx].qpGrp->AddQp(qp);
 	uint64_t key = GetQpKey(dip.Get(), sport, pg);
 	m_qpMap[key] = qp;
@@ -307,6 +333,8 @@ Ptr<RdmaRxQueuePair> RdmaHw::GetRxQp(uint32_t sip, uint32_t dip, uint16_t sport,
 		q->m_ecn_source.qIndex = pg;
 		// store in map
 		m_rxQpMap[key] = q;
+		if (sourceRouting)
+			q->pathId = m_rand->GetInteger (0, nSpines-1); // choose one path uniformly at random
 		return q;
 	}
 	return NULL;
@@ -389,7 +417,10 @@ int RdmaHw::ReceiveUdp(Ptr<Packet> p, CustomHeader &ch) {
 		head.SetProtocol(x != 2 ? 0xFC : 0xFD); //ack=0xFC nack=0xFD
 		head.SetTtl(64);
 		head.SetPayloadSize(newp->GetSize());
-		head.SetIdentification(rxQp->m_ipid++);
+		if (sourceRouting)
+			head.SetIdentification(rxQp->pathId); // We repurpose this header field for path ID in the case of source routing.
+		else
+			head.SetIdentification(rxQp->m_ipid++);
 
 		newp->AddHeader(head);
 		AddHeader(newp, 0x800);	// Attach PPP header
@@ -737,7 +768,10 @@ Ptr<Packet> RdmaHw::GetNxtPacket(Ptr<RdmaQueuePair> qp) {
 	ipHeader.SetPayloadSize (p->GetSize());
 	ipHeader.SetTtl (64);
 	ipHeader.SetTos (0);
-	ipHeader.SetIdentification (qp->m_ipid);
+	if (sourceRouting)
+		ipHeader.SetIdentification(qp->pathId);
+	else
+		ipHeader.SetIdentification (qp->m_ipid);
 	p->AddHeader(ipHeader);
 	// add ppp header
 	PppHeader ppp;

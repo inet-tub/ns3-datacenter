@@ -1203,6 +1203,11 @@ int main(int argc, char *argv[])
 
             rdmaHw->SetAttribute("enableMultiPath",BooleanValue(enableMultiPath));
             rdmaHw->SetAttribute("rto",DoubleValue(rdmaRto*maxRtt));
+            if (routing == SOURCE_ROUTING){
+                rdmaHw->SetAttribute("sourceRouting", BooleanValue(true));
+                rdmaHw->SetAttribute("nSpines", UintegerValue(SPINE_COUNT));
+            }
+            
             if (routing == RANDOM_ECMP || routing == SOURCE_ROUTING)
                 NS_ASSERT_MSG(enableMultiPath, "Bad configuration! Per-packet ECMP with single-path CC triggers reoordering and resulting issues with retransmissions...");
         }
@@ -1292,8 +1297,9 @@ int main(int argc, char *argv[])
             if (routing == RANDOM_ECMP){
                 sw->SetAttribute("randomEcmp", BooleanValue(true));
             }
-            else if (routing == SOURCE_ROUTING)
+            else if (routing == SOURCE_ROUTING){
                 sw->SetAttribute("sourceRouting", BooleanValue(true));
+            }
             // SwitchNode runs Flow ECMP by default if nothing is specified.
         }
     }

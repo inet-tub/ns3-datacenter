@@ -105,7 +105,9 @@ int SwitchNode::GetOutDev(Ptr<const Packet> p, CustomHeader &ch) {
 		idx = m_rand->GetInteger (0, nexthops.size()-1);
 	}
 	else if (sourceRouting){
-		return 0; // TODO
+		// Note: The type of source routing we use here, assumes a leaf spine. Paths from Spine towards servers is unique.
+		// TODO: extend for 3-stage.
+		idx = (ih.GetIdentification()) % nexthops.size(); // % nexthops.size() is just to limit the sender attached id to available paths
 	}
 	else{
 		// pick one next hop based on hash
