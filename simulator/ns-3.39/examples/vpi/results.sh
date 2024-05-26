@@ -69,9 +69,9 @@ RDMACC=$DCTCPCC
 
 QP_WINDOW=256
 
+echo "transferSize,multiPath,multiPathRand,singlePath,singlePathRand"
 for TRANSFER_SIZE in ${TRANSFER_SIZES[@]};do
 
-	echo "transferSize,multiPath,multiPathRand,singlePath,singlePathRand"
 	
 	# for MULTI_PATH in "true" "false";do
 
@@ -146,4 +146,4 @@ for TRANSFER_SIZE in ${TRANSFER_SIZES[@]};do
 	# done
 done
 
-echo "Total $NUM experiments"
+# echo "Total $NUM experiments"
