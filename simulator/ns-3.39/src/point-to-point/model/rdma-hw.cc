@@ -180,6 +180,7 @@ TypeId RdmaHw::GetTypeId (void)
 	                    .AddAttribute("PowerTCPdelay", "to enable PowerTCP in delaymode", BooleanValue(false), MakeBooleanAccessor(&RdmaHw::PowerTCPdelay), MakeBooleanChecker())
 	                    .AddAttribute("enableMultiPath","this enables handling out-of-order packets",BooleanValue(false), MakeBooleanAccessor(&RdmaHw::enableMultiPath), MakeBooleanChecker())
 	                    .AddAttribute("rto","retransmission timeout",DoubleValue(UINT64_MAX), MakeDoubleAccessor(&RdmaHw::rto), MakeDoubleChecker<double>())
+	                    .AddAttribute("IntialCwnd","Initial congestion window in Bytes",UintegerValue(UINT64_MAX), MakeUintegerAccessor(&RdmaHw::initCwnd), MakeUintegerChecker<uint64_t>())
 	                    ;
 	return tid;
 }
@@ -257,8 +258,13 @@ void RdmaHw::AddQueuePair(uint64_t size, uint16_t pg, Ipv4Address sip, Ipv4Addre
 		std::cout << "sip " << sip << " dip " << dip << " sport " << sport  << " dport " << dport << std::endl;
 	}
 	DataRate m_bps = m_nic[nic_idx].dev->GetDataRate();
-	if(win)
-		qp->SetWin(m_bps.GetBitRate() * 1 * baseRtt * 1e-9 / 8);
+	if(win){
+		if (initCwnd==UINT64_MAX)
+			qp->SetWin(m_bps.GetBitRate() * 1 * baseRtt * 1e-9 / 8);
+		else
+			qp->SetWin(initCwnd);
+
+	}
 	qp->m_rate = m_bps;
 	qp->m_max_rate = m_bps;
 	if (m_cc_mode == 1) {
@@ -769,7 +775,8 @@ void RdmaHw::RetransmitPacket(Ptr<RdmaQueuePair> qp, uint32_t expectedAckSeq){//
 	uint32_t payload_size = std::get<0>(qp->pktsInflight[expectedAckSeq]);
 	uint32_t seqNum = expectedAckSeq - payload_size;
 	qp->retransmitQueue.push_back(std::make_pair(seqNum, payload_size)); // we don't care if the same packet exists in the retransmit queue already
-	std::cout << "Retransmit Triggered" << std::endl;
+	std::cout << "Retransmit " << " node " << m_node->GetId() << " srcIp " << qp->sip.Get()
+				<< " dstIp " << qp->dip.Get() << " srcPort " << qp->sport << " dstPort " <<  qp->dport << std::endl;
 	return;
 }
 

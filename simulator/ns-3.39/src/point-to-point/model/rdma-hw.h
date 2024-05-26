@@ -162,6 +162,7 @@ public:
 	bool enableMultiPath;
 	double rto;
 	void RetransmitPacket(Ptr<RdmaQueuePair> qp, uint32_t expectedAckSeq);
+	uint64_t initCwnd;
 };
 
 } /* namespace ns3 */
