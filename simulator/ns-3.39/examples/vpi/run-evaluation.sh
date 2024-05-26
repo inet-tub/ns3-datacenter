@@ -117,7 +117,7 @@ for TRANSFER_SIZE in ${TRANSFER_SIZES[@]};do
 					    --transferSize=$TRANSFER_SIZE	\
 					    --collective=$COLLECTIVE	\
 					    --collectiveAlgorithm=$ALG 	\
-					    --rdmaRto=$rto" > $DUMPFILE 2> $DUMPFILE)
+					    --rdmaRto=$rto" > $DUMPFILE 2> $DUMPFILE)&
 					sleep 5
 				fi
 				NUM=$(( $NUM+1  ))
