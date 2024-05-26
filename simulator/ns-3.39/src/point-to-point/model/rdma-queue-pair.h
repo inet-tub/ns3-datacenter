@@ -39,7 +39,8 @@ public:
 	bool powerEnabled;
 	Time stopTime;
 	EventId timeout;
-	std::vector<std::tuple<uint32_t, uint32_t, bool>> pktsInflight; // expectedAckNum, pktsize, acked
+	std::map<uint32_t, std::tuple<uint32_t,bool, EventId, uint32_t>> pktsInflight; // expectedAckNum, tuple(pktsize, acked, EventId, numTimeouts)
+	std::vector<std::pair<uint32_t, uint32_t>> retransmitQueue; // sequenceNumber, pktsize
 
 	/******************************
 	 * runtime states
@@ -152,7 +153,7 @@ public:
 	static TypeId GetTypeId (void);
 	RdmaRxQueuePair();
 	uint32_t GetHash(void);
-	std::vector<std::tuple<uint32_t, uint32_t>> reOrderBuffer; // seq, pktsize
+	std::map<uint32_t, uint32_t> reOrderBuffer; // seq, pktsize
 };
 
 class RdmaQueuePairGroup : public Object {

@@ -1035,8 +1035,10 @@ void SwitchMmu::SetResume(uint32_t port, uint32_t qIndex) {
 bool SwitchMmu::ShouldSendCN(uint32_t ifindex, uint32_t qIndex) {
 	if (qIndex == 0)
 		return false;
-	if (egress_bytes[ifindex][qIndex] > kmax[ifindex])
+	if (egress_bytes[ifindex][qIndex] > kmax[ifindex]){
+		// std::cout << egress_bytes[ifindex][qIndex] << " " << kmax[ifindex] << " " << ifindex << std::endl;
 		return true;
+	}
 	if (egress_bytes[ifindex][qIndex] > kmin[ifindex]) {
 		double p = pmax[ifindex] * double(egress_bytes[ifindex][qIndex] - kmin[ifindex]) / (kmax[ifindex] - kmin[ifindex]);
 		if (UniformVariable(0, 1).GetValue() < p)
@@ -1047,6 +1049,13 @@ bool SwitchMmu::ShouldSendCN(uint32_t ifindex, uint32_t qIndex) {
 void SwitchMmu::ConfigEcn(uint32_t port, uint32_t _kmin, uint32_t _kmax, double _pmax) {
 	kmin[port] = _kmin * 1000;
 	kmax[port] = _kmax * 1000;
+	pmax[port] = _pmax;
+}
+
+void SwitchMmu::ConfigEcn(uint32_t port, uint32_t _kmin, uint32_t _kmax, double _pmax, uint32_t mtu) {
+	// std::cout << "port " << port << " kmin " << _kmin << " kmax " << _kmax << " pmax " << _pmax << " mtu " << mtu << std::endl;
+	kmin[port] = _kmin * mtu;
+	kmax[port] = _kmax * mtu;
 	pmax[port] = _pmax;
 }
 

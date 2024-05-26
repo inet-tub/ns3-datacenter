@@ -32,6 +32,7 @@ public:
 	bool ShouldSendCN(uint32_t ifindex, uint32_t qIndex);
 
 	void ConfigEcn(uint32_t port, uint32_t _kmin, uint32_t _kmax, double _pmax);
+	void ConfigEcn(uint32_t port, uint32_t _kmin, uint32_t _kmax, double _pmax, uint32_t mtu);
 
 	void SetBufferModel(std::string model){bufferModel = model;}
 

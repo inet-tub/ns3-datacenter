@@ -112,6 +112,7 @@ void RdmaQueuePair::Acknowledge(uint64_t ack) {
 	if (ack > snd_una) {
 		snd_una = ack;
 	}
+	// std::cout << "Acknowledge " << ack << " snd_una " << snd_una << std::endl;
 }
 
 uint64_t RdmaQueuePair::GetOnTheFly() {
@@ -161,7 +162,7 @@ uint64_t RdmaQueuePair::HpGetCurWin() {
 }
 
 bool RdmaQueuePair::IsFinished() {
-
+	// std::cout << "snd_una " << snd_una << " m_size " << m_size << std::endl;
 	if (Simulator::Now() > stopTime)
 		return true;
 	else

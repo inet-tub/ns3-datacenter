@@ -74,8 +74,10 @@ TypeId RdmaEgressQueue::GetTypeId (void)
 }
 
 RdmaEgressQueue::RdmaEgressQueue() {
-	if(randomize)
-		m_rrlast = std::rand() % (maxActiveQpsWindow); // randomize the inital rr
+	if(randomize){
+		m_rand = CreateObject<UniformRandomVariable>();
+		m_rrlast = m_rand->GetInteger (0, UINT16_MAX); // randomize the inital rr
+	}
 	else
 		m_rrlast = 0;
 	m_qlast = 0;
@@ -97,8 +99,9 @@ Ptr<Packet> RdmaEgressQueue::DequeueQindex(int qIndex) {
 	}
 	if (qIndex >= 0) { // qp
 		Ptr<Packet> p = m_rdmaGetNxtPkt(m_qpGrp->Get(qIndex));
-		// m_rrlast = qIndex;
-		m_rrlast++;
+		m_rrlast = qIndex;
+		// m_rrlast = m_rand->GetInteger (0, GetFlowCount()-1);
+		// m_rrlast++;
 		m_qlast = qIndex;
 		m_traceRdmaDequeue(p, m_qpGrp->Get(qIndex)->m_pg);
 		UnSchedTag tag;
@@ -126,8 +129,14 @@ int RdmaEgressQueue::GetNextQindex(bool paused[]) {
 				uint32_t idx = (qIndex + m_rrlast) % fcount;
 				Ptr<RdmaQueuePair> qp = m_qpGrp->Get(idx);
 				if (!paused[qp->m_pg] && qp->GetBytesLeft() > 0 && !qp->IsWinBound()) {
-					if (m_qpGrp->Get(idx)->m_nextAvail.GetTimeStep() > Simulator::Now().GetTimeStep()) //not available now
+					if (m_qpGrp->Get(idx)->m_nextAvail.GetTimeStep() > Simulator::Now().GetTimeStep()){ //not available now
+						// std::cout << "Unavailable " << idx << " paused " << paused[qp->m_pg] << " BytesLeft " << qp->GetBytesLeft() 
+						// << " wind " << qp->IsWinBound() << " " << qp->m_nextAvail.GetSeconds() 
+						// << " now " << Simulator::Now().GetSeconds()
+						// << " N " << m_qpGrp->GetN()
+						// << std::endl;
 						continue;
+					}
 					res = idx;
 					break;
 				} else if (qp->IsFinished()) {
@@ -146,9 +155,16 @@ int RdmaEgressQueue::GetNextQindex(bool paused[]) {
 						nxt++;
 					}
 				qps.resize(nxt);
+				// std::cout << "min_finish_id " << min_finish_id << " num " << m_qpGrp->GetN() << std::endl;
+				if (randomize)
+					m_rrlast = m_rand->GetInteger (0, GetFlowCount()-1);
 			}
 
 			if (res != -1024) {
+				// std::cout << "qIndex " << res << " num " << m_qpGrp->GetN() << " fcount " << fcount << " remaining " << m_qpGrp->Get(res)->GetBytesLeft() << std::endl;
+				// for (int i = 0; i < m_qpGrp->GetN(); i++){
+				// 	std::cout << "m_nextAvail " << m_qpGrp->Get(i)->m_nextAvail.GetSeconds() << std::endl;
+				// }
 				return res;
 			}
 		}
@@ -173,7 +189,7 @@ uint32_t RdmaEgressQueue::GetNBytes(uint32_t qIndex) {
 }
 
 uint32_t RdmaEgressQueue::GetFlowCount(void) {
-	return m_qpGrp->GetN();
+	return std::min(m_qpGrp->GetN(), maxActiveQpsWindow);//m_qpGrp->GetN();
 }
 
 Ptr<RdmaQueuePair> RdmaEgressQueue::GetQp(uint32_t i) {
@@ -382,6 +398,9 @@ QbbNetDevice::DequeueAndTransmit(void)
 			}
 			if (m_nextSend.IsExpired() && t < Simulator::GetMaximumSimulationTime() && t > Simulator::Now()) {
 				m_nextSend = Simulator::Schedule(t - Simulator::Now(), &QbbNetDevice::DequeueAndTransmit, this);
+			}
+			else if (m_nextSend.IsExpired() && t < Simulator::Now()){
+				m_nextSend = Simulator::Schedule(TimeStep(1), &QbbNetDevice::DequeueAndTransmit, this);
 			}
 		}
 		return;
@@ -641,6 +660,8 @@ bool QbbNetDevice::IsQbb(void) const {
 
 void QbbNetDevice::NewQp(Ptr<RdmaQueuePair> qp) {
 	qp->m_nextAvail = Simulator::Now();
+	if (m_rdmaEQ->randomize)
+		m_rdmaEQ->m_rrlast = m_rdmaEQ->m_rand->GetInteger (0, m_rdmaEQ->GetFlowCount()-1);
 	DequeueAndTransmit();
 }
 void QbbNetDevice::ReassignedQp(Ptr<RdmaQueuePair> qp) {

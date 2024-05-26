@@ -31,6 +31,7 @@
 #include "ns3/rdma-queue-pair.h"
 #include <vector>
 #include<map>
+#include "ns3/random-variable-stream.h"
 // #include <ns3/rdma.h>
 // #define ENABLE_QP 1
 
@@ -70,6 +71,7 @@ public:
 	Ptr<QbbNetDevice> qb_dev;
 	bool dummy_paused[8];
 	uint64_t hostDequeueIndex;
+	Ptr<UniformRandomVariable> m_rand;
 };
 
 /**

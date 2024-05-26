@@ -192,6 +192,20 @@ void SwitchNode::SendToDev(Ptr<Packet>p, CustomHeader &ch) {
 			CheckAndSendPfc(inDev, qIndex);
 		}
 		m_bytes[inDev][idx][qIndex] += p->GetSize();
+
+		// Moving ECN Marking to enqueue side. This is how it should happen normally. (Previously, this was placed in the dequeue function, in the original Hpcc simulator.)
+		if (m_ecnEnabled) {
+			bool egressCongested = m_mmu->ShouldSendCN(idx, qIndex);
+			if (egressCongested) {
+				PppHeader ppp;
+				Ipv4Header h;
+				p->RemoveHeader(ppp);
+				p->RemoveHeader(h);
+				h.SetEcn((Ipv4Header::EcnType)0x03);
+				p->AddHeader(h);
+				p->AddHeader(ppp);
+			}
+		}
 		m_devices[idx]->SwitchSend(qIndex, p, ch);
 		DynamicCast<QbbNetDevice>(m_devices[idx])->totalBytesRcvd += p->GetSize(); // Attention: this is the egress port's total received packets. Not the ingress port.
 	} else
@@ -268,18 +282,18 @@ void SwitchNode::SwitchNotifyDequeue(uint32_t ifIndex, uint32_t qIndex, Ptr<Pack
 		m_mmu->RemoveFromIngressAdmission(inDev, qIndex, p->GetSize(), found);
 		m_mmu->RemoveFromEgressAdmission(ifIndex, qIndex, p->GetSize(), found);
 		m_bytes[inDev][ifIndex][qIndex] -= p->GetSize();
-		if (m_ecnEnabled) {
-			bool egressCongested = m_mmu->ShouldSendCN(ifIndex, qIndex);
-			if (egressCongested) {
-				PppHeader ppp;
-				Ipv4Header h;
-				p->RemoveHeader(ppp);
-				p->RemoveHeader(h);
-				h.SetEcn((Ipv4Header::EcnType)0x03);
-				p->AddHeader(h);
-				p->AddHeader(ppp);
-			}
-		}
+		// if (m_ecnEnabled) {
+		// 	bool egressCongested = m_mmu->ShouldSendCN(ifIndex, qIndex);
+		// 	if (egressCongested) {
+		// 		PppHeader ppp;
+		// 		Ipv4Header h;
+		// 		p->RemoveHeader(ppp);
+		// 		p->RemoveHeader(h);
+		// 		h.SetEcn((Ipv4Header::EcnType)0x03);
+		// 		p->AddHeader(h);
+		// 		p->AddHeader(ppp);
+		// 	}
+		// }
 		//CheckAndSendPfc(inDev, qIndex);
 		CheckAndSendResume(inDev, qIndex);
 	}

@@ -428,10 +428,14 @@ void collective_rdma(double START_TIME, uint32_t collective, uint32_t transferSi
     switch (collective)
     {
     case ALL_TO_ALL:
-        for (int fromServerIndex = 0; fromServerIndex < LEAF_COUNT * SERVER_COUNT; fromServerIndex++)
+        for (int fromServerIndex = 0; fromServerIndex < LEAF_COUNT*SERVER_COUNT; fromServerIndex++)
         {
-            for (int destServerIndex = 0; destServerIndex < LEAF_COUNT * SERVER_COUNT; destServerIndex++)
+            //rand_range(0.0, double(LEAF_COUNT*SERVER_COUNT));
+            // It is better to randomize here in order to avoid synchronized transfers. But ok! Nccl iterates from 0, so do we.
+            uint32_t init = 0;//fromServerIndex+1; 
+            for (int j = 0; j < LEAF_COUNT*SERVER_COUNT; j++)
             {
+                uint32_t destServerIndex = (init + j)%(LEAF_COUNT * SERVER_COUNT);
                 if (fromServerIndex == destServerIndex){
                     continue;
                 }
@@ -455,6 +459,7 @@ void collective_rdma(double START_TIME, uint32_t collective, uint32_t transferSi
                 ApplicationContainer appCon = clientHelper.Install(n.Get(fromServerIndex));
                 // std::cout << " from " << fromServerIndex << " to " << destServerIndex <<  " fromLeadId " <<
                 // fromLeafId << " serverCount " << SERVER_COUNT << " leafCount " << LEAF_COUNT <<  std::endl;
+                // appCon.Start(Seconds(startTime)+NanoSeconds(rand_range(0,100)));
                 appCon.Start(Seconds(startTime));
                 totalTransfersInCollective +=1;
             }
@@ -531,7 +536,7 @@ int main(int argc, char *argv[])
     double rdmaqueryRequestRate = 0;
     cmd.AddValue("rdmaqueryRequestRate", "Query request rate (poisson arrivals)", rdmaqueryRequestRate);
 
-    uint32_t rdmacc = DCQCNCC;
+    uint32_t rdmacc = DCTCPCC;
     cmd.AddValue("rdmacc",
                  "specify CC mode. This is added for my convinience since I prefer cmd rather than parsing files.",
                  rdmacc);
@@ -545,10 +550,10 @@ int main(int argc, char *argv[])
     bool enable_qcn = true;
     cmd.AddValue("enableEcn", "enable ECN markin", enable_qcn);
 
-    uint32_t rdmaWindowCheck = 0;
+    uint32_t rdmaWindowCheck = 1;
     cmd.AddValue("rdmaWindowCheck", "windowCheck", rdmaWindowCheck);
 
-    uint32_t rdmaVarWin = 0;
+    uint32_t rdmaVarWin = 1;
     cmd.AddValue("rdmaVarWin", "windowCheck", rdmaVarWin);
 
     uint64_t buffer_size = 17694720; // 5.4;
@@ -591,16 +596,16 @@ int main(int argc, char *argv[])
     uint32_t collectiveAlgorithm = RING;
     cmd.AddValue("collectiveAlgorithm", "algorithm to use for the specified collective", collectiveAlgorithm);
 
-    uint32_t transferSize = 10000;
+    uint32_t transferSize = 1024*1000;
     cmd.AddValue("transferSize", "size of the trasfer from each node in the specified collective", transferSize);
 
-    uint32_t routing = FLOW_ECMP;
+    uint32_t routing = RANDOM_ECMP;
     cmd.AddValue("routing","routing/load balancing algorithm used", routing);
 
-    bool enableMultiPath = false;
+    bool enableMultiPath = true;
     cmd.AddValue("enableMultiPath","Enable if the transport is multipath. This will enable out-of-order packet handling at the NIC", enableMultiPath);
 
-    double rdmaRto = 4; // specify in multiples of RTT here. This will later be converted to Nanoseconds based on the topology
+    double rdmaRto = 10; // specify in multiples of RTT here. This will later be converted to Nanoseconds based on the topology
     cmd.AddValue("rdmaRto","retransmission timeout for multipath rdma", rdmaRto);
 
 
@@ -837,6 +842,7 @@ int main(int argc, char *argv[])
         {
             int n_k;
             conf >> n_k;
+            // IMPORTANT: Please pay attention to this number in the configuration file. If you add new datarates, make sure to increment the count.
             for (int i = 0; i < n_k; i++)
             {
                 uint64_t rate;
@@ -898,7 +904,9 @@ int main(int argc, char *argv[])
     has_win = rdmaWindowCheck;
     var_win = rdmaVarWin;
 
-    RdmaEgressQueue::maxActiveQpsWindow = 256; // Window for the number of active Qps.
+    // Note: In All-to-All, having a window of Qps to serve, looks VERY problematic. This is mainly due to synchronized flow start times.
+    // Having a window would imply that ALL servers would transmit towards a small set of servers (window would be the same at all servers), creating massive incasts. 
+    RdmaEgressQueue::maxActiveQpsWindow = UINT16_MAX; // Window for the number of active Qps.
     RdmaEgressQueue::randomize = 1; // randomize the initial round-robin pointer
 
     Config::SetDefault("ns3::QbbNetDevice::PauseTime", UintegerValue(pause_time));
@@ -1259,13 +1267,12 @@ int main(int argc, char *argv[])
                         sw->m_mmu->SetAlphaIngress(10000, j, qu);
                         sw->m_mmu->SetAlphaEgress(alpha_values[qu], j, qu);
                     }
-
-                    // set ecn
-                    NS_ASSERT_MSG(rate2kmin.find(rate) != rate2kmin.end(), "must set kmin for each link speed");
-                    NS_ASSERT_MSG(rate2kmax.find(rate) != rate2kmax.end(), "must set kmax for each link speed");
-                    NS_ASSERT_MSG(rate2pmax.find(rate) != rate2pmax.end(), "must set pmax for each link speed");
-                    sw->m_mmu->ConfigEcn(j, rate2kmin[rate], rate2kmax[rate], rate2pmax[rate]);
                 }
+                // set ecn
+                NS_ASSERT_MSG(rate2kmin.find(rate) != rate2kmin.end(), "must set kmin for each link speed");
+                NS_ASSERT_MSG(rate2kmax.find(rate) != rate2kmax.end(), "must set kmax for each link speed");
+                NS_ASSERT_MSG(rate2pmax.find(rate) != rate2pmax.end(), "must set pmax for each link speed");
+                sw->m_mmu->ConfigEcn(j, rate2kmin[rate], rate2kmax[rate], rate2pmax[rate], packet_payload_size);
             }
             sw->m_mmu->SetBufferPool(buffer_size);
             sw->m_mmu->SetIngressPool(buffer_size - totalHeadroom);
