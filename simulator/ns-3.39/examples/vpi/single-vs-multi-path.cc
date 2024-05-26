@@ -509,8 +509,6 @@ int main(int argc, char *argv[])
     double END_TIME = 3;
     double FLOW_LAUNCH_END_TIME = 2;
 
-    uint32_t incast = 5;
-
     bool powertcp = false;
     bool thetapowertcp = false;
 
@@ -531,21 +529,10 @@ int main(int argc, char *argv[])
     cmd.AddValue("FLOW_LAUNCH_END_TIME", "flow launch process end time", FLOW_LAUNCH_END_TIME);
     cmd.AddValue("cdfFileName", "File name for flow distribution", cdfFileName);
 
-    uint32_t rdmarequestSize = 0;
-    cmd.AddValue("rdmarequestSize", "Query Size in Bytes", rdmarequestSize);
-    double rdmaqueryRequestRate = 0;
-    cmd.AddValue("rdmaqueryRequestRate", "Query request rate (poisson arrivals)", rdmaqueryRequestRate);
-
     uint32_t rdmacc = DCTCPCC;
     cmd.AddValue("rdmacc",
                  "specify CC mode. This is added for my convinience since I prefer cmd rather than parsing files.",
                  rdmacc);
-
-    double rdmaload = 0.8;
-    cmd.AddValue("rdmaload", "RDMA load", rdmaload);
-
-    double tcpload = 0;
-    cmd.AddValue("tcpload", "TCP load", tcpload);
 
     bool enable_qcn = true;
     cmd.AddValue("enableEcn", "enable ECN markin", enable_qcn);
@@ -576,10 +563,8 @@ int main(int argc, char *argv[])
     cmd.AddValue("gamma", "gamma parameter value for Reverie", gamma);
 
     std::string alphasFile =
-        "examples/vpi/alphas"; // On lakewood
+        "examples/vpi/alphas";
     cmd.AddValue("alphasFile", "alpha values file (should be exactly nPrior lines)", alphasFile);
-
-    cmd.AddValue("incast", "incast", incast);
 
     std::string fctOutFile = "./fcts.txt";
     cmd.AddValue("fctOutFile", "File path for FCTs", fctOutFile);
@@ -596,7 +581,7 @@ int main(int argc, char *argv[])
     uint32_t collectiveAlgorithm = RING;
     cmd.AddValue("collectiveAlgorithm", "algorithm to use for the specified collective", collectiveAlgorithm);
 
-    uint32_t transferSize = 1024*1000;
+    uint32_t transferSize = 1024*100;
     cmd.AddValue("transferSize", "size of the trasfer from each node in the specified collective", transferSize);
 
     uint32_t routing = RANDOM_ECMP;
@@ -605,13 +590,27 @@ int main(int argc, char *argv[])
     bool enableMultiPath = true;
     cmd.AddValue("enableMultiPath","Enable if the transport is multipath. This will enable out-of-order packet handling at the NIC", enableMultiPath);
 
-    double rdmaRto = 10; // specify in multiples of RTT here. This will later be converted to Nanoseconds based on the topology
+    double rdmaRto = 1000; // specify in multiples of RTT here. This will later be converted to Nanoseconds based on the topology
     cmd.AddValue("rdmaRto","retransmission timeout for multipath rdma", rdmaRto);
+
+    uint32_t qpWindow = 2;
+    cmd.AddValue("qpWindow","window for active Queue pairs in QbbNetDevice (NIC)", qpWindow);
+
+    bool qpRandomize = true;
+    cmd.AddValue("qpRandomize","randomize the round-robin Qp scheduler in QbbNetDevice (NIC)", qpRandomize);
 
 
     cmd.Parse(argc, argv);
 
     flowEnd = FLOW_LAUNCH_END_TIME;
+
+    has_win = rdmaWindowCheck;
+    var_win = rdmaVarWin;
+
+    // Note: In All-to-All, having a window of Qps to serve, looks VERY problematic. This is mainly due to synchronized flow start times.
+    // Having a window would imply that ALL servers would transmit towards a small set of servers (window would be the same at all servers), creating massive incasts. 
+    RdmaEgressQueue::maxActiveQpsWindow = qpWindow; // Window for the number of active Qps.
+    RdmaEgressQueue::randomize = qpRandomize; // randomize the initial round-robin pointer
 
     fctOutput = asciiTraceHelper.CreateFileStream(fctOutFile);
 
@@ -900,14 +899,6 @@ int main(int argc, char *argv[])
     conf.close();
 
     std::cout << "config finished" << std::endl;
-
-    has_win = rdmaWindowCheck;
-    var_win = rdmaVarWin;
-
-    // Note: In All-to-All, having a window of Qps to serve, looks VERY problematic. This is mainly due to synchronized flow start times.
-    // Having a window would imply that ALL servers would transmit towards a small set of servers (window would be the same at all servers), creating massive incasts. 
-    RdmaEgressQueue::maxActiveQpsWindow = UINT16_MAX; // Window for the number of active Qps.
-    RdmaEgressQueue::randomize = 1; // randomize the initial round-robin pointer
 
     Config::SetDefault("ns3::QbbNetDevice::PauseTime", UintegerValue(pause_time));
     Config::SetDefault("ns3::QbbNetDevice::QcnEnabled", BooleanValue(enable_qcn));
@@ -1330,8 +1321,7 @@ int main(int argc, char *argv[])
     double oversubRatio =
         static_cast<double>(SERVER_COUNT * LEAF_SERVER_CAPACITY) / (SPINE_LEAF_CAPACITY * SPINE_COUNT * LINK_COUNT);
     std::cout << "SERVER_COUNT " << SERVER_COUNT << " LEAF_COUNT " << LEAF_COUNT << " SPINE_COUNT " << SPINE_COUNT
-              << " LINK_COUNT " << LINK_COUNT << " RDMALOAD " << rdmaload << " TCPLOAD " << tcpload << " oversubRatio "
-              << oversubRatio << std::endl;
+              << " LINK_COUNT " << LINK_COUNT << " oversubRatio " << oversubRatio << std::endl;
 
     if (randomSeed == 0)
     {

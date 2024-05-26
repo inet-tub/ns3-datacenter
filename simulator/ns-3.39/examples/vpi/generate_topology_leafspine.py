@@ -7,8 +7,8 @@ import sys
 serversPerTor=16
 torSwitches=16
 spineSwitches=16
-serverTorDelay="2us"
-torSpineDelay="2us"
+serverTorDelay="500ns"
+torSpineDelay="500ns"
 serverDataRate=100
 allOtherDataRate=100
 errorRate=0
