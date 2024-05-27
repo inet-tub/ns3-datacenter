@@ -16,6 +16,7 @@
 #include <algorithm> 
 
 namespace ns3 {
+NS_LOG_COMPONENT_DEFINE("RdmaHw");
 
 TypeId RdmaHw::GetTypeId (void)
 {
@@ -182,6 +183,8 @@ TypeId RdmaHw::GetTypeId (void)
 	                    .AddAttribute("rto","retransmission timeout",DoubleValue(UINT64_MAX), MakeDoubleAccessor(&RdmaHw::rto), MakeDoubleChecker<double>())
 	                    .AddAttribute("IntialCwnd","Initial congestion window in Bytes",UintegerValue(UINT64_MAX), MakeUintegerAccessor(&RdmaHw::initCwnd), MakeUintegerChecker<uint64_t>())
 	                    .AddAttribute("nSpines", "number of paths to choose from (assuming Leaf/Spine topology)", UintegerValue(UINT32_MAX), MakeUintegerAccessor(&RdmaHw::nSpines), MakeUintegerChecker<uint32_t>())
+	                    .AddAttribute("nServers", "number of servers in each ToR", UintegerValue(UINT32_MAX), MakeUintegerAccessor(&RdmaHw::nServers), MakeUintegerChecker<uint32_t>())
+	                    .AddAttribute("nTors", "number of ToRs (assuming Leaf/Spine topology)", UintegerValue(UINT32_MAX), MakeUintegerAccessor(&RdmaHw::nTors), MakeUintegerChecker<uint32_t>())
 	                    .AddAttribute("sourceRouting", "specify the path within the packets", BooleanValue(false), MakeBooleanAccessor(&RdmaHw::sourceRouting), MakeBooleanChecker())
 	                    ;
 	return tid;
@@ -252,29 +255,44 @@ void RdmaHw::AddQueuePair(uint64_t size, uint16_t pg, Ipv4Address sip, Ipv4Addre
 
 	if (sourceRouting){
 		std::map<uint32_t, uint32_t> numBytesPerPath; // path, numBytes
+		for (uint32_t i =0; i < nSpines; i++){
+			numBytesPerPath[i] = 0;
+		}
 		int minBytesPath = -1;
 		uint64_t minBytes = UINT64_MAX;
 		for (uint32_t i = 0; i < m_nic[nic_idx].dev->m_rdmaEQ->m_qpGrp->GetN(); i++){
 			Ptr<RdmaQueuePair> qp = m_nic[nic_idx].dev->m_rdmaEQ->m_qpGrp->Get(i);
-			if (numBytesPerPath.find(i) != numBytesPerPath.end())
-				numBytesPerPath[i] += qp->GetBytesLeft();
-			else
-				numBytesPerPath[i] = qp->GetBytesLeft();
+				if ((sip.Get() >> 8) & 0xffff != (dip.Get() >> 8) & 0xffff) // Check if it the destination is in the same ToR
+					numBytesPerPath[qp->pathId] += qp->GetBytesLeft();
 		}
-		for (auto it = numBytesPerPath.begin(); it != numBytesPerPath.end(); ++it ){
-			if (it->second < minBytes){
-				minBytes = it->second;
-				minBytesPath = it->first;
+		uint32_t randomInt = m_rand->GetInteger(0,UINT16_MAX);
+		for (uint32_t i = 0; i < nSpines; i++){ // If the destination is local, then we don't care which ever path is selected
+			// std::cout << "Path " << i << " NumBytes " << numBytesPerPath[i] << " randPath " << (i + randomInt)%nSpines << " nSpines " << nSpines << std::endl;
+			uint32_t idx = (i + randomInt)%nSpines;
+			if (numBytesPerPath[idx] < minBytes){
+				minBytes = numBytesPerPath[idx];
+				minBytesPath = idx;
 			}
 		}
-		NS_ASSERT_MSG(minBytesPath >=0, "could not find a path for QP in source routing");
+
+		if(minBytesPath < 0){
+			std::cout << "could not find a path for QP in source routing" << std::endl;
+			exit(1);
+		}
 		qp->pathId = minBytesPath;
+		// qp->pathId = m_rand->GetInteger(0,nSpines-1);
+		// std::cout << "minBytesPath " << qp->pathId << std::endl;
 	}
 
 	// add qp
 	m_nic[nic_idx].qpGrp->AddQp(qp);
+	qp->id = m_nic[nic_idx].qpGrp->GetN() - 1;
 	uint64_t key = GetQpKey(dip.Get(), sport, pg);
 	m_qpMap[key] = qp;
+
+	if (sourceRouting){
+		m_nic[nic_idx].dev->m_rdmaEQ->path_qpId[qp->pathId].push_back(qp);
+	}
 
 
 	qp->powerEnabled = PowerTCPEnabled;
@@ -309,7 +327,7 @@ void RdmaHw::AddQueuePair(uint64_t size, uint16_t pg, Ipv4Address sip, Ipv4Addre
 
 	// Notify Nic
 	m_nic[nic_idx].dev->NewQp(qp);
-	m_nic[nic_idx].dev->m_rdmaEQ->sourceRouting = sourceRouting;
+	// m_nic[nic_idx].dev->m_rdmaEQ->sourceRouting = sourceRouting;
 }
 
 void RdmaHw::DeleteQueuePair(Ptr<RdmaQueuePair> qp) {
@@ -419,6 +437,7 @@ int RdmaHw::ReceiveUdp(Ptr<Packet> p, CustomHeader &ch) {
 		head.SetTtl(64);
 		head.SetPayloadSize(newp->GetSize());
 		if (sourceRouting)
+			// head.SetIdentification(m_rand->GetInteger(0,nSpines-1));
 			head.SetIdentification(rxQp->pathId); // We repurpose this header field for path ID in the case of source routing.
 		else
 			head.SetIdentification(rxQp->m_ipid++);
@@ -770,6 +789,7 @@ Ptr<Packet> RdmaHw::GetNxtPacket(Ptr<RdmaQueuePair> qp) {
 	ipHeader.SetTtl (64);
 	ipHeader.SetTos (0);
 	if (sourceRouting)
+		// ipHeader.SetIdentification(m_rand->GetInteger(0,nSpines-1));
 		ipHeader.SetIdentification(qp->pathId);
 	else
 		ipHeader.SetIdentification (qp->m_ipid);

@@ -42,6 +42,7 @@ public:
 	std::map<uint32_t, std::tuple<uint32_t,bool, EventId, uint32_t>> pktsInflight; // expectedAckNum, tuple(pktsize, acked, EventId, numTimeouts)
 	std::vector<std::pair<uint32_t, uint32_t>> retransmitQueue; // sequenceNumber, pktsize
 	uint32_t pathId;
+	uint32_t id;
 
 	/******************************
 	 * runtime states

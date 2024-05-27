@@ -581,7 +581,7 @@ int main(int argc, char *argv[])
     uint32_t collectiveAlgorithm = RING;
     cmd.AddValue("collectiveAlgorithm", "algorithm to use for the specified collective", collectiveAlgorithm);
 
-    uint32_t transferSize = 1024*100;
+    uint32_t transferSize = 1024*10;
     cmd.AddValue("transferSize", "size of the trasfer from each node in the specified collective", transferSize);
 
     uint32_t routing = SOURCE_ROUTING;
@@ -593,7 +593,7 @@ int main(int argc, char *argv[])
     double rdmaRto = 1000; // specify in multiples of RTT here. This will later be converted to Nanoseconds based on the topology
     cmd.AddValue("rdmaRto","retransmission timeout for multipath rdma", rdmaRto);
 
-    uint32_t qpWindow = 32;
+    uint32_t qpWindow = UINT16_MAX;
     cmd.AddValue("qpWindow","window for active Queue pairs in QbbNetDevice (NIC)", qpWindow);
 
     bool qpRandomize = true;
@@ -611,8 +611,8 @@ int main(int argc, char *argv[])
     // Having a window would imply that ALL servers would transmit towards a small set of servers (window would be the same at all servers), creating massive incasts. 
     RdmaEgressQueue::maxActiveQpsWindow = qpWindow; // Window for the number of active Qps.
     RdmaEgressQueue::randomize = qpRandomize; // randomize the initial round-robin pointer
-    RdmaEgressQueue::sourceRouting = routing==SOURCE_ROUTING? true : false;
-
+    RdmaEgressQueue::sourceRouting = routing == SOURCE_ROUTING? true: false;
+    
     fctOutput = asciiTraceHelper.CreateFileStream(fctOutFile);
 
     *fctOutput->GetStream() << "timestamp"
@@ -935,6 +935,9 @@ int main(int argc, char *argv[])
     LINK_COUNT =
         (link_num - (SERVER_COUNT * tors)) / (LEAF_COUNT * SPINE_COUNT); // number of links between each tor-spine pair
 
+    RdmaEgressQueue::nPaths = SPINE_COUNT;
+    std::cout << "SPINE_COUNT " << SPINE_COUNT << std::endl;
+
     NodeContainer serverNodes;
     NodeContainer torNodes;
     NodeContainer spineNodes;
@@ -1207,6 +1210,8 @@ int main(int argc, char *argv[])
             if (routing == SOURCE_ROUTING){
                 rdmaHw->SetAttribute("sourceRouting", BooleanValue(true));
                 rdmaHw->SetAttribute("nSpines", UintegerValue(SPINE_COUNT));
+                rdmaHw->SetAttribute("nServers", UintegerValue(SERVER_COUNT));
+                rdmaHw->SetAttribute("nTors", UintegerValue(LEAF_COUNT));
             }
             
             if (routing == RANDOM_ECMP)

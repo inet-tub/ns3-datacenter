@@ -166,6 +166,8 @@ public:
 	void RetransmitPacket(Ptr<RdmaQueuePair> qp, uint32_t expectedAckSeq);
 	uint64_t initCwnd;
 	uint32_t nSpines;
+	uint32_t nServers;
+	uint32_t nTors;
 	Ptr<UniformRandomVariable> m_rand;
 };
 
