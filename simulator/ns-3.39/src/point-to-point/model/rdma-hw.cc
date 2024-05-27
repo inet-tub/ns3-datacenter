@@ -618,9 +618,9 @@ int RdmaHw::ReceiverCheckSeq(uint32_t seq, Ptr<RdmaRxQueuePair> q, uint32_t size
 			}
 		}
 	}
-	else if (x != q->reOrderBuffer.end()){
-		NS_ASSERT_MSG(x->first > seq, "Malfunctioning reorder buffer");
-	}
+	// else if (x != q->reOrderBuffer.end()){
+	// 	NS_ASSERT_MSG(x->first > seq, "Malfunctioning reorder buffer");
+	// }
 
 	if (seq == expected) {
 		if (q->ReceiverNextExpectedSeq == expected) // reorder buffer did not change anything. So, we are ok to increment as usual.

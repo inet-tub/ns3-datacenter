@@ -1259,7 +1259,7 @@ int main(int argc, char *argv[])
                         sw->m_mmu->SetAlphaEgress(10000, j, qu);
                         // set pfc
                         double delay = DynamicCast<QbbChannel>(dev->GetChannel())->GetDelay().GetSeconds();
-                        uint32_t headroom = (packet_payload_size + 48) * 2 + 3860 + (2 * rate * delay / 8);
+                        uint32_t headroom = (packet_payload_size + 48) * 4 + 3860 + (2 * rate * delay / 8);
                         // std::cout << headroom << std::endl;
                         sw->m_mmu->SetHeadroom(headroom, j, qu);
                         totalHeadroom += headroom;
@@ -1307,6 +1307,8 @@ int main(int argc, char *argv[])
                 sw->SetAttribute("sourceRouting", BooleanValue(true));
             }
             // SwitchNode runs Flow ECMP by default if nothing is specified.
+            if(ack_high_prio)
+                sw->SetAttribute("AckHighPrio",UintegerValue(3));
         }
     }
 

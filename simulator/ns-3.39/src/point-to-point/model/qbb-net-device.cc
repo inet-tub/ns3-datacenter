@@ -78,8 +78,8 @@ TypeId RdmaEgressQueue::GetTypeId (void)
 }
 
 RdmaEgressQueue::RdmaEgressQueue() {
+	m_rand = CreateObject<UniformRandomVariable>();
 	if(randomize){
-		m_rand = CreateObject<UniformRandomVariable>();
 		m_rrlast = m_rand->GetInteger (0, UINT16_MAX); // randomize the inital rr
 		m_lastPath = m_rand->GetInteger (0, UINT16_MAX);
 	}
@@ -91,7 +91,8 @@ RdmaEgressQueue::RdmaEgressQueue() {
 		pathMap[i]=i;
 	}
 	// std::random_device rd;
-	std::default_random_engine rng(m_rand->GetInteger(0,UINT32_MAX));
+	uint32_t seed = m_rand->GetInteger(0,UINT32_MAX-1);
+	std::default_random_engine rng(seed);
 	std::shuffle(pathMap.begin(), pathMap.end(), rng);
 
 	m_qlast = 0;
@@ -383,7 +384,6 @@ QbbNetDevice::QbbNetDevice()
 	m_ecn_source = new std::vector<ECNAccount>;
 	m_rdmaEQ = CreateObject<RdmaEgressQueue>();
 	m_rdmaEQ->qb_dev = this;
-
 	for (uint32_t i = 0; i < qCnt; i++) {
 		m_paused[i] = false;
 		dummy_paused[i] = false;
