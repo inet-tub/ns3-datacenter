@@ -61,89 +61,86 @@ COLLECTIVE=$ALL_TO_ALL
 ALG=$RING
 
 
-TRANSFER_SIZES=(8000 16000 32000 64000 128000)
-QP_WINDOWS=(2 4 8 16 32 64 128 256)
+TRANSFER_SIZES=(8000 16000 32000 64000 128000 256000)
+QP_WINDOWS=(8 16 32 64 128 256)
 ############################################################################
 
 RDMACC=$DCTCPCC
 
-QP_WINDOW=256
-
-echo "transferSize,multiPath,multiPathRand,singlePath,singlePathRand"
+echo "transport multiPath routing randomize window transferSize completionTime"
 for TRANSFER_SIZE in ${TRANSFER_SIZES[@]};do
-
 	
-	# for MULTI_PATH in "true" "false";do
+	for ROUTING in $RANDOM_ECMP;do
 
-	# 	if [[ $MULTI_PATH == "true" ]];then
-	# 		ROUTING=$RANDOM_ECMP
-	# 	else
-	# 		ROUTING=$FLOW_ECMP
-	# 	fi
+		MULTI_PATH="true"
 
-	# 	for QP_WINDOW in ${QP_WINDOWS[@]};do
+		for QP_WINDOW in 256;do
 
+			for QP_RANDOMIZE in "true" "false";do
 
-	# 		for QP_RANDOMIZE in "true" "false";do
-
-	MULTI_PATH="true"
-	ROUTING=$RANDOM_ECMP
-	QP_RANDOMIZE="false"
-
-	FCTFILE=$DUMP_DIR/evaluation-$RDMACC-$MULTI_PATH-$ROUTING-$QP_RANDOMIZE-$QP_WINDOW-$TRANSFER_SIZE.fct
-	TORFILE=$DUMP_DIR/evaluation-$RDMACC-$MULTI_PATH-$ROUTING-$QP_RANDOMIZE-$QP_WINDOW-$TRANSFER_SIZE.tor
-	DUMPFILE=$DUMP_DIR/evaluation-$RDMACC-$MULTI_PATH-$ROUTING-$QP_RANDOMIZE-$QP_WINDOW-$TRANSFER_SIZE.out
-	PFCFILE=$DUMP_DIR/evaluation-$RDMACC-$MULTI_PATH-$ROUTING-$QP_RANDOMIZE-$QP_WINDOW-$TRANSFER_SIZE.pfc
-
-	COMPLETION=$(cat $FCTFILE| tail -n1 | awk '{print $1}')
-	COMPLETION_TIME[0]=$(python3 -c "print($COMPLETION-1)")
-	###################################################################################
-
-	MULTI_PATH="true"
-	ROUTING=$RANDOM_ECMP
-	QP_RANDOMIZE="true"
-
-	FCTFILE=$DUMP_DIR/evaluation-$RDMACC-$MULTI_PATH-$ROUTING-$QP_RANDOMIZE-$QP_WINDOW-$TRANSFER_SIZE.fct
-	TORFILE=$DUMP_DIR/evaluation-$RDMACC-$MULTI_PATH-$ROUTING-$QP_RANDOMIZE-$QP_WINDOW-$TRANSFER_SIZE.tor
-	DUMPFILE=$DUMP_DIR/evaluation-$RDMACC-$MULTI_PATH-$ROUTING-$QP_RANDOMIZE-$QP_WINDOW-$TRANSFER_SIZE.out
-	PFCFILE=$DUMP_DIR/evaluation-$RDMACC-$MULTI_PATH-$ROUTING-$QP_RANDOMIZE-$QP_WINDOW-$TRANSFER_SIZE.pfc
-
-	COMPLETION=$(cat $FCTFILE| tail -n1 | awk '{print $1}')
-	COMPLETION_TIME[1]=$(python3 -c "print($COMPLETION-1)")
-	###################################################################################
-
-	MULTI_PATH="false"
-	ROUTING=$FLOW_ECMP
-	QP_RANDOMIZE="false"
-
-	FCTFILE=$DUMP_DIR/evaluation-$RDMACC-$MULTI_PATH-$ROUTING-$QP_RANDOMIZE-$QP_WINDOW-$TRANSFER_SIZE.fct
-	TORFILE=$DUMP_DIR/evaluation-$RDMACC-$MULTI_PATH-$ROUTING-$QP_RANDOMIZE-$QP_WINDOW-$TRANSFER_SIZE.tor
-	DUMPFILE=$DUMP_DIR/evaluation-$RDMACC-$MULTI_PATH-$ROUTING-$QP_RANDOMIZE-$QP_WINDOW-$TRANSFER_SIZE.out
-	PFCFILE=$DUMP_DIR/evaluation-$RDMACC-$MULTI_PATH-$ROUTING-$QP_RANDOMIZE-$QP_WINDOW-$TRANSFER_SIZE.pfc
-
-	COMPLETION=$(cat $FCTFILE| tail -n1 | awk '{print $1}')
-	COMPLETION_TIME[2]=$(python3 -c "print($COMPLETION-1)")
-	###################################################################################
-
-	MULTI_PATH="false"
-	ROUTING=$FLOW_ECMP
-	QP_RANDOMIZE="true"
-
-	FCTFILE=$DUMP_DIR/evaluation-$RDMACC-$MULTI_PATH-$ROUTING-$QP_RANDOMIZE-$QP_WINDOW-$TRANSFER_SIZE.fct
-	TORFILE=$DUMP_DIR/evaluation-$RDMACC-$MULTI_PATH-$ROUTING-$QP_RANDOMIZE-$QP_WINDOW-$TRANSFER_SIZE.tor
-	DUMPFILE=$DUMP_DIR/evaluation-$RDMACC-$MULTI_PATH-$ROUTING-$QP_RANDOMIZE-$QP_WINDOW-$TRANSFER_SIZE.out
-	PFCFILE=$DUMP_DIR/evaluation-$RDMACC-$MULTI_PATH-$ROUTING-$QP_RANDOMIZE-$QP_WINDOW-$TRANSFER_SIZE.pfc
-
-	COMPLETION=$(cat $FCTFILE| tail -n1 | awk '{print $1}')
-	COMPLETION_TIME[3]=$(python3 -c "print($COMPLETION-1)")
-	###################################################################################
-
-	echo "$TRANSFER_SIZE,${COMPLETION_TIME[0]},${COMPLETION_TIME[1]},${COMPLETION_TIME[2]},${COMPLETION_TIME[3]}"
-
-	NUM=$(( $NUM+1  ))
-	# 		done
-	# 	done
-	# done
+				FCTFILE=$DUMP_DIR/evaluation-$RDMACC-$MULTI_PATH-$ROUTING-$QP_RANDOMIZE-$QP_WINDOW-$TRANSFER_SIZE.fct
+				TORFILE=$DUMP_DIR/evaluation-$RDMACC-$MULTI_PATH-$ROUTING-$QP_RANDOMIZE-$QP_WINDOW-$TRANSFER_SIZE.tor
+				DUMPFILE=$DUMP_DIR/evaluation-$RDMACC-$MULTI_PATH-$ROUTING-$QP_RANDOMIZE-$QP_WINDOW-$TRANSFER_SIZE.out
+				PFCFILE=$DUMP_DIR/evaluation-$RDMACC-$MULTI_PATH-$ROUTING-$QP_RANDOMIZE-$QP_WINDOW-$TRANSFER_SIZE.pfc
+				
+				COMPLETION=$(cat $FCTFILE| tail -n1 | awk '{print $3}')
+				COMPLETION_TIME=$(python3 -c "print($COMPLETION)")
+				
+				echo "$RDMACC $MULTI_PATH $ROUTING $QP_RANDOMIZE $QP_WINDOW $TRANSFER_SIZE $COMPLETION_TIME"
+				NUM=$(( $NUM+1  ))
+			done
+		done
+	done
 done
 
-# echo "Total $NUM experiments"
+for TRANSFER_SIZE in ${TRANSFER_SIZES[@]};do
+	
+	for ROUTING in $FLOW_ECMP;do
+
+		MULTI_PATH="false"
+
+		for QP_WINDOW in ${QP_WINDOWS[@]};do
+
+			for QP_RANDOMIZE in "true" "false";do
+
+				FCTFILE=$DUMP_DIR/evaluation-$RDMACC-$MULTI_PATH-$ROUTING-$QP_RANDOMIZE-$QP_WINDOW-$TRANSFER_SIZE.fct
+				TORFILE=$DUMP_DIR/evaluation-$RDMACC-$MULTI_PATH-$ROUTING-$QP_RANDOMIZE-$QP_WINDOW-$TRANSFER_SIZE.tor
+				DUMPFILE=$DUMP_DIR/evaluation-$RDMACC-$MULTI_PATH-$ROUTING-$QP_RANDOMIZE-$QP_WINDOW-$TRANSFER_SIZE.out
+				PFCFILE=$DUMP_DIR/evaluation-$RDMACC-$MULTI_PATH-$ROUTING-$QP_RANDOMIZE-$QP_WINDOW-$TRANSFER_SIZE.pfc
+				
+				COMPLETION=$(cat $FCTFILE| tail -n1 | awk '{print $3}')
+				COMPLETION_TIME=$(python3 -c "print($COMPLETION)")
+				
+				echo "$RDMACC $MULTI_PATH $ROUTING $QP_RANDOMIZE $QP_WINDOW $TRANSFER_SIZE $COMPLETION_TIME"
+				
+				NUM=$(( $NUM+1  ))
+			done
+		done
+	done
+done
+
+for TRANSFER_SIZE in ${TRANSFER_SIZES[@]};do
+	
+	for ROUTING in $SOURCE_ROUTING;do
+
+		MULTI_PATH="false"
+
+		for QP_WINDOW in 256;do
+
+			for QP_RANDOMIZE in "true";do
+
+				FCTFILE=$DUMP_DIR/evaluation-$RDMACC-$MULTI_PATH-$ROUTING-$QP_RANDOMIZE-$QP_WINDOW-$TRANSFER_SIZE.fct
+				TORFILE=$DUMP_DIR/evaluation-$RDMACC-$MULTI_PATH-$ROUTING-$QP_RANDOMIZE-$QP_WINDOW-$TRANSFER_SIZE.tor
+				DUMPFILE=$DUMP_DIR/evaluation-$RDMACC-$MULTI_PATH-$ROUTING-$QP_RANDOMIZE-$QP_WINDOW-$TRANSFER_SIZE.out
+				PFCFILE=$DUMP_DIR/evaluation-$RDMACC-$MULTI_PATH-$ROUTING-$QP_RANDOMIZE-$QP_WINDOW-$TRANSFER_SIZE.pfc
+				
+				COMPLETION=$(cat $FCTFILE| tail -n1 | awk '{print $3}')
+				COMPLETION_TIME=$(python3 -c "print($COMPLETION)")
+				
+				echo "$RDMACC $MULTI_PATH $ROUTING $QP_RANDOMIZE $QP_WINDOW $TRANSFER_SIZE $COMPLETION_TIME"
+				
+				NUM=$(( $NUM+1  ))
+			done
+		done
+	done
+done
