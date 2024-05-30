@@ -140,6 +140,10 @@ int RdmaEgressQueue::GetNextQindex(bool paused[]) {
 		hostDequeueIndex++;
 		if (hostDequeueIndex % 2) {
 			uint32_t fcount = std::min(m_qpGrp->GetN(), maxActiveQpsWindow);
+			// if (activeQps.begin() == activeQps.end()){
+			// 	std::mt19937 gen(m_rand->GetInteger(0,m_qpGrp->GetN()-1));
+			//     std::sample(activeQps.begin(), activeQps.end(), std::back_inserter(activeQps), maxActiveQpsWindow, gen);
+			// }
 			uint32_t min_finish_id = 0xffffffff;
 			uint32_t min_path = UINT32_MAX;
 			if (!sourceRouting){
@@ -199,6 +203,7 @@ int RdmaEgressQueue::GetNextQindex(bool paused[]) {
 				// 		}
 				// 	}
 				// }
+				m_lastPath = m_rand->GetInteger(0,UINT16_MAX)%nPaths;
 				for (qIndex = 1; qIndex <= fcount; qIndex++) {
 					uint32_t idx = (qIndex + m_rrlast) % fcount;
 					Ptr<RdmaQueuePair> qp = m_qpGrp->Get(idx);
@@ -786,6 +791,7 @@ void QbbNetDevice::TriggerDequeue(Ptr<RdmaQueuePair> qp){
 	// 		m_rdmaEQ->path_qpId[qp->pathId].push_back(qp);
 	// 	}
 	// }
+	// m_rdmaEQ->m_qpGrp->AddQp(qp);
 	m_rdmaEQ->m_rrlast = m_rdmaEQ->m_rand->GetInteger (0, m_rdmaEQ->GetFlowCount()-1);
 	m_rdmaEQ->m_lastPath = m_rdmaEQ->m_rand->GetInteger (0, 1024);
 	DequeueAndTransmit();

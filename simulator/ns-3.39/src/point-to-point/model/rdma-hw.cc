@@ -14,6 +14,8 @@
 #include "cn-header.h"
 #include "ns3/unsched-tag.h"
 #include <algorithm> 
+#include <random>
+#include <ctime>
 
 namespace ns3 {
 NS_LOG_COMPONENT_DEFINE("RdmaHw");
@@ -262,13 +264,23 @@ void RdmaHw::AddQueuePair(uint64_t size, uint16_t pg, Ipv4Address sip, Ipv4Addre
 		uint64_t minBytes = UINT64_MAX;
 		for (uint32_t i = 0; i < m_nic[nic_idx].dev->m_rdmaEQ->m_qpGrp->GetN(); i++){
 			Ptr<RdmaQueuePair> qp = m_nic[nic_idx].dev->m_rdmaEQ->m_qpGrp->Get(i);
-				if ((sip.Get() >> 8) & 0xffff != (dip.Get() >> 8) & 0xffff) // Check if it the destination is in the same ToR
+				if (((sip.Get() >> 8) & 0xffff)/nServers != ((dip.Get() >> 8) & 0xffff)/nServers) // Check if it the destination is in the same ToR
 					numBytesPerPath[qp->pathId] += qp->GetBytesLeft();
 		}
+		std::vector<uint32_t> pathMap;
+		pathMap.resize(nSpines);
+		for (uint32_t i = 0; i < nSpines; i++){
+			pathMap[i]=i;
+		}
+		// std::random_device rd;
+		uint32_t seed = m_rand->GetInteger(0,UINT32_MAX-1);
+		std::default_random_engine rng(seed);
+		std::shuffle(pathMap.begin(), pathMap.end(), rng);
+
 		uint32_t randomInt = m_rand->GetInteger(0,UINT16_MAX);
 		for (uint32_t i = 0; i < nSpines; i++){ // If the destination is local, then we don't care which ever path is selected
-			// std::cout << "Path " << i << " NumBytes " << numBytesPerPath[i] << " randPath " << (i + randomInt)%nSpines << " nSpines " << nSpines << std::endl;
-			uint32_t idx = (i + randomInt)%nSpines;
+			// std::cout << "Path " << i << " NumBytes " << numBytesPerPath[i] << " randPath " << (i + randomInt)%nSpines << " nSpines " << nSpines << " node " <<  m_node->GetId() << std::endl;
+			uint32_t idx = pathMap[i];
 			if (numBytesPerPath[idx] < minBytes){
 				minBytes = numBytesPerPath[idx];
 				minBytesPath = idx;

@@ -76,6 +76,7 @@ public:
 	Ptr<UniformRandomVariable> m_rand;
 	std::vector<Ptr<RdmaQueuePair>> path_qpId[1024]; 
 	std::vector<uint32_t> pathMap;
+	std::vector<uint32_t> activeQps;
 	uint32_t m_rrlastSr[1024];
 	uint32_t m_lastPath;
 };
