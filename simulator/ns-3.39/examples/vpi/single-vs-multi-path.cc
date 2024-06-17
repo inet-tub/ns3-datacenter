@@ -484,7 +484,12 @@ void printBuffer(Ptr<OutputStreamWrapper> fout, NodeContainer switches, double d
             *fout->GetStream() << i << " " << sw->m_mmu->totalUsed << " " << sw->m_mmu->egressPoolUsed[0] << " "
                                << sw->m_mmu->egressPoolUsed[1] << " " << sw->m_mmu->totalUsed - sw->m_mmu->xoffTotalUsed
                                << " " << sw->m_mmu->xoffTotalUsed << " " << sw->m_mmu->sharedPoolUsed << " "
-                               << Simulator::Now().GetSeconds() << std::endl;
+                               << Simulator::Now().GetSeconds();
+                               // << std::endl;
+            for (uint32_t i = 0; i < 16 ; i++){
+                *fout->GetStream() << " " << sw->m_mmu->egress_bytes[i][3];
+            }
+            *fout->GetStream() << std::endl;
         }
     }
     if (Simulator::Now().GetSeconds() < flowEnd)
@@ -646,7 +651,12 @@ int main(int argc, char *argv[])
                            << " "
                            << "sharedPoolOccupancy"
                            << " "
-                           << "time" << std::endl;
+                           << "time";
+                           // << std::endl;
+    for (uint32_t i = 0; i < 16 ; i++){
+        *torStats->GetStream() << " " << i;
+    }
+    *torStats->GetStream() << std::endl;
 
     pfc_file = asciiTraceHelperpfc.CreateFileStream(pfcOutFile);
 
