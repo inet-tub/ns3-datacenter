@@ -188,6 +188,7 @@ TypeId RdmaHw::GetTypeId (void)
 	                    .AddAttribute("nServers", "number of servers in each ToR", UintegerValue(UINT32_MAX), MakeUintegerAccessor(&RdmaHw::nServers), MakeUintegerChecker<uint32_t>())
 	                    .AddAttribute("nTors", "number of ToRs (assuming Leaf/Spine topology)", UintegerValue(UINT32_MAX), MakeUintegerAccessor(&RdmaHw::nTors), MakeUintegerChecker<uint32_t>())
 	                    .AddAttribute("sourceRouting", "specify the path within the packets", BooleanValue(false), MakeBooleanAccessor(&RdmaHw::sourceRouting), MakeBooleanChecker())
+	                    .AddAttribute("reps", "specify the path within the packets", BooleanValue(false), MakeBooleanAccessor(&RdmaHw::reps), MakeBooleanChecker())
 	                    ;
 	return tid;
 }
@@ -292,8 +293,12 @@ void RdmaHw::AddQueuePair(uint64_t size, uint16_t pg, Ipv4Address sip, Ipv4Addre
 			exit(1);
 		}
 		qp->pathId = minBytesPath;
-		// qp->pathId = m_rand->GetInteger(0,nSpines-1);
+		// qp->pathId = pathMap[m_rand->GetInteger(0,nSpines-1)];
 		// std::cout << "minBytesPath " << qp->pathId << std::endl;
+	}
+
+	if (reps){
+		qp->nextEntropy = m_rand->GetInteger(0, qp->maxEntropies);
 	}
 
 	// add qp
@@ -448,9 +453,17 @@ int RdmaHw::ReceiveUdp(Ptr<Packet> p, CustomHeader &ch) {
 		head.SetProtocol(x != 2 ? 0xFC : 0xFD); //ack=0xFC nack=0xFD
 		head.SetTtl(64);
 		head.SetPayloadSize(newp->GetSize());
-		if (sourceRouting)
+		if (sourceRouting){
 			// head.SetIdentification(m_rand->GetInteger(0,nSpines-1));
 			head.SetIdentification(rxQp->pathId); // We repurpose this header field for path ID in the case of source routing.
+		}
+		else if (reps){
+			Ptr<Packet> cp = p->Copy();
+			PppHeader ppph; cp->RemoveHeader(ppph);
+			Ipv4Header ihh; cp->RemoveHeader(ihh);
+			uint32_t entropy = ihh.GetIdentification();
+			head.SetIdentification(entropy);
+		}
 		else
 			head.SetIdentification(rxQp->m_ipid++);
 
@@ -581,6 +594,23 @@ int RdmaHw::ReceiveAck(Ptr<Packet> p, CustomHeader &ch) {
 		// std::cout << "cnp received" <<  std::endl;
 		if (m_cc_mode == 1) { // mlx version
 			cnp_received_mlx(qp);
+		}
+	}
+
+	if (reps){
+		Ptr<Packet> cp = p->Copy();
+		PppHeader ppph; cp->RemoveHeader(ppph);
+		Ipv4Header ihh; cp->RemoveHeader(ihh);
+		uint32_t entropy = ihh.GetIdentification();
+		if (cnp){
+			qp->nextEntropy++;
+			if (qp->nextEntropy >= qp->maxEntropies){
+				qp->nextEntropy = 0;
+			}
+			qp->cachedEntropy = qp->nextEntropy;
+		}
+		else{
+			qp->cachedEntropy = entropy;
 		}
 	}
 
@@ -800,11 +830,25 @@ Ptr<Packet> RdmaHw::GetNxtPacket(Ptr<RdmaQueuePair> qp) {
 	ipHeader.SetPayloadSize (p->GetSize());
 	ipHeader.SetTtl (64);
 	ipHeader.SetTos (0);
-	if (sourceRouting)
+	if (sourceRouting){
 		// ipHeader.SetIdentification(m_rand->GetInteger(0,nSpines-1));
 		ipHeader.SetIdentification(qp->pathId);
-	else
+	}
+	else if (reps){
+		if (sentBytes < bdp && !qp->allentropiesTried){
+			ipHeader.SetIdentification((qp->nextEntropy)%qp->maxEntropies);
+			qp->nextEntropy++;
+			if (qp->nextEntropy == qp->maxEntropies){
+				qp->allentropiesTried = true;
+			}
+		}
+		else{
+			ipHeader.SetIdentification(qp->cachedEntropy);
+		}
+	}
+	else{
 		ipHeader.SetIdentification (qp->m_ipid);
+	}
 	p->AddHeader(ipHeader);
 	// add ppp header
 	PppHeader ppp;

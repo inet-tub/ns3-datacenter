@@ -43,6 +43,11 @@ public:
 	std::vector<std::pair<uint32_t, uint32_t>> retransmitQueue; // sequenceNumber, pktsize
 	uint32_t pathId;
 	uint32_t id;
+	//reps
+	uint32_t nextEntropy;
+	uint32_t cachedEntropy;
+	uint32_t maxEntropies;
+	bool allentropiesTried;
 
 	/******************************
 	 * runtime states

@@ -62,6 +62,11 @@ TypeId SwitchNode::GetTypeId (void)
 	                    				BooleanValue(false),
 	                    				MakeBooleanAccessor(&SwitchNode::sourceRouting),
 	                    				MakeBooleanChecker())
+	                    .AddAttribute("reps",
+	                    				"source will specify the route",
+	                    				BooleanValue(false),
+	                    				MakeBooleanAccessor(&SwitchNode::reps),
+	                    				MakeBooleanChecker())
 
 	                    ;
 	return tid;
@@ -107,7 +112,50 @@ int SwitchNode::GetOutDev(Ptr<const Packet> p, CustomHeader &ch) {
 	else if (sourceRouting){
 		// Note: The type of source routing we use here, assumes a leaf spine. Paths from Spine towards servers is unique.
 		// TODO: extend for 3-stage.
-		idx = (ih.GetIdentification()) % nexthops.size(); // % nexthops.size() is just to limit the sender attached id to available paths
+		// idx = (ih.GetIdentification()) % nexthops.size(); // % nexthops.size() is just to limit the sender attached id to available paths
+		if (ih.GetIdentification() < nexthops.size()){
+			idx = ih.GetIdentification();
+		}
+		else{// Fall back to ECMP. This is a link failure case.
+				// pick one next hop based on hash
+			union {
+				uint8_t u8[4 + 4 + 2 + 2];
+				uint32_t u32[3];
+			} buf;
+			buf.u32[0] = ih.GetSource().Get();
+			buf.u32[1] = ih.GetDestination().Get();
+			if (ih.GetProtocol() == 0x6) {
+				TcpHeader th; cp->PeekHeader(th);
+				buf.u32[2] = th.GetSourcePort() | ((uint32_t)th.GetDestinationPort() << 16);
+			}
+			else if (ch.l3Prot == 0x11) {
+				buf.u32[2] = ch.udp.sport | ((uint32_t)ch.udp.dport << 16);
+			}
+			else if (ch.l3Prot == 0xFC || ch.l3Prot == 0xFD)
+				buf.u32[2] = ch.ack.sport | ((uint32_t)ch.ack.dport << 16);
+
+			idx = EcmpHash(buf.u8, 12, m_ecmpSeed) % nexthops.size();
+		}
+	}
+	else if (reps){
+		// uint32_t entropy = ih.GetIdentification() % nexthops.size();
+		union {
+			uint8_t u8[4 + 4 + 2 + 2];
+			uint32_t u32[3];
+		} buf;
+		buf.u32[0] = ih.GetIdentification(); //ih.GetSource().Get();
+		buf.u32[1] = ih.GetDestination().Get();
+		if (ih.GetProtocol() == 0x6) {
+			TcpHeader th; cp->PeekHeader(th);
+			buf.u32[2] = th.GetSourcePort() | ((uint32_t)th.GetDestinationPort() << 16);
+		}
+		else if (ch.l3Prot == 0x11) {
+			buf.u32[2] = ch.udp.sport | ((uint32_t)ch.udp.dport << 16);
+		}
+		else if (ch.l3Prot == 0xFC || ch.l3Prot == 0xFD)
+			buf.u32[2] = ch.ack.sport | ((uint32_t)ch.ack.dport << 16);
+
+		idx = EcmpHash(buf.u8, 12, m_ecmpSeed) % nexthops.size();
 	}
 	else{
 		// pick one next hop based on hash

@@ -39,6 +39,7 @@ protected:
 	bool PowerEnabled;
 	bool randomECMP;
 	bool sourceRouting;
+	bool reps;
 	Ptr<UniformRandomVariable> m_rand;
 
 private:
