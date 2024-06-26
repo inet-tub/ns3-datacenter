@@ -70,6 +70,7 @@ using namespace std;
 #define FLOW_ECMP 0
 #define RANDOM_ECMP 1
 #define SOURCE_ROUTING 2
+#define REPS 3
 
 NS_LOG_COMPONENT_DEFINE("SINGLE_VS_MULTI_PATH");
 
@@ -484,7 +485,12 @@ void printBuffer(Ptr<OutputStreamWrapper> fout, NodeContainer switches, double d
             *fout->GetStream() << i << " " << sw->m_mmu->totalUsed << " " << sw->m_mmu->egressPoolUsed[0] << " "
                                << sw->m_mmu->egressPoolUsed[1] << " " << sw->m_mmu->totalUsed - sw->m_mmu->xoffTotalUsed
                                << " " << sw->m_mmu->xoffTotalUsed << " " << sw->m_mmu->sharedPoolUsed << " "
-                               << Simulator::Now().GetSeconds() << std::endl;
+                               << Simulator::Now().GetNanoSeconds();
+                               // << std::endl;
+            for (uint32_t i = 0; i < 32 ; i++){
+                *fout->GetStream() << " " << sw->m_mmu->egress_bytes[i][3];
+            }
+            *fout->GetStream() << std::endl;
         }
     }
     if (Simulator::Now().GetSeconds() < flowEnd)
@@ -646,7 +652,12 @@ int main(int argc, char *argv[])
                            << " "
                            << "sharedPoolOccupancy"
                            << " "
-                           << "time" << std::endl;
+                           << "time";
+                           // << std::endl;
+    for (uint32_t i = 0; i < 32 ; i++){
+        *torStats->GetStream() << " " << i;
+    }
+    *torStats->GetStream() << std::endl;
 
     pfc_file = asciiTraceHelperpfc.CreateFileStream(pfcOutFile);
 
@@ -1213,9 +1224,13 @@ int main(int argc, char *argv[])
                 rdmaHw->SetAttribute("nServers", UintegerValue(SERVER_COUNT));
                 rdmaHw->SetAttribute("nTors", UintegerValue(LEAF_COUNT));
             }
-            
-            if (routing == RANDOM_ECMP)
+            else if (routing == REPS){
+                rdmaHw->SetAttribute("reps", BooleanValue(true));
+                NS_ASSERT_MSG(enableMultiPath, "Bad configuration! REPS with single-path CC triggers reoordering and resulting issues with retransmissions...");
+            }
+            else if (routing == RANDOM_ECMP){
                 NS_ASSERT_MSG(enableMultiPath, "Bad configuration! Per-packet ECMP with single-path CC triggers reoordering and resulting issues with retransmissions...");
+            }
         }
     }
 
@@ -1305,6 +1320,9 @@ int main(int argc, char *argv[])
             }
             else if (routing == SOURCE_ROUTING){
                 sw->SetAttribute("sourceRouting", BooleanValue(true));
+            }
+            else if (routing == REPS){
+                sw->SetAttribute("reps", BooleanValue(true));
             }
             // SwitchNode runs Flow ECMP by default if nothing is specified.
             if(ack_high_prio)
