@@ -188,6 +188,7 @@ uint32_t totalTransfersInCollective = 0;
 uint32_t totalFinishedTransfers = 0;
 uint32_t nextCollective = 0;
 uint64_t collectiveBytes = 0;
+uint32_t triggerCollectivesParams[6];
 
 void ReadFlowInput()
 {
@@ -274,7 +275,8 @@ void qp_finish(Ptr<OutputStreamWrapper> fout, Ptr<RdmaQueuePair> q)
             totalTransfersInCollective = 0;
             totalFinishedTransfers = 0;
             collectiveBytes = 0;
-            // Todo? trigger next collective....
+            // collective_rdma(triggerCollectivesParams[0], triggerCollectivesParams[1], triggerCollectivesParams[2], triggerCollectivesParams[3], triggerCollectivesParams[4], triggerCollectivesParams[5]);
+            // nextCollective-=1;
         }
     }
 }
@@ -486,9 +488,16 @@ void collective_rdma(double START_TIME, uint32_t collective, uint32_t transferSi
                 destServerIndex = (fromServerIndex+SERVER_COUNT + 1)%(SERVER_COUNT);
             }
 
-            std::cout << fromServerIndex << " --> " << destServerIndex << " " << destinationLeaf << " " << (fromServerIndex+SERVER_COUNT + 1)%(LEAF_COUNT*SERVER_COUNT) << std::endl;
+            // std::cout << fromServerIndex << " --> " << destServerIndex << " " << destinationLeaf << " " << (fromServerIndex+SERVER_COUNT + 1)%(LEAF_COUNT*SERVER_COUNT) << std::endl;
 
-            for (uint32_t channel = 0; channel < SERVER_COUNT; channel ++){
+            uint32_t numChannels = 1;
+            if (algorithm == SOURCE_ROUTING){
+                transferSize = transferSize/LEAF_COUNT;
+                numChannels = SERVER_COUNT;
+            }
+
+            for (uint32_t channel = 0; channel < numChannels; channel ++){
+
                 if (DestportNumder[fromServerIndex][destServerIndex] == UINT16_MAX - 1)
                     DestportNumder[fromServerIndex][destServerIndex] = rand_range(10000, 11000);
 
@@ -511,7 +520,7 @@ void collective_rdma(double START_TIME, uint32_t collective, uint32_t transferSi
                 // fromLeafId << " serverCount " << SERVER_COUNT << " leafCount " << LEAF_COUNT <<  std::endl;
                 // appCon.Start(Seconds(startTime)+NanoSeconds(rand_range(0,100)));
                 appCon.Start(Seconds(startTime));
-                totalTransfersInCollective +=1;
+                totalTransfersInCollective += 1;
             }
         }
         std::cout << "Finished installation of applications for Ring collective" << std::endl;
@@ -522,6 +531,8 @@ void collective_rdma(double START_TIME, uint32_t collective, uint32_t transferSi
     }
     // exit(1);
 }
+
+
 
 uint32_t flowEnd = 0;
 
@@ -1417,7 +1428,18 @@ int main(int argc, char *argv[])
     for (uint32_t i = 0; i < SERVER_COUNT * LEAF_COUNT; i++)
         PORT_START[i] = 4444;
 
-    collective_rdma(START_TIME, collective, transferSize, collectiveAlgorithm, LEAF_COUNT, SERVER_COUNT);
+    triggerCollectivesParams[0] = START_TIME;
+    triggerCollectivesParams[1] = collective;
+    triggerCollectivesParams[2] = transferSize;
+    triggerCollectivesParams[3] = collectiveAlgorithm;
+    triggerCollectivesParams[4] = LEAF_COUNT;
+    triggerCollectivesParams[5] = SERVER_COUNT;
+
+    // if (collective == RING){
+        // nextCollective = LEAF_COUNT; // It takes LEAF_COUNT*SEVER_COUNT number of steps but we use SERVER_COUNT number of parallel channels. We are mainly in the communication, not the computation.
+    // }
+    
+    collective_rdma(START_TIME, collective, transferSize, routing, LEAF_COUNT, SERVER_COUNT);
 
     std::cout << "apps finished" << std::endl;
     topof.close();
