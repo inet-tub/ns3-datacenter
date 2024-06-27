@@ -88,6 +88,7 @@ SwitchNode::SwitchNode() {
 		m_u[i] = 0;
 
 	m_rand = CreateObject<UniformRandomVariable>();
+	rrspray=0;
 }
 
 int SwitchNode::GetOutDev(Ptr<const Packet> p, CustomHeader &ch) {
@@ -107,7 +108,7 @@ int SwitchNode::GetOutDev(Ptr<const Packet> p, CustomHeader &ch) {
 
 	uint32_t idx;
 	if (randomECMP){
-		idx = m_rand->GetInteger (0, nexthops.size()-1);
+		idx = rrspray++; //m_rand->GetInteger (0, nexthops.size()-1);
 	}
 	else if (sourceRouting){
 		// Note: The type of source routing we use here, assumes a leaf spine. Paths from Spine towards servers is unique.

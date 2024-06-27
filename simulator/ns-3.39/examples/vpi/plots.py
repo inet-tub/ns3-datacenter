@@ -181,7 +181,7 @@ for algorithm in [ALL_TO_ALL, RING]:
         ax.legend()
         # ax.set_xlim(minv,maxv+minv*0.1)
         fig.tight_layout()
-        fig.savefig(plots+'cct-cdf-'+str(transferSize)+'-'+str(algorithm)+'.pdf')
+        # fig.savefig(plots+'cct-cdf-'+str(transferSize)+'-'+str(algorithm)+'.pdf')
 
 #%%
 

@@ -41,6 +41,7 @@ protected:
 	bool sourceRouting;
 	bool reps;
 	Ptr<UniformRandomVariable> m_rand;
+	uint64_t rrspray;
 
 private:
 	int GetOutDev(Ptr<const Packet>, CustomHeader &ch);
