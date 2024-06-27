@@ -468,9 +468,59 @@ void collective_rdma(double START_TIME, uint32_t collective, uint32_t transferSi
         std::cout << "Finished installation of applications for All-to-All collective" << std::endl;
         
         break;
+    case RING:
+        for (int fromServerIndex = 0; fromServerIndex < LEAF_COUNT*SERVER_COUNT; fromServerIndex++)
+        {
+            //rand_range(0.0, double(LEAF_COUNT*SERVER_COUNT));
+            // It is better to randomize here in order to avoid synchronized transfers. But ok! Nccl iterates from 0, so do we.
+            uint32_t init = 0;//fromServerIndex+1;
+
+            uint32_t destinationLeaf = (uint32_t((fromServerIndex)/SERVER_COUNT) + 1);
+
+            uint32_t destServerIndex = 0;
+
+            if (destinationLeaf <= LEAF_COUNT - 1){
+                destServerIndex = (fromServerIndex+SERVER_COUNT);
+            }
+            else{
+                destServerIndex = (fromServerIndex+SERVER_COUNT + 1)%(SERVER_COUNT);
+            }
+
+            std::cout << fromServerIndex << " --> " << destServerIndex << " " << destinationLeaf << " " << (fromServerIndex+SERVER_COUNT + 1)%(LEAF_COUNT*SERVER_COUNT) << std::endl;
+
+            for (uint32_t channel = 0; channel < SERVER_COUNT; channel ++){
+                if (DestportNumder[fromServerIndex][destServerIndex] == UINT16_MAX - 1)
+                    DestportNumder[fromServerIndex][destServerIndex] = rand_range(10000, 11000);
+
+                if (portNumder[fromServerIndex][destServerIndex] == UINT16_MAX - 1)
+                    portNumder[fromServerIndex][destServerIndex] = rand_range(10000, 11000);
+
+                uint16_t dport =
+                    DestportNumder[fromServerIndex][destServerIndex]++; // uint16_t (rand_range (PORT_START, PORT_END));
+                uint16_t sport = portNumder[fromServerIndex][destServerIndex]++;
+
+                uint64_t flowSize = transferSize;
+
+                RdmaClientHelper clientHelper(
+                    3, serverAddress[fromServerIndex], serverAddress[destServerIndex], sport, dport, flowSize,
+                    has_win ? (global_t == 1 ? maxBdp : pairBdp[n.Get(fromServerIndex)][n.Get(destServerIndex)]) : 0,
+                    global_t == 1 ? maxRtt : pairRtt[fromServerIndex][destServerIndex],
+                    Simulator::GetMaximumSimulationTime());
+                ApplicationContainer appCon = clientHelper.Install(n.Get(fromServerIndex));
+                // std::cout << " from " << fromServerIndex << " to " << destServerIndex <<  " fromLeadId " <<
+                // fromLeafId << " serverCount " << SERVER_COUNT << " leafCount " << LEAF_COUNT <<  std::endl;
+                // appCon.Start(Seconds(startTime)+NanoSeconds(rand_range(0,100)));
+                appCon.Start(Seconds(startTime));
+                totalTransfersInCollective +=1;
+            }
+        }
+        std::cout << "Finished installation of applications for Ring collective" << std::endl;
+        
+        break;
     default:
         break;
     }
+    // exit(1);
 }
 
 uint32_t flowEnd = 0;
@@ -581,7 +631,7 @@ int main(int argc, char *argv[])
     std::string pfcOutFile = "./pfc.txt";
     cmd.AddValue("pfcOutFile", "File path for pfc events", pfcOutFile);
 
-    uint32_t collective = ALL_TO_ALL;
+    uint32_t collective = RING;
     cmd.AddValue("collective","name of the collective",collective);
 
     uint32_t collectiveAlgorithm = RING;

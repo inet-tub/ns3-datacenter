@@ -62,12 +62,13 @@ COLLECTIVE=$ALL_TO_ALL
 ALG=$RING
 
 
-TRANSFER_SIZES=(64000)
+TRANSFER_SIZES=(65000)
 QP_WINDOWS=(256)
 ############################################################################
 
 RDMACC=$DCTCPCC
 
+COLLECTIVE=$RING
 
 for TRANSFER_SIZE in ${TRANSFER_SIZES[@]};do
 	

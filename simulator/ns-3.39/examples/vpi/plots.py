@@ -50,33 +50,45 @@ colors={}
 
 colors[FLOW_ECMP]={}
 colors[FLOW_ECMP][True]='r'
-colors[FLOW_ECMP][False]='y'
+colors[FLOW_ECMP][False]='r'
 
 colors[RANDOM_ECMP]={}
-colors[RANDOM_ECMP][True]='g'
+colors[RANDOM_ECMP][True]='b'
 colors[RANDOM_ECMP][False]='b'
 
+colors[REPS]={}
+colors[REPS][True]='k'
+colors[REPS][False]='k'
+
 colors[SOURCE_ROUTING]={}
-colors[SOURCE_ROUTING][True]='k'
+colors[SOURCE_ROUTING][True]='g'
 
 labels={}
 
 labels[FLOW_ECMP]={}
-labels[FLOW_ECMP][True]='Ecmp-permute'
+labels[FLOW_ECMP][True]='Ecmp'
 labels[FLOW_ECMP][False]='Ecmp'
 
 labels[RANDOM_ECMP]={}
-labels[RANDOM_ECMP][True]='Spray-permute'
+labels[RANDOM_ECMP][True]='Spray'
 labels[RANDOM_ECMP][False]='Spray'
 
+labels[REPS]={}
+labels[REPS][True]='REPS'
+labels[REPS][False]='REPS'
+
 labels[SOURCE_ROUTING]={}
-labels[SOURCE_ROUTING][True]='SR-permute'
+labels[SOURCE_ROUTING][True]='Ethereal'
 
 markers={}
 
 markers[FLOW_ECMP]={}
 markers[FLOW_ECMP][True]='o'
 markers[FLOW_ECMP][False]='o'
+
+markers[REPS]={}
+markers[REPS][True]='x'
+markers[REPS][False]='x'
 
 markers[RANDOM_ECMP]={}
 markers[RANDOM_ECMP][True]='s'
@@ -85,32 +97,40 @@ markers[RANDOM_ECMP][False]='s'
 markers[SOURCE_ROUTING]={}
 markers[SOURCE_ROUTING][True]='D'
 
-TRANSFER_SIZES=[8000,16000,32000,64000,128000,256000]
+linestyles={}
+linestyles[True]='-'
+linestyles[False]='--'
+
+
+TRANSFER_SIZES=[8000,16000,32000,64000,128000,256000,512000,1024000]
+TRANSFER_SIZES_LABELS=["8","16","32","64","128","256","512","1024"]
+# TRANSFER_SIZES=[8000,16000,32000,64000,128000,256000]
+# TRANSFER_SIZES_LABELS=["8","16","32","64","128","256"]
 QP_WINDOWS=[8,16,32,64,128,256]
 #%%
 
 df = pd.read_csv(results+"opeth.dat",delimiter=" ")
 
 qpWindow=256
+randomize=True
 
 fig,ax = plt.subplots(1,1)
 ax.xaxis.grid('True',ls='--')
 ax.yaxis.grid('True',ls='--')
 ax.set_xlabel("Transfer size (KB)")
 ax.set_ylabel("Completion time (ms)")
-for randomize in [True, False]:
-    for routing in [FLOW_ECMP, RANDOM_ECMP, SOURCE_ROUTING]:
-        if (routing == SOURCE_ROUTING and randomize == False):
-            continue
-        dfX = df[(df["randomize"]==randomize) & (df["routing"]==routing) & (df["window"]==qpWindow)]
-        if randomize == True:
-            ax.plot(dfX["transferSize"]/1000,dfX["completionTime"]/10**6,c = colors[routing][randomize],label=labels[routing][randomize],marker=markers[routing][randomize], markersize = 10)
-        else:
-            ax.plot(dfX["transferSize"]/1000,dfX["completionTime"]/10**6,c = colors[routing][randomize],label=labels[routing][randomize],marker=markers[routing][randomize], markersize = 10, mfc='none')
-        # print(dfX, randomize, routing)
+
+dfSpray = df[df["routing"]==RANDOM_ECMP]
+
+for routing in [FLOW_ECMP, RANDOM_ECMP, REPS, SOURCE_ROUTING]:
+    dfX = df[df["routing"]==routing]
+    ax.plot(dfX["transferSize"]/1000,dfX["completionTime"]/10**6,c = colors[routing][randomize],label=labels[routing][randomize],marker=markers[routing][randomize], ls=linestyles[randomize], markersize = 10)
 ax.legend()
+ax.set_xscale('log',base=2)
+ax.set_xticks([i/1000 for i in TRANSFER_SIZES])
+ax.set_xticklabels(TRANSFER_SIZES_LABELS)
 fig.tight_layout()
-fig.savefig(plots+'cct-'+str(qpWindow)+'.pdf')
+# fig.savefig(plots+'cct-'+str(qpWindow)+'.pdf')
 #%%
 # df = pd.read_csv(results+"opeth.dat",delimiter=" ")
 
@@ -122,25 +142,22 @@ for transferSize in TRANSFER_SIZES:
     ax.yaxis.grid('True',ls='--')
     ax.set_xlabel("Completion time (ms)")
     ax.set_ylabel("CDF")
-    for randomize in [True, False]:
-        for routing in [FLOW_ECMP, RANDOM_ECMP, SOURCE_ROUTING]:
+    for randomize in [True]:
+        for routing in [FLOW_ECMP, RANDOM_ECMP, REPS, SOURCE_ROUTING]:
             if (routing == SOURCE_ROUTING and randomize == False):
                 continue
-            if (routing == RANDOM_ECMP):
+            if (routing == RANDOM_ECMP or routing == REPS):
                 multiPath = "true"
             else:
                 multiPath = "false"
-            if randomize == True:
-                rand = "true"
-            else:
-                rand = "false"
+            rand = "true"
             df = pd.read_csv(dump+"evaluation-"+str(RDMACC)+'-'+str(multiPath)+'-'+str(routing)+'-'+str(rand)+'-'+str(qpWindow)+'-'+str(transferSize)+".fct", delimiter = " ", usecols=[2])
             # dfX = df[(df["randomize"]==randomize) & (df["routing"]==routing) & (df["window"]==qpWindow)]
             fcts = df["fctus"]
             x=np.sort(fcts/10**6)
             y=np.arange(len(fcts))/float(len(fcts))
             ax.plot(x,y,c = colors[routing][randomize])
-            ax.set_title('Transfer size = '+str(transferSize))
+            # ax.set_title('Transfer size = '+str(transferSize))
             if randomize == True:
                 ax.plot(x[-1],y[-1],c = colors[routing][randomize],marker=markers[routing][randomize], markersize = 10,label=labels[routing][randomize])
             else:
@@ -148,7 +165,7 @@ for transferSize in TRANSFER_SIZES:
             # print(dfX)
     ax.legend()
     fig.tight_layout()
-    fig.savefig(plots+'cct-cdf-'+str(qpWindow)+'-'+str(transferSize)+'.pdf')
+    # fig.savefig(plots+'cct-cdf-'+str(qpWindow)+'-'+str(transferSize)+'.pdf')
 
 #%%
 
@@ -160,11 +177,11 @@ for transferSize in TRANSFER_SIZES:
     ax.yaxis.grid('True',ls='--')
     ax.set_xlabel("Shared buffer occupancy (KB)")
     ax.set_ylabel("CDF")
-    for randomize in [True, False]:
-        for routing in [FLOW_ECMP, RANDOM_ECMP, SOURCE_ROUTING]:
+    for randomize in [True]:
+        for routing in [FLOW_ECMP, RANDOM_ECMP, REPS, SOURCE_ROUTING]:
             if (routing == SOURCE_ROUTING and randomize == False):
                 continue
-            if (routing == RANDOM_ECMP):
+            if (routing == RANDOM_ECMP or routing == REPS):
                 multiPath = "true"
             else:
                 multiPath = "false"
@@ -187,7 +204,7 @@ for transferSize in TRANSFER_SIZES:
             # print(dfX)
     ax.legend()
     fig.tight_layout()
-    fig.savefig(plots+'buffer-cdf-'+str(qpWindow)+'-'+str(transferSize)+'.pdf')
+    # fig.savefig(plots+'buffer-cdf-'+str(qpWindow)+'-'+str(transferSize)+'.pdf')
 
 
     
@@ -261,7 +278,7 @@ for transferSize in TRANSFER_SIZES:
 
 plt.rcParams.update({'font.size': 13})
 qpWindow="256"
-transferSize = 64000
+transferSize = 65000
 
 for rand in ["false","true"]:
     fig,ax = plt.subplots(1,1,figsize=(8,4))
@@ -349,7 +366,7 @@ for rand in ["false","true"]:
     ax2.set_ylabel("CDF")
     ax2.xaxis.grid(True,ls="--")
     ax2.yaxis.grid(True,ls="--")
-    x_position = 1000*255*(transferSize*8)/(100*1e9)
+    x_position = 1000*16*(transferSize*8)/(100*1e9)
     ax2.axvline(x_position, c='green', ls='--')
     # ax2.annotate('Optimal', xy=(x_position, 0), xytext=(x_position + 0.05, -0.04),
              # arrowprops=dict(facecolor='green', arrowstyle='fancy', linewidth=1, linestyle='-',edgecolor='green'),
