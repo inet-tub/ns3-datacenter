@@ -272,11 +272,11 @@ int RdmaEgressQueue::GetNextQindex(bool paused[]) {
 				// 	}
 				// }
 				// std::cout << "min_finish_id " << min_finish_id << " num " << m_qpGrp->GetN() << std::endl;
-				// if (randomize){
-					// m_rrlast = m_rand->GetInteger (0, GetFlowCount()-1);
+				if (randomize){
+					m_rrlast = m_rand->GetInteger (0, GetFlowCount()-1);
 					// m_rrlastSr[m_lastPath] = m_rand->GetInteger(0,UINT16_MAX);
 					// m_lastPath = m_rand->GetInteger(0,UINT16_MAX)%nPaths;
-				// }
+				}
 			}
 
 			if (res != -1024) {
