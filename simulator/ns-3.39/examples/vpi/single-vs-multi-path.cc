@@ -573,8 +573,6 @@ void collective_rdma(double START_TIME, uint32_t collective, uint32_t transferSi
                         DestportNumder[fromServerIndex][destServerIndex]++; // uint16_t (rand_range (PORT_START, PORT_END));
                     uint16_t sport = portNumder[fromServerIndex][destServerIndex]++;
 
-                    uint64_t flowSize = transferSize;
-
                     RdmaClientHelper clientHelper(
                         3, serverAddress[fromServerIndex], serverAddress[destServerIndex], sport, dport, flowSize,
                         has_win ? (global_t == 1 ? maxBdp : pairBdp[n.Get(fromServerIndex)][n.Get(destServerIndex)]) : 0,
