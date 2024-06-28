@@ -154,6 +154,7 @@ for algorithm in [ALL_TO_ALL, RING]:
         maxv = 0
         for randomize in [True]:
             for routing in [FLOW_ECMP, RANDOM_ECMP, REPS, SOURCE_ROUTING]:
+                print(routing, transferSize, algorithm)
                 if (routing == SOURCE_ROUTING and randomize == False):
                     continue
                 if (routing == RANDOM_ECMP or routing == REPS):
