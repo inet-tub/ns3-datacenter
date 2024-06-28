@@ -497,6 +497,7 @@ void collective_rdma(double START_TIME, uint32_t collective, uint32_t transferSi
             // std::cout << fromServerIndex << " --> " << destServerIndex << " " << destinationLeaf << " " << (fromServerIndex+SERVER_COUNT + 1)%(LEAF_COUNT*SERVER_COUNT) << std::endl;
 
             uint32_t numChannels = 4;
+            uint64_t flowSize = double(transferSize)/numChannels + 1;
             if (algorithm == SOURCE_ROUTING){
 
                 for (uint32_t channel = 0; channel < numChannels - numChannels%LEAF_COUNT; channel ++){
@@ -511,7 +512,7 @@ void collective_rdma(double START_TIME, uint32_t collective, uint32_t transferSi
                         DestportNumder[fromServerIndex][destServerIndex]++; // uint16_t (rand_range (PORT_START, PORT_END));
                     uint16_t sport = portNumder[fromServerIndex][destServerIndex]++;
 
-                    uint64_t flowSize = transferSize;
+                    // uint64_t flowSize = transferSize;
 
                     RdmaClientHelper clientHelper(
                         3, serverAddress[fromServerIndex], serverAddress[destServerIndex], sport, dport, flowSize,
@@ -530,7 +531,7 @@ void collective_rdma(double START_TIME, uint32_t collective, uint32_t transferSi
 
                 uint32_t g = gcd(numChannels%LEAF_COUNT,LEAF_COUNT);
                 uint64_t numSplit = LEAF_COUNT/g;
-                uint64_t flowSize = double(transferSize)/numSplit + 1;
+                flowSize = double(flowSize)/numSplit + 1;
                 uint32_t numFlowAfterSplit = (numChannels%LEAF_COUNT)*numSplit;
 
                 for (uint32_t rem = 0; rem < numFlowAfterSplit; rem++){
