@@ -423,6 +423,12 @@ int get_target_leaf(int leafCount)
 
 uint32_t FAN = 5;
 
+int gcd(int a, int b) {
+    if (b == 0)
+        return a;
+    return gcd(b, a % b);
+}
+
 void collective_rdma(double START_TIME, uint32_t collective, uint32_t transferSize, uint32_t algorithm, uint32_t LEAF_COUNT,
                      uint32_t SERVER_COUNT)
 {
@@ -490,37 +496,94 @@ void collective_rdma(double START_TIME, uint32_t collective, uint32_t transferSi
 
             // std::cout << fromServerIndex << " --> " << destServerIndex << " " << destinationLeaf << " " << (fromServerIndex+SERVER_COUNT + 1)%(LEAF_COUNT*SERVER_COUNT) << std::endl;
 
-            uint32_t numChannels = 1;
+            uint32_t numChannels = 4;
             if (algorithm == SOURCE_ROUTING){
-                transferSize = transferSize/LEAF_COUNT;
-                numChannels = SERVER_COUNT;
+
+                for (uint32_t channel = 0; channel < numChannels - numChannels%LEAF_COUNT; channel ++){
+
+                    if (DestportNumder[fromServerIndex][destServerIndex] == UINT16_MAX - 1)
+                        DestportNumder[fromServerIndex][destServerIndex] = rand_range(10000, 11000);
+
+                    if (portNumder[fromServerIndex][destServerIndex] == UINT16_MAX - 1)
+                        portNumder[fromServerIndex][destServerIndex] = rand_range(10000, 11000);
+
+                    uint16_t dport =
+                        DestportNumder[fromServerIndex][destServerIndex]++; // uint16_t (rand_range (PORT_START, PORT_END));
+                    uint16_t sport = portNumder[fromServerIndex][destServerIndex]++;
+
+                    uint64_t flowSize = transferSize;
+
+                    RdmaClientHelper clientHelper(
+                        3, serverAddress[fromServerIndex], serverAddress[destServerIndex], sport, dport, flowSize,
+                        has_win ? (global_t == 1 ? maxBdp : pairBdp[n.Get(fromServerIndex)][n.Get(destServerIndex)]) : 0,
+                        global_t == 1 ? maxRtt : pairRtt[fromServerIndex][destServerIndex],
+                        Simulator::GetMaximumSimulationTime());
+                    ApplicationContainer appCon = clientHelper.Install(n.Get(fromServerIndex));
+                    // std::cout << " from " << fromServerIndex << " to " << destServerIndex <<  " fromLeadId " <<
+                    // fromLeafId << " serverCount " << SERVER_COUNT << " leafCount " << LEAF_COUNT <<  std::endl;
+                    // appCon.Start(Seconds(startTime)+NanoSeconds(rand_range(0,100)));
+                    appCon.Start(Seconds(startTime));
+                    totalTransfersInCollective += 1;
+                }
+
+                uint32_t g = gcd(numChannels%LEAF_COUNT,LEAF_COUNT);
+                uint32_t numSplit = LEAF_COUNT/g;
+                transferSize = transferSize/numSplit + 1;
+                uint32_t numFlowAfterSplit = (numChannels%LEAF_COUNT)*numSplit;
+
+                for (uint32_t rem = 0; rem < numFlowAfterSplit; rem++){
+                    if (DestportNumder[fromServerIndex][destServerIndex] == UINT16_MAX - 1)
+                        DestportNumder[fromServerIndex][destServerIndex] = rand_range(10000, 11000);
+
+                    if (portNumder[fromServerIndex][destServerIndex] == UINT16_MAX - 1)
+                        portNumder[fromServerIndex][destServerIndex] = rand_range(10000, 11000);
+
+                    uint16_t dport =
+                        DestportNumder[fromServerIndex][destServerIndex]++; // uint16_t (rand_range (PORT_START, PORT_END));
+                    uint16_t sport = portNumder[fromServerIndex][destServerIndex]++;
+
+                    uint64_t flowSize = transferSize;
+
+                    RdmaClientHelper clientHelper(
+                        3, serverAddress[fromServerIndex], serverAddress[destServerIndex], sport, dport, flowSize,
+                        has_win ? (global_t == 1 ? maxBdp : pairBdp[n.Get(fromServerIndex)][n.Get(destServerIndex)]) : 0,
+                        global_t == 1 ? maxRtt : pairRtt[fromServerIndex][destServerIndex],
+                        Simulator::GetMaximumSimulationTime());
+                    ApplicationContainer appCon = clientHelper.Install(n.Get(fromServerIndex));
+                    // std::cout << " from " << fromServerIndex << " to " << destServerIndex <<  " fromLeadId " <<
+                    // fromLeafId << " serverCount " << SERVER_COUNT << " leafCount " << LEAF_COUNT <<  std::endl;
+                    // appCon.Start(Seconds(startTime)+NanoSeconds(rand_range(0,100)));
+                    appCon.Start(Seconds(startTime));
+                    totalTransfersInCollective += 1;
+                }
             }
+            else{
+                for (uint32_t channel = 0; channel < numChannels; channel ++){
 
-            for (uint32_t channel = 0; channel < numChannels; channel ++){
+                    if (DestportNumder[fromServerIndex][destServerIndex] == UINT16_MAX - 1)
+                        DestportNumder[fromServerIndex][destServerIndex] = rand_range(10000, 11000);
 
-                if (DestportNumder[fromServerIndex][destServerIndex] == UINT16_MAX - 1)
-                    DestportNumder[fromServerIndex][destServerIndex] = rand_range(10000, 11000);
+                    if (portNumder[fromServerIndex][destServerIndex] == UINT16_MAX - 1)
+                        portNumder[fromServerIndex][destServerIndex] = rand_range(10000, 11000);
 
-                if (portNumder[fromServerIndex][destServerIndex] == UINT16_MAX - 1)
-                    portNumder[fromServerIndex][destServerIndex] = rand_range(10000, 11000);
+                    uint16_t dport =
+                        DestportNumder[fromServerIndex][destServerIndex]++; // uint16_t (rand_range (PORT_START, PORT_END));
+                    uint16_t sport = portNumder[fromServerIndex][destServerIndex]++;
 
-                uint16_t dport =
-                    DestportNumder[fromServerIndex][destServerIndex]++; // uint16_t (rand_range (PORT_START, PORT_END));
-                uint16_t sport = portNumder[fromServerIndex][destServerIndex]++;
+                    uint64_t flowSize = transferSize;
 
-                uint64_t flowSize = transferSize;
-
-                RdmaClientHelper clientHelper(
-                    3, serverAddress[fromServerIndex], serverAddress[destServerIndex], sport, dport, flowSize,
-                    has_win ? (global_t == 1 ? maxBdp : pairBdp[n.Get(fromServerIndex)][n.Get(destServerIndex)]) : 0,
-                    global_t == 1 ? maxRtt : pairRtt[fromServerIndex][destServerIndex],
-                    Simulator::GetMaximumSimulationTime());
-                ApplicationContainer appCon = clientHelper.Install(n.Get(fromServerIndex));
-                // std::cout << " from " << fromServerIndex << " to " << destServerIndex <<  " fromLeadId " <<
-                // fromLeafId << " serverCount " << SERVER_COUNT << " leafCount " << LEAF_COUNT <<  std::endl;
-                // appCon.Start(Seconds(startTime)+NanoSeconds(rand_range(0,100)));
-                appCon.Start(Seconds(startTime));
-                totalTransfersInCollective += 1;
+                    RdmaClientHelper clientHelper(
+                        3, serverAddress[fromServerIndex], serverAddress[destServerIndex], sport, dport, flowSize,
+                        has_win ? (global_t == 1 ? maxBdp : pairBdp[n.Get(fromServerIndex)][n.Get(destServerIndex)]) : 0,
+                        global_t == 1 ? maxRtt : pairRtt[fromServerIndex][destServerIndex],
+                        Simulator::GetMaximumSimulationTime());
+                    ApplicationContainer appCon = clientHelper.Install(n.Get(fromServerIndex));
+                    // std::cout << " from " << fromServerIndex << " to " << destServerIndex <<  " fromLeadId " <<
+                    // fromLeafId << " serverCount " << SERVER_COUNT << " leafCount " << LEAF_COUNT <<  std::endl;
+                    // appCon.Start(Seconds(startTime)+NanoSeconds(rand_range(0,100)));
+                    appCon.Start(Seconds(startTime));
+                    totalTransfersInCollective += 1;
+                }
             }
         }
         std::cout << "Finished installation of applications for Ring collective" << std::endl;

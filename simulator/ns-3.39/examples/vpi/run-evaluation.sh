@@ -111,7 +111,7 @@ for TRANSFER_SIZE in ${TRANSFER_SIZES[@]};do
 					    --collective=$COLLECTIVE	\
 					    --collectiveAlgorithm=$ALG 	\
 					    --rdmaRto=$rto" > $DUMPFILE 2> $DUMPFILE)&
-					sleep 5
+					sleep 1
 				fi
 				NUM=$(( $NUM+1  ))
 			done
@@ -161,7 +161,7 @@ for TRANSFER_SIZE in ${TRANSFER_SIZES[@]};do
 					    --collective=$COLLECTIVE	\
 					    --collectiveAlgorithm=$ALG 	\
 					    --rdmaRto=$rto" > $DUMPFILE 2> $DUMPFILE)&
-					sleep 5
+					sleep 1
 				fi
 				NUM=$(( $NUM+1  ))
 			done
@@ -211,7 +211,7 @@ for TRANSFER_SIZE in ${TRANSFER_SIZES[@]};do
 					    --collective=$COLLECTIVE	\
 					    --collectiveAlgorithm=$ALG 	\
 					    --rdmaRto=$rto" > $DUMPFILE 2> $DUMPFILE)&
-					sleep 5
+					sleep 1
 				fi
 				NUM=$(( $NUM+1  ))
 			done
@@ -261,7 +261,7 @@ for TRANSFER_SIZE in ${TRANSFER_SIZES[@]};do
 					    --collective=$COLLECTIVE	\
 					    --collectiveAlgorithm=$ALG 	\
 					    --rdmaRto=$rto" > $DUMPFILE 2> $DUMPFILE)&
-					sleep 5
+					sleep 1
 				fi
 				NUM=$(( $NUM+1  ))
 			done
@@ -316,7 +316,7 @@ for TRANSFER_SIZE in 16 64;do
 					    --collective=$COLLECTIVE	\
 					    --collectiveAlgorithm=$ALG 	\
 					    --rdmaRto=$rto" > $DUMPFILE 2> $DUMPFILE)&
-					sleep 5
+					sleep 1
 				fi
 				NUM=$(( $NUM+1  ))
 			done
@@ -366,7 +366,7 @@ for TRANSFER_SIZE in 16 64;do
 					    --collective=$COLLECTIVE	\
 					    --collectiveAlgorithm=$ALG 	\
 					    --rdmaRto=$rto" > $DUMPFILE 2> $DUMPFILE)&
-					sleep 5
+					sleep 1
 				fi
 				NUM=$(( $NUM+1  ))
 			done
@@ -416,7 +416,7 @@ for TRANSFER_SIZE in 16 64;do
 					    --collective=$COLLECTIVE	\
 					    --collectiveAlgorithm=$ALG 	\
 					    --rdmaRto=$rto" > $DUMPFILE 2> $DUMPFILE)&
-					sleep 5
+					sleep 1
 				fi
 				NUM=$(( $NUM+1  ))
 			done
