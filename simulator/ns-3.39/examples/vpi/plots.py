@@ -153,7 +153,7 @@ for algorithm in [ALL_TO_ALL, RING]:
         minv = 10000
         maxv = 0
         for randomize in [True]:
-            for routing in [FLOW_ECMP, RANDOM_ECMP, REPS, SOURCE_ROUTING]:
+            for routing in [SOURCE_ROUTING]:
                 print(routing, transferSize, algorithm)
                 if (routing == SOURCE_ROUTING and randomize == False):
                     continue
@@ -174,8 +174,8 @@ for algorithm in [ALL_TO_ALL, RING]:
                 else:
                     ax.plot(x[-1],y[-1], lw = 3,c = colors[routing][randomize],marker=markers[routing][randomize], markersize = 15,mfc='none',label=labels[routing][randomize])
                 # print(dfX)
-                x_position = 1000*4*(transferSize*8)/(100*1e9)
-                ax.axvline(x_position, c='green', ls='--')
+                # x_position = 1000*4*(transferSize*8)/(100*1e9)
+                # ax.axvline(x_position, c='green', ls='--')
                 if minv > min(x):
                     minv = min(x)
                 if maxv < max(x):

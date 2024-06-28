@@ -524,11 +524,13 @@ void collective_rdma(double START_TIME, uint32_t collective, uint32_t transferSi
                     // appCon.Start(Seconds(startTime)+NanoSeconds(rand_range(0,100)));
                     appCon.Start(Seconds(startTime));
                     totalTransfersInCollective += 1;
+                    // std::cout << fromServerIndex << " --> " << destServerIndex << " " << destinationLeaf << " " << flowSize << std::endl;
                 }
+                // exit(1);
 
                 uint32_t g = gcd(numChannels%LEAF_COUNT,LEAF_COUNT);
-                uint32_t numSplit = LEAF_COUNT/g;
-                transferSize = transferSize/numSplit + 1;
+                uint64_t numSplit = LEAF_COUNT/g;
+                uint64_t flowSize = double(transferSize)/numSplit + 1;
                 uint32_t numFlowAfterSplit = (numChannels%LEAF_COUNT)*numSplit;
 
                 for (uint32_t rem = 0; rem < numFlowAfterSplit; rem++){
@@ -542,8 +544,6 @@ void collective_rdma(double START_TIME, uint32_t collective, uint32_t transferSi
                         DestportNumder[fromServerIndex][destServerIndex]++; // uint16_t (rand_range (PORT_START, PORT_END));
                     uint16_t sport = portNumder[fromServerIndex][destServerIndex]++;
 
-                    uint64_t flowSize = transferSize;
-
                     RdmaClientHelper clientHelper(
                         3, serverAddress[fromServerIndex], serverAddress[destServerIndex], sport, dport, flowSize,
                         has_win ? (global_t == 1 ? maxBdp : pairBdp[n.Get(fromServerIndex)][n.Get(destServerIndex)]) : 0,
@@ -555,6 +555,7 @@ void collective_rdma(double START_TIME, uint32_t collective, uint32_t transferSi
                     // appCon.Start(Seconds(startTime)+NanoSeconds(rand_range(0,100)));
                     appCon.Start(Seconds(startTime));
                     totalTransfersInCollective += 1;
+                    // std::cout << fromServerIndex << " --> " << destServerIndex << " " << destinationLeaf << " " << flowSize << " " << numFlowAfterSplit << " " << g << std::endl;
                 }
             }
             else{
