@@ -496,7 +496,7 @@ void collective_rdma(double START_TIME, uint32_t collective, uint32_t transferSi
 
             // std::cout << fromServerIndex << " --> " << destServerIndex << " " << destinationLeaf << " " << (fromServerIndex+SERVER_COUNT + 1)%(LEAF_COUNT*SERVER_COUNT) << std::endl;
 
-            uint32_t numChannels = 8;
+            uint32_t numChannels = 4;
             uint64_t flowSize = double(transferSize)/numChannels + 1;
             if (algorithm == SOURCE_ROUTING){
 
