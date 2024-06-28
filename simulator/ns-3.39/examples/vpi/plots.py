@@ -153,8 +153,8 @@ for algorithm in [ALL_TO_ALL, RING]:
         minv = 10000
         maxv = 0
         for randomize in [True]:
-            for routing in [SOURCE_ROUTING]:
-                print(routing, transferSize, algorithm)
+            for routing in [FLOW_ECMP, RANDOM_ECMP, REPS, SOURCE_ROUTING]:
+                # print(routing, transferSize, algorithm)
                 if (routing == SOURCE_ROUTING and randomize == False):
                     continue
                 if (routing == RANDOM_ECMP or routing == REPS):
@@ -183,7 +183,7 @@ for algorithm in [ALL_TO_ALL, RING]:
         ax.legend()
         # ax.set_xlim(minv,maxv+minv*0.1)
         fig.tight_layout()
-        # fig.savefig(plots+'cct-cdf-'+str(transferSize)+'-'+str(algorithm)+'.pdf')
+        fig.savefig(plots+'cct-cdf-'+str(transferSize)+'-'+str(algorithm)+'.pdf')
 
 #%%
 
