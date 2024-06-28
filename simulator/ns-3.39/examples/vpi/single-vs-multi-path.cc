@@ -560,6 +560,7 @@ void collective_rdma(double START_TIME, uint32_t collective, uint32_t transferSi
                 }
             }
             else{
+                uint64_t flowSize = double(transferSize)/numChannels + 1;
                 for (uint32_t channel = 0; channel < numChannels; channel ++){
 
                     if (DestportNumder[fromServerIndex][destServerIndex] == UINT16_MAX - 1)
