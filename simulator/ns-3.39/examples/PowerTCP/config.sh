@@ -1,1 +1,1 @@
-NS3=/home/vamsi/src/phd/ns3-datacenter/simulator/ns-3.35
+NS3=/home/vamsi/ns3-datacenter/simulator/ns-3.39

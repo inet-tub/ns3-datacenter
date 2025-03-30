@@ -994,104 +994,95 @@ void RdmaHw::UpdateRatePower(Ptr<RdmaQueuePair> qp, Ptr<Packet> p, CustomHeader 
 		prevCompletion = Simulator::Now().GetNanoSeconds();
         qp->rates.erase(it);
 	}
-	if (qp->hp.m_lastUpdateSeq == 0 && !PowerTCPdelay) {
+	// check packet INT
+	IntHeader &ih = ch.ack.ih;
+	if (ih.nhop <= IntHeader::maxHop) {
+		double max_c = 0;
+		bool inStable = false;
+		// check each hop
+		double U = 0;
+		uint64_t dt = 0;
+		bool updated[IntHeader::maxHop] = {false}, updated_any = false;
+		NS_ASSERT(ih.nhop <= IntHeader::maxHop);
+		for (uint32_t i = 0; i < ih.nhop; i++) {
+			if (m_sampleFeedback) {
+				if (ih.hop[i].GetQlen() == 0 and fast_react)
+					continue;
+			}
+			updated[i] = updated_any = true;
+
+			uint64_t tau = ih.hop[i].GetTimeDelta(qp->hp.hop[i]);
+			double duration = tau * 1e-9;
+			double rxRate = (ih.hop[i].GetBytesDelta(qp->hp.hop[i])) * 8.0 / duration;
+			double u;
+
+			if (!PowerTCPdelay) {
+				double A = rxRate;
+				if (A < ih.hop[i].GetLineRate()*0.5 )
+					A = ih.hop[i].GetLineRate()*0.5;
+				// Power = (dequeue rate + queue gradient) * (queue length + bandwidth * baseRtt)
+				// Same as Power = (Arrival rate) * (queue length + bandwidth * baseRtt)
+				double power = ( A ) * (double(ih.hop[i].GetQlen() * 8.0) + ih.hop[i].GetLineRate() * (qp->m_baseRtt * 1e-9));
+				double powerx = (power) / (ih.hop[i].GetLineRate() * (ih.hop[i].GetLineRate() * qp->m_baseRtt * 1e-9) );
+				u = powerx; // PowerTCP
+			}
+			else {
+				// delay approach
+				double A = ( double(prevRtt - qp->prevRtt) / (prevCompletion - qp->prevCompletion) + 1  );
+				if (A < 0.5)
+					A = 0.5;
+				double power = ( A ) * (prevRtt);
+				double powerx = (power) / (1.05 * qp->m_baseRtt);
+				u = powerx; // theta-PowerTCP
+			}
+			if (u > U) {
+				U = u;
+				if (PowerTCPdelay) {
+					dt = prevCompletion - qp->prevCompletion;
+				}
+				else {
+					dt = tau;
+				}
+			}
+			qp->hp.hop[i] = ih.hop[i];
+		}
+
+		DataRate new_rate;
+		int32_t new_incStage;
+		DataRate new_rate_per_hop[IntHeader::maxHop];
+		int32_t new_incStage_per_hop[IntHeader::maxHop];
+
+		if (updated_any) {
+			if (dt > 1.0 * qp->m_baseRtt)
+				dt = 1.0 * qp->m_baseRtt;
+
+			if (U < 0) {
+				U = qp->hp.u;
+			}
+			qp->hp.u = (qp->hp.u * (1.0 * qp->m_baseRtt - dt) + U * dt) / double(1.0 * qp->m_baseRtt);
+			if (!PowerTCPdelay) {
+				max_c = qp->hp.u / m_targetUtil;
+				new_rate = (0.9 * ( qp->hp.m_curRate / max_c + DataRate("150Mbps") ) + 0.1 * qp->hp.m_curRate);
+
+			}
+			else {
+				max_c = qp->hp.u;
+				new_rate = (0.7 * ( qp->hp.m_curRate / max_c + DataRate("150Mbps") ) + 0.3 * qp->hp.m_curRate);
+			}
+			if (new_rate < m_minRate)
+				new_rate = m_minRate;
+			if (new_rate > qp->m_max_rate)
+				new_rate = qp->m_max_rate;
+		}
 		qp->prevRtt = prevRtt;
 		qp->prevCompletion = Simulator::Now().GetNanoSeconds();
-		qp->hp.m_lastUpdateSeq = next_seq;
-		// store INT
-		IntHeader &ih = ch.ack.ih;
-		NS_ASSERT(ih.nhop <= IntHeader::maxHop);
-		for (uint32_t i = 0; i < ih.nhop; i++)
-			qp->hp.hop[i] = ih.hop[i];
-	}else {
-		// check packet INT
-		IntHeader &ih = ch.ack.ih;
-		if (ih.nhop <= IntHeader::maxHop) {
-			double max_c = 0;
-			bool inStable = false;
-			// check each hop
-			double U = 0;
-			uint64_t dt = 0;
-			bool updated[IntHeader::maxHop] = {false}, updated_any = false;
-			NS_ASSERT(ih.nhop <= IntHeader::maxHop);
-			for (uint32_t i = 0; i < ih.nhop; i++) {
-				if (m_sampleFeedback) {
-					if (ih.hop[i].GetQlen() == 0 and fast_react)
-						continue;
-				}
-				updated[i] = updated_any = true;
-
-				uint64_t tau = ih.hop[i].GetTimeDelta(qp->hp.hop[i]);
-				double duration = tau * 1e-9;
-				double rxRate = (ih.hop[i].GetBytesDelta(qp->hp.hop[i])) * 8.0 / duration;
-
-				double u;
-
-				if (!PowerTCPdelay) {
-					double A = rxRate;
-					// double A = txRate + (double(ih.hop[i].GetQlen() * 8.0) - double(qp->hp.hop[i].GetQlen() * 8.0)) / duration;
-					double power = ( A ) * (double(ih.hop[i].GetQlen() * 8.0) + ih.hop[i].GetLineRate() * (qp->m_baseRtt * 1e-9));
-					double powerx = (power) / (ih.hop[i].GetLineRate() * (ih.hop[i].GetLineRate() * qp->m_baseRtt * 1e-9) );
-					u = powerx; // PowerTCP
-				}
-				else {
-					// delay approach
-					double A = ( double(prevRtt - qp->prevRtt) / (prevCompletion - qp->prevCompletion) + 1  );
-					if (A < 0.5)
-						A = 0.5;
-					double power = ( A ) * (prevRtt);
-					double powerx = (power) / (1.05 * qp->m_baseRtt);
-					u = powerx; // theta-PowerTCP
-				}
-				if (u > U) {
-					U = u;
-					if (PowerTCPdelay) {
-						dt = prevCompletion - qp->prevCompletion;
-					}
-					else {
-						dt = tau;
-					}
-				}
-				qp->hp.hop[i] = ih.hop[i];
-			}
-
-			DataRate new_rate;
-			int32_t new_incStage;
-			DataRate new_rate_per_hop[IntHeader::maxHop];
-			int32_t new_incStage_per_hop[IntHeader::maxHop];
-
+		if (updated_any) {
+			ChangeRate(qp, new_rate);
+		}
+		if (!fast_react) {
 			if (updated_any) {
-				if (dt > 1.0 * qp->m_baseRtt)
-					dt = 1.0 * qp->m_baseRtt;
-
-				if (U < 0) {
-					U = qp->hp.u;
-				}
-				qp->hp.u = (qp->hp.u * (1.0 * qp->m_baseRtt - dt) + U * dt) / double(1.0 * qp->m_baseRtt);
-				if (!PowerTCPdelay) {
-					max_c = qp->hp.u / m_targetUtil;
-					new_rate = (0.9 * ( qp->hp.m_curRate / max_c + DataRate("150Mbps") ) + 0.1 * qp->hp.m_curRate);
-
-				}
-				else {
-					max_c = qp->hp.u;
-					new_rate = (0.7 * ( qp->hp.m_curRate / max_c + DataRate("150Mbps") ) + 0.3 * qp->hp.m_curRate);
-				}
-				if (new_rate < m_minRate)
-					new_rate = m_minRate;
-				if (new_rate > qp->m_max_rate)
-					new_rate = qp->m_max_rate;
-			}
-			qp->prevRtt = prevRtt;
-			qp->prevCompletion = Simulator::Now().GetNanoSeconds();
-			if (updated_any) {
-				ChangeRate(qp, new_rate);
-			}
-			if (!fast_react) {
-				if (updated_any) {
-					qp->hp.m_curRate = new_rate;
-					qp->hp.m_incStage = new_incStage;
-				}
+				qp->hp.m_curRate = new_rate;
+				qp->hp.m_incStage = new_incStage;
 			}
 		}
 		if (!fast_react) {

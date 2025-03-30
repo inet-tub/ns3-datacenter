@@ -946,8 +946,8 @@ int main(int argc, char *argv[])
 				}
 
 			}
-			sw->m_mmu->SetBufferPool(buffer_size * 1024 * 1024);
-			sw->m_mmu->SetIngressPool(buffer_size * 1024 * 1024 - totalHeadroom);
+			sw->m_mmu->SetBufferPool(buffer_size * 1024 * 1024 + totalHeadroom);
+			sw->m_mmu->SetIngressPool(buffer_size * 1024 * 1024);
 			sw->m_mmu->SetEgressLosslessPool(buffer_size * 1024 * 1024);
 			sw->m_mmu->node_id = sw->GetId();
 		}
